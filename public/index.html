@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Qlik Authentication</title>
+    <script
+        crossorigin="anonymous"
+        type="application/javascript"
+        src="https://cdn.jsdelivr.net/npm/@qlik/embed-web-components"
+        data-host="https://arqiva.uk.qlikcloud.com/"
+        data-client-id="f6ce3d532ced7372cd9cfc7498582df"
+        data-redirect-uri="https://192.168.1.128:5500/oauth_callback.html"
+        data-access-token-storage="session">
+    </script>
+</head>
+<body>
+    <div id="qlik-embed"></div>
+    <script>
+        window.addEventListener('load', () => {
+            // Initialize Qlik authentication
+            const qlikAuth = window.qlikEmbed.connect();
+            
+            // Store the auth token in session storage
+            qlikAuth.on('authenticated', (token) => {
+                sessionStorage.setItem('qlik_token', token);
+                window.location.href = '/analytics';
+            });
+            
+            qlikAuth.on('error', (error) => {
+                console.error('Qlik authentication error:', error);
+            });
+        });
+    </script>
+</body>
+</html>
