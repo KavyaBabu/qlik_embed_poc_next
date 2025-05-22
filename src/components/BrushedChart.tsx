@@ -3,7 +3,12 @@ import * as d3 from 'd3';
 
 interface DataPoint { category: string; value: number }
 
-const ClippedBrushBarChart: React.FC<{ data: DataPoint[] }> = ({ data }) => {
+interface ClippedBrushBarChartProps {
+  data: DataPoint[];
+  title?: string;
+}
+
+const ClippedBrushBarChart: React.FC<ClippedBrushBarChartProps> = ({ data, title }) => {
   const detailContainerRef = useRef<HTMLDivElement>(null);
   const detailChartRef     = useRef<SVGSVGElement>(null);
   const detailXAxisRef     = useRef<SVGSVGElement>(null);
@@ -16,8 +21,8 @@ const ClippedBrushBarChart: React.FC<{ data: DataPoint[] }> = ({ data }) => {
     const N = data.length;
     const margin = { top: 15, right: 30, bottom: 30, left: 70 };
     const detailW = 250;
-    const overviewW = 50;
-    const barH = 20;
+    const overviewW = 60;
+    const barH = 19;
     const visible = 15;
     const fullH = N * barH;
     const clipH = visible * barH;    
@@ -86,7 +91,6 @@ const ClippedBrushBarChart: React.FC<{ data: DataPoint[] }> = ({ data }) => {
         .attr('transform', `translate(${margin.left},0)`)
         .call(d3.axisBottom(xScaleL).ticks(5));
 
-    // 5) Draw OVERVIEW bars
     const overviewSvg = d3.select(overviewChartRef.current)
       .attr('width', overviewW)
       .attr('height', contH)
@@ -128,29 +132,41 @@ const ClippedBrushBarChart: React.FC<{ data: DataPoint[] }> = ({ data }) => {
   }, [data]);
 
   return (
-    <div style={{ display: 'flex', gap: 0, alignItems: 'start' }}>
-      <div style={{ display: 'flex', flexDirection: 'column' }}>
+    <div>
+    {title && (
+      <h5 style={{ 
+        textAlign: 'center', 
+        fontSize: '14px', 
+        fontWeight: 'bold', 
+        color: '#333' 
+      }}>
+        {title}
+      </h5>
+      )}
+      <div style={{ display: 'flex', gap: 0, alignItems: 'start' }}>
+        <div style={{ display: 'flex', flexDirection: 'column' }}>
+          <div
+            ref={detailContainerRef}
+            style={{
+              overflow: 'hidden',
+              background: 'transparent',
+            }}
+          >
+            <svg ref={detailChartRef} />
+          </div>
+          <svg ref={detailXAxisRef} />
+        </div>
         <div
-          ref={detailContainerRef}
+          ref={overviewContainerRef}
           style={{
             overflow: 'hidden',
-            background: 'transparent',
+            border: '1px solid #ddd',
+            background: '#fafafa',
+            marginLeft: 0
           }}
         >
-          <svg ref={detailChartRef} />
+          <svg ref={overviewChartRef} />
         </div>
-        <svg ref={detailXAxisRef} />
-      </div>
-      <div
-        ref={overviewContainerRef}
-        style={{
-          overflow: 'hidden',
-          border: '1px solid #ddd',
-          background: '#fafafa',
-          marginLeft: 0
-        }}
-      >
-        <svg ref={overviewChartRef} />
       </div>
     </div>
   );
