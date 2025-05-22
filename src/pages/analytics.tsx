@@ -35,7 +35,7 @@ const AnalyticsPage = () => {
 
   return (
     <div style={{ padding: '20px', maxWidth: '1800px', margin: '0 auto', overflowX: 'hidden' }}>
-      <h4 style={{ marginBottom: '30px', color: '#333' }}>Custom Reports</h4>
+      <h5 style={{ marginBottom: '30px', color: '#333' }}>Custom Reports</h5>
 
       <div style={{ display: 'flex', flexWrap: 'nowrap', gap: '20px', height: '450px'}}>
         {chartConfigs.map((config, index) => (
@@ -52,7 +52,7 @@ const AnalyticsPage = () => {
       </div>
 
       <div>
-        <h4 style={{ marginBottom: '20px', color: '#333' }}>Project Metadata Tables</h4>
+        <h5 style={{ marginBottom: '20px', color: '#333' }}>Project Metadata Tables</h5>
         <QlikTabbedTables
           appId={appId}
           tenantUrl={tenantUrl}
