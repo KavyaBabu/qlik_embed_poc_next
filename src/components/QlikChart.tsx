@@ -35,6 +35,8 @@ const D3Charts: React.FC<QlikChartProps> = ({
   const [isHovered, setIsHovered] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
   const [exportLoading, setExportLoading] = useState(false);
+  const [selectedSlice, setSelectedSlice] = useState<QlikDataPoint | null>(null);
+  const [tooltipPosition, setTooltipPosition] = useState({ x: 0, y: 0 });
   const menuRef = useRef<HTMLDivElement>(null);
   const chartWrapperRef = useRef<HTMLDivElement>(null); 
 
@@ -68,16 +70,19 @@ const D3Charts: React.FC<QlikChartProps> = ({
       if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
         setShowMenu(false);
       }
+      // Close tooltip when clicking outside
+      if (selectedSlice && !svgRef.current?.contains(event.target as Node)) {
+        setSelectedSlice(null);
+      }
     };
 
-    if (showMenu) {
+    if (showMenu || selectedSlice) {
       document.addEventListener('mousedown', handleClickOutside);
     }
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
-  }, [showMenu]);
-
+  }, [showMenu, selectedSlice]);
 
   const handleExport = async () => {
     try {
@@ -132,8 +137,6 @@ const D3Charts: React.FC<QlikChartProps> = ({
     }
   };
 
-
-
   const customColors = [
     'rgb(16, 58, 84)',    // --primary-800-base
     'rgb(8, 100, 123)',    // --primary-600-base
@@ -142,11 +145,14 @@ const D3Charts: React.FC<QlikChartProps> = ({
     'rgb(228, 238, 241)'  // --primary-100-base
   ];
 
-
   const color = d3.scaleOrdinal<string>()
     .domain(data.map(d => d.dimension))
     .range(customColors);
 
+  // Helper function to truncate text to 10 characters
+  const truncateText = (text: string, maxLength: number = 10): string => {
+    return text.length > maxLength ? text.substring(0, maxLength) + '...' : text;
+  };
 
   useEffect(() => {
     if (!data || data.length === 0 || !svgRef.current) return;
@@ -159,7 +165,6 @@ const D3Charts: React.FC<QlikChartProps> = ({
       'rgb(228, 238, 241)'  // --primary-100-base
     ];
 
-
     const color = d3.scaleOrdinal<string>()
       .domain(data.map(d => d.dimension))
       .range(customColors);
@@ -168,20 +173,43 @@ const D3Charts: React.FC<QlikChartProps> = ({
     svg.selectAll('*').remove();
 
     const containerWidth = svgRef.current?.parentElement?.clientWidth || 500;
-    const width = chartType === 'bar' ? containerWidth * 0.95 : 320;
-    const fixedChartHeight = 320; 
+    const width = chartType === 'bar' ? containerWidth * 0.95 : 500; // Further increased width for pie/doughnut
+    const fixedChartHeight = chartType === 'pie' || chartType === 'doughnut' ? 500 : 320; // Further increased height for pie/doughnut 
     const barChartContentHeight = Math.max(80 + data.length * 38, fixedChartHeight);
     const height = chartType === 'bar' ? barChartContentHeight : fixedChartHeight;
     const margin = { top: 70, right: 20, bottom: 50, left: 100 };
 
     svg.attr('width', width).attr('height', height);
-    svg.append('text')
-      .attr('x', 0)
-      .attr('y', 38)
-      .attr('text-anchor', 'start')
-      .style('font-size', '16px')
-      .style('font-weight', 'bold')
-      .text(title);
+    
+    // Add centered title for pie/doughnut charts
+    if (chartType === 'pie' || chartType === 'doughnut') {
+      svg.append('text')
+        .attr('x', width / 2)
+        .attr('y', 30)
+        .attr('text-anchor', 'middle')
+        .style('font-size', '18px')
+        .style('font-weight', 'bold')
+        .text(title);
+      
+      // Add subtitle
+      const subtitle = chartType === 'pie' ? 'Budget Analysis' : 'Timeline Analysis';
+      svg.append('text')
+        .attr('x', width / 2)
+        .attr('y', 50)
+        .attr('text-anchor', 'middle')
+        .style('font-size', '14px')
+        .style('fill', '#666')
+        .text(subtitle);
+    } else {
+      // Original title positioning for bar charts
+      svg.append('text')
+        .attr('x', 0)
+        .attr('y', 38)
+        .attr('text-anchor', 'start')
+        .style('font-size', '16px')
+        .style('font-weight', 'bold')
+        .text(title);
+    }
 
     if (chartType === 'bar') {
       const maxValue = d3.max(data, d => d.value) ?? 0;
@@ -247,82 +275,188 @@ const D3Charts: React.FC<QlikChartProps> = ({
         .style('fill', '#333')
         .text(d => Math.round(d.value));
     } else if (chartType === 'pie' || chartType === 'doughnut') {
-      const radius = Math.min(width, height) / 2 - 50;
+      const radius = Math.min(width, height) / 2 - 140; // More margin for better label positioning
       const pie = d3.pie<QlikDataPoint>().value(d => d.value);
       const arc = d3.arc<d3.PieArcDatum<QlikDataPoint>>()
-        .innerRadius(chartType === 'doughnut' ? radius * 0.6 : 0)
+        .innerRadius(chartType === 'doughnut' ? radius * 0.75 : 0) // Thinner doughnut ring
         .outerRadius(radius);
 
       const pieGroup = svg.append('g')
-        .attr('transform', `translate(${radius + 10},${height / 2 + 10})`);
+        .attr('transform', `translate(${width / 2},${height / 2 + 20})`); // Better vertical centering
 
       const total = d3.sum(data.map(d => d.value));
 
-      const tooltip = d3.select(svgRef.current?.parentNode as HTMLElement)
-        .append('div')
-        .attr('class', 'tooltip')
-        .style('position', 'absolute')
-        .style('background', 'white')
-        .style('padding', '5px 10px')
-        .style('border', '1px solid #ddd')
-        .style('border-radius', '4px')
-        .style('pointer-events', 'none')
-        .style('opacity', 0)
-        .style('font-size', '12px')
-        .style('box-shadow', '0 2px 4px rgba(0,0,0,0.1)');
+      // Get static labels based on chart type
+      const getStaticLabels = () => {
+        if (chartType === 'pie') {
+          return ['Within Budget', 'Outside Budget'];
+        } else if (chartType === 'doughnut') {
+          return ['Within Timeline', 'Outside Timeline'];
+        }
+        return [];
+      };
 
-      pieGroup.selectAll('path')
+      const staticLabels = getStaticLabels();
+
+      const slices = pieGroup.selectAll('path')
         .data(pie(data))
         .join('path')
         .attr('d', arc as any)
         .attr('fill', d => color(d.data.dimension))
         .attr('stroke', 'white')
-        .attr('stroke-width', 1)
-        .on('mouseover', function (event: MouseEvent, d: d3.PieArcDatum<QlikDataPoint>) {
-          d3.select(this).attr('stroke-width', 2);
-          tooltip
-            .style('opacity', 1)
-            .style('left', event.pageX + 10 + 'px')
-            .style('top', event.pageY - 30 + 'px')
-            .html(`<strong>${d.data.dimension}</strong><br/>Value: ${Math.round(d.data.value)}`);
+        .attr('stroke-width', 2)
+        .style('cursor', 'pointer')
+        .on('click', function (event: MouseEvent, d: d3.PieArcDatum<QlikDataPoint>) {
+          const rect = svgRef.current?.getBoundingClientRect();
+          if (rect) {
+            setTooltipPosition({
+              x: event.clientX - rect.left,
+              y: event.clientY - rect.top
+            });
+            setSelectedSlice(d.data);
+          }
+        })
+        .on('mouseover', function () {
+          d3.select(this).attr('stroke-width', 3);
         })
         .on('mouseout', function () {
-          d3.select(this).attr('stroke-width', 1);
-          tooltip.style('opacity', 0);
+          d3.select(this).attr('stroke-width', 2);
         });
 
       if (chartType === 'doughnut') {
         pieGroup.append('text')
           .attr('text-anchor', 'middle')
-          .attr('dy', '0.35em')
-          .style('font-size', '14px')
+          .attr('dy', '-0.2em')
+          .style('font-size', '20px')
           .style('font-weight', 'bold')
-          .text(`${Math.round(total)} Total`);
+          .text(`${Math.round(total)}`);
+        
+        pieGroup.append('text')
+          .attr('text-anchor', 'middle')
+          .attr('dy', '1.2em')
+          .style('font-size', '14px')
+          .style('fill', '#666')
+          .text('Total');
       }
 
-      pieGroup.selectAll('text.label')
-        .data(pie(data))
-        .enter()
-        .append('text')
-        .attr('transform', d => `translate(${arc.centroid(d)})`)
-        .attr('text-anchor', 'middle')
-        .style('font-size', '12px')
-        .style('fill', '#fff')
-        .style('pointer-events', 'none')
-        .text(d => {
-          const percentage = ((d.data.value / total) * 100).toFixed(1);
-          return `${percentage}%`;
-        });
+      // Add static labels with proper positioning (left-top and bottom-right)
+      if (staticLabels.length > 0) {
+        // Position 1: Left-top
+        const leftTopGroup = svg.append('g').attr('class', 'label-left-top');
+        
+        // Label line from chart to left-top
+        leftTopGroup.append('line')
+          .attr('x1', width / 2 - radius * 0.7) // Start from chart edge
+          .attr('y1', height / 2 - radius * 0.7 + 20)
+          .attr('x2', width / 2 - radius * 1.1) // Extend outward
+          .attr('y2', height / 2 - radius * 1.1 + 20)
+          .style('stroke', '#999')
+          .style('stroke-width', 1);
+
+        // Horizontal extension
+        leftTopGroup.append('line')
+          .attr('x1', width / 2 - radius * 1.1)
+          .attr('y1', height / 2 - radius * 1.1 + 20)
+          .attr('x2', 100) // Fixed left position, away from text
+          .attr('y2', height / 2 - radius * 1.1 + 20)
+          .style('stroke', '#999')
+          .style('stroke-width', 1);
+
+        // Color indicator
+        leftTopGroup.append('rect')
+          .attr('x', 75)
+          .attr('y', height / 2 - radius * 1.1 + 14)
+          .attr('width', 12)
+          .attr('height', 12)
+          .attr('fill', customColors[0]);
+
+        // Label text
+        leftTopGroup.append('text')
+          .attr('x', 92)
+          .attr('y', height / 2 - radius * 1.1 + 24)
+          .attr('text-anchor', 'start')
+          .style('font-size', '14px')
+          .style('fill', '#333')
+          .style('font-weight', '500')
+          .text(staticLabels[0]);
+
+        // Position 2: Bottom-right
+        const bottomRightGroup = svg.append('g').attr('class', 'label-bottom-right');
+        
+        // Label line from chart to bottom-right
+        bottomRightGroup.append('line')
+          .attr('x1', width / 2 + radius * 0.7) // Start from chart edge
+          .attr('y1', height / 2 + radius * 0.7 + 20)
+          .attr('x2', width / 2 + radius * 1.1) // Extend outward
+          .attr('y2', height / 2 + radius * 1.1 + 20)
+          .style('stroke', '#999')
+          .style('stroke-width', 1);
+
+        // Horizontal extension
+        bottomRightGroup.append('line')
+          .attr('x1', width / 2 + radius * 1.1)
+          .attr('y1', height / 2 + radius * 1.1 + 20)
+          .attr('x2', width - 100) // Fixed right position, away from text
+          .attr('y2', height / 2 + radius * 1.1 + 20)
+          .style('stroke', '#999')
+          .style('stroke-width', 1);
+
+        // Color indicator
+        bottomRightGroup.append('rect')
+          .attr('x', width - 87)
+          .attr('y', height / 2 + radius * 1.1 + 14)
+          .attr('width', 12)
+          .attr('height', 12)
+          .attr('fill', customColors[1]);
+
+        // Label text
+        bottomRightGroup.append('text')
+          .attr('x', width - 92)
+          .attr('y', height / 2 + radius * 1.1 + 24)
+          .attr('text-anchor', 'end')
+          .style('font-size', '14px')
+          .style('fill', '#333')
+          .style('font-weight', '500')
+          .text(staticLabels[1]);
+      }
+
+      // Helper function to calculate mid angle
+      function midAngle(d: d3.PieArcDatum<QlikDataPoint>) {
+        return d.startAngle + (d.endAngle - d.startAngle) / 2;
+      }
+
+      // For pie chart, keep the percentage labels inside
+      if (chartType === 'pie') {
+        pieGroup.selectAll('text.percentage-label')
+          .data(pie(data))
+          .enter()
+          .append('text')
+          .attr('class', 'percentage-label')
+          .attr('transform', d => `translate(${arc.centroid(d)})`)
+          .attr('text-anchor', 'middle')
+          .style('font-size', '16px')
+          .style('fill', '#fff')
+          .style('font-weight', 'bold')
+          .style('pointer-events', 'none')
+          .text(d => {
+            const percentage = ((d.data.value / total) * 100).toFixed(1);
+            return `${percentage}%`;
+          });
+      }
     }
   }, [data, chartType, title]);
-
 
   return (
     <div
       className={`chart-container ${chartType === 'bar' ? 'bar' : ''}`}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
-      style={{ flexShrink: 0, width: chartType === 'bar' ? '50%' : '33%', position: 'relative' }} 
+      style={{ 
+        flexShrink: 0, 
+        width: chartType === 'bar' ? '50%' : '33%', 
+        position: 'relative',
+        overflow: chartType === 'doughnut' ? 'hidden' : 'auto' // Remove scrollable for doughnut
+      }} 
     >
       {(isHovered || showMenu) && (
         <div ref={menuRef} className="menu-button">
@@ -354,6 +488,30 @@ const D3Charts: React.FC<QlikChartProps> = ({
         </div>
       )}
 
+      {selectedSlice && (chartType === 'doughnut' || chartType === 'pie') && (
+        <div
+          style={{
+            position: 'absolute',
+            left: tooltipPosition.x + 10,
+            top: tooltipPosition.y - 40,
+            background: 'white',
+            padding: '8px 12px',
+            border: '1px solid #ddd',
+            borderRadius: '4px',
+            boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+            fontSize: '12px',
+            zIndex: 1000,
+            pointerEvents: 'none'
+          }}
+        >
+          <div style={{ fontWeight: 'bold' }}>{selectedSlice.dimension}</div>
+          <div>Value: {Math.round(selectedSlice.value)}</div>
+          <div>
+            Percentage: {((selectedSlice.value / d3.sum(data.map(d => d.value))) * 100).toFixed(1)}%
+          </div>
+        </div>
+      )}
+
       <div style={{ display: 'none' }}>
         <QlikEmbed ui="analytics/chart" app-id={appId} object-id={objectId} />
       </div>
@@ -362,39 +520,42 @@ const D3Charts: React.FC<QlikChartProps> = ({
       {error && <div style={{ color: 'red', textAlign: 'center', padding: '20px' }}>{error}</div>}
 
       {chartType === 'pie' || chartType === 'doughnut' ? (
-        <div className="pie-layout">
-          <svg ref={svgRef} className="pie-svg" />
-          <div className="legend-container">
-            {data.map((d) => (
-              <div key={d.dimension} className="legend-item">
-                <span
-                  className="legend-color-box"
-                  style={{ background: color(d.dimension) }}
-                />
-                <span style={{ fontSize: 13, color: '#333' }}>{d.dimension}</span>
-              </div>
-            ))}
-          </div>
+        <div 
+          className="pie-layout" 
+          style={{ 
+            display: 'flex', 
+            justifyContent: 'center', // Always center for both pie and doughnut
+            alignItems: 'center',
+            height: '100%',
+            width: '100%' // Ensure full width usage
+          }}
+        >
+          <svg 
+            ref={svgRef} 
+            className="pie-svg" 
+            style={{ 
+              display: 'block',
+              margin: '0 auto' // Center the SVG
+            }} 
+          />
         </div>
       ) : (
         <div ref={chartWrapperRef} className="chart-wrapper">
-        {chartType === 'bar' ? (
-          <ClippedBrushBarChart
-            data={data.map(d => ({
-              category: d.dimension,
-              value: d.value
-            }))}
-          />
-        ) : (
-          <svg ref={svgRef} />
-        )}
-      </div>
-      
+          {chartType === 'bar' ? (
+            <ClippedBrushBarChart
+              data={data.map(d => ({
+                category: d.dimension,
+                value: d.value
+              }))}
+              title={title}
+            />
+          ) : (
+            <svg ref={svgRef} />
+          )}
+        </div>
       )}
     </div>
-
   );
-
 };
 
 export default D3Charts;
