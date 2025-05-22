@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import * as d3 from 'd3';
 import { connectToQlik } from '../utils/qlikConnection';
 import { customExport } from 'utils/customExport';
+import ClippedBrushBarChart from './BrushedChart';
 
 interface QlikDataPoint {
   dimension: string;
@@ -376,9 +377,19 @@ const D3Charts: React.FC<QlikChartProps> = ({
           </div>
         </div>
       ) : (
-        <div ref={chartWrapperRef} style={{ maxHeight: 'calc(100% - 70px)', overflowY: 'auto', overflowX: 'hidden' }}> 
-          <svg ref={svgRef} className="bar-svg" />
-        </div>
+        <div ref={chartWrapperRef} className="chart-wrapper">
+        {chartType === 'bar' ? (
+          <ClippedBrushBarChart
+            data={data.map(d => ({
+              category: d.dimension,
+              value: d.value
+            }))}
+          />
+        ) : (
+          <svg ref={svgRef} />
+        )}
+      </div>
+      
       )}
     </div>
 
