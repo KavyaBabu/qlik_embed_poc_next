@@ -14,6 +14,10 @@ interface ReportStatusResponse {
 }
 
 const ensureAuth = () => {
+  if (!window.qlikEmbed) {
+    throw new Error('Qlik embed runtime not initialized');
+  }
+
   auth.setDefaultHostConfig({
     host: "arqiva.uk.qlikcloud.com", 
     authType: "oauth2",
@@ -22,6 +26,11 @@ const ensureAuth = () => {
     accessTokenStorage: "session",
     autoRedirect: true,
   });
+
+  const token = sessionStorage.getItem('qlik_token');
+  if (!token) {
+    throw new Error('No authentication token found');
+  }
 };
 
 export async function exportQlikObjectToExcel(appId: string, objectId: string) {
@@ -86,7 +95,6 @@ export async function exportQlikObjectToExcel(appId: string, objectId: string) {
     const result = await waitForExportCompletion(reportId);
     console.log("Export complete:", result);
     
-    // eslint-disable-next-line no-useless-escape
     const downloadId = result.location.match(/\/([^/?#]+)(?:[?#]|$)/)?.[1];
     
     if (!downloadId) throw new Error("Failed to extract download ID");
