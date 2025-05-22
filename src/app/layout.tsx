@@ -24,10 +24,12 @@ export default function RootLayout({
           href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
           rel="stylesheet"
         />
+      </head>
+      <body className={inter.className}>
         <Script
           id="qlik-embed-script"
           src="https://cdn.jsdelivr.net/npm/@qlik/embed-web-components"
-          strategy="lazyOnload"
+          strategy="beforeInteractive"
           crossOrigin="anonymous"
           data-host="https://arqiva.uk.qlikcloud.com/"
           data-client-id="f6ec83d532eadf375cd98cfe709859df"
@@ -35,8 +37,6 @@ export default function RootLayout({
           data-access-token-storage="session"
           data-auth-type="oauth2"
         />
-      </head>
-      <body className={inter.className}>
         <div id="qlik-embed"></div>
         {children}
       </body>

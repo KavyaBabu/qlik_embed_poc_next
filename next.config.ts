@@ -31,7 +31,11 @@ const nextConfig = {
           },
           {
             key: 'Access-Control-Allow-Headers',
-            value: 'X-Requested-With, Content-Type, Authorization'
+            value: 'X-Requested-With, Content-Type, Authorization, qlik-web-integration-id, qlik-csrf-token'
+          },
+          {
+            key: 'Access-Control-Allow-Credentials',
+            value: 'true'
           }
         ],
       },
