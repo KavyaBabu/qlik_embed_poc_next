@@ -2,6 +2,12 @@ import enigma from 'enigma.js';
 import schema from 'enigma.js/schemas/12.612.0.json';
 
 const fetchCsrfToken = async (tenantUrl: string, webIntegrationId: string) => {
+  const token = sessionStorage.getItem('qlik_token');
+  if (!token) {
+    window.location.href = '/auth';
+    throw new Error('No authentication token found');
+  }
+
   const csrfRes = await fetch(`https://${tenantUrl}/api/v1/csrf-token`, {
     credentials: 'include',
     headers: {
@@ -11,7 +17,9 @@ const fetchCsrfToken = async (tenantUrl: string, webIntegrationId: string) => {
 
   if (!csrfRes.ok) {
     if (csrfRes.status === 401 || csrfRes.status === 403) {
-      throw new Error('Qlik session expired or not authenticated. Please ensure you are logged in to Qlik Sense.');
+      sessionStorage.removeItem('qlik_token');
+      window.location.href = '/auth';
+      throw new Error('Session expired. Please sign in again.');
     } else if (csrfRes.status === 404) {
       throw new Error('Qlik API endpoint not found. Please verify the tenant URL and web integration ID.');
     } else {
@@ -52,6 +60,9 @@ export const connectToQlik = async (
       onError?.(
         'Too many connections to Qlik Sense. Please close other tabs or wait a moment and try again.'
       );
+    } else if (message.includes('Session expired') || message.includes('Not authenticated')) {
+      sessionStorage.removeItem('qlik_token');
+      window.location.href = '/auth';
     } else {
       onError?.(
         `Failed to connect to Qlik app: ${message || 'Unknown error'}. Please check app ID, network, or contact your administrator.`
@@ -138,7 +149,8 @@ export const connectToQlik = async (
     session.on('notification:OnAuthenticationInformation', (event: any) => {
       if (event.mustAuthenticate) {
         console.warn('Qlik session requires reauthentication.');
-        refreshSession();
+        sessionStorage.removeItem('qlik_token');
+        window.location.href = '/auth';
       }
     });
 
