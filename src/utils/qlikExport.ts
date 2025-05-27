@@ -1,5 +1,5 @@
-import { auth, reports, tempContents } from "@qlik/api";
-import fileSaver from "file-saver";
+import { auth, reports, tempContents } from '@qlik/api';
+import fileSaver from 'file-saver';
 
 interface ReportStatusData {
   status: string;
@@ -14,31 +14,22 @@ interface ReportStatusResponse {
 }
 
 const ensureAuth = () => {
-  if (!window.qlikEmbed) {
-    throw new Error('Qlik embed runtime not initialized');
-  }
-
   auth.setDefaultHostConfig({
-    host: "arqiva.uk.qlikcloud.com", 
-    authType: "oauth2",
-    clientId: "f6ec83d532eadf375cd98cfe709859df", 
-    redirectUri: "https://192.168.1.128:5500/oauth_callback.html", 
-    accessTokenStorage: "session",
+    host: 'arqiva.uk.qlikcloud.com',
+    authType: 'oauth2',
+    clientId: 'f6ec83d532eadf375cd98cfe709859df',
+    redirectUri: 'https://192.168.1.128:5500/oauth_callback.html',
+    accessTokenStorage: 'session',
     autoRedirect: true,
   });
-
-  const token = sessionStorage.getItem('qlik_token');
-  if (!token) {
-    throw new Error('No authentication token found');
-  }
 };
 
 export async function exportQlikObjectToExcel(appId: string, objectId: string) {
   try {
     ensureAuth();
-    
+
     const viz = document.querySelector(`qlik-embed[object-id="${objectId}"]`) as any;
-    if (!viz) throw new Error("Qlik visualization not found");
+    if (!viz) throw new Error('Qlik visualization not found');
 
     await customElements.whenDefined('qlik-embed');
     await viz.updateComplete?.();
@@ -48,7 +39,7 @@ export async function exportQlikObjectToExcel(appId: string, objectId: string) {
     const qObj = await refApi.getObject();
     const layout = await qObj.getLayout();
 
-    console.log("Creating temporary bookmark...");
+    console.log('Creating temporary bookmark...');
     const bookmarkId = await doc.createTemporaryBookmark({
       qOptions: {
         qIncludeAllPatches: true,
@@ -57,92 +48,98 @@ export async function exportQlikObjectToExcel(appId: string, objectId: string) {
       },
       qObjectIdsToPatch: [layout.qInfo.qId],
     });
-    console.log("Bookmark created:", bookmarkId);
+    console.log('Bookmark created:', bookmarkId);
 
-    console.log("Creating report...");
-    
+    console.log('Creating report...');
+
     const reportPayload = {
-      type: "sense-data-1.0" as "sense-data-1.0",
+      type: 'sense-data-1.0' as const,
       meta: {
-        exportDeadline: "P0Y0M0DT0H8M0S",
-        tags: ["export"],
+        exportDeadline: 'P0Y0M0DT0H8M0S',
+        tags: ['export'],
       },
       senseDataTemplate: {
         appId,
         id: layout.qInfo.qId,
-        selectionType: "temporaryBookmarkV2" as "temporaryBookmarkV2", 
+        selectionType: 'temporaryBookmarkV2' as const,
         temporaryBookmarkV2: { id: bookmarkId },
       },
       output: {
-        outputId: "excelExport",
-        type: "xlsx" as "xlsx", 
+        outputId: 'excelExport',
+        type: 'xlsx' as const,
       },
     };
-    
-    console.log("Report payload:", JSON.stringify(reportPayload));
-    
+
+    console.log('Report payload:', JSON.stringify(reportPayload));
+
     const report = await reports.createReport(reportPayload);
-    console.log("Report created:", report);
+    console.log('Report created:', report);
 
-    const statusUrl = report.headers.get("content-location");
-    console.log("Status URL:", statusUrl);
-    
+    const statusUrl = report.headers.get('content-location');
+    console.log('Status URL:', statusUrl);
+
     const reportId = statusUrl?.match(/reports\/(.+?)\/status/)?.[1];
-    if (!reportId) throw new Error("Failed to extract report ID");
-    console.log("Report ID:", reportId);
+    if (!reportId) throw new Error('Failed to extract report ID');
+    console.log('Report ID:', reportId);
 
-    console.log("Waiting for export completion...");
+    console.log('Waiting for export completion...');
     const result = await waitForExportCompletion(reportId);
-    console.log("Export complete:", result);
-    
-    const downloadId = result.location.match(/\/([^/?#]+)(?:[?#]|$)/)?.[1];
-    
-    if (!downloadId) throw new Error("Failed to extract download ID");
-    console.log("Download ID:", downloadId);
-    
-    console.log("Downloading file...");
-    const file = await tempContents.downloadTempFile(downloadId, { inline: "1" });
-    console.log("File downloaded:", file);
+    console.log('Export complete:', result);
 
-    console.log("Saving file...");
+    const downloadId = result.location.match(/\/([^/?#]+)(?:[?#]|$)/)?.[1];
+
+    if (!downloadId) throw new Error('Failed to extract download ID');
+    console.log('Download ID:', downloadId);
+
+    console.log('Downloading file...');
+    const file = await tempContents.downloadTempFile(downloadId, { inline: '1' });
+    console.log('File downloaded:', file);
+
+    console.log('Saving file...');
     fileSaver.saveAs(file.data as Blob, `${result.filename}-${new Date().toISOString()}.xlsx`);
-    console.log("File saved successfully");
-    
+    console.log('File saved successfully');
+
     return true;
   } catch (error) {
-    console.error("Export error:", error);
+    console.error('Export error:', error);
     throw error;
   }
 }
 
-async function waitForExportCompletion(reportId: string): Promise<{ location: string; filename: string }> {
+async function waitForExportCompletion(
+  reportId: string,
+): Promise<{ location: string; filename: string }> {
   return new Promise((resolve, reject) => {
     let checkCount = 0;
-    const maxChecks = 30; 
-    
+    const maxChecks = 30;
+
     const interval = setInterval(async () => {
       try {
         checkCount++;
         console.log(`Checking export status (${checkCount}/${maxChecks})...`);
-        
+
         const status: ReportStatusResponse = await reports.getReportStatus(reportId);
-        console.log("Status response:", status);
-        
-        if (status.data.status === "done" && status.data.results && status.data.results.length > 0) {
+        console.log('Status response:', status);
+
+        if (
+          status.data.status === 'done' &&
+          status.data.results &&
+          status.data.results.length > 0
+        ) {
           clearInterval(interval);
           resolve({
             location: status.data.results[0].location,
             filename: status.data.results[0].outputId,
           });
-        } else if (status.data.status === "failed") {
+        } else if (status.data.status === 'failed') {
           clearInterval(interval);
-          reject(new Error("Export failed on the server"));
+          reject(new Error('Export failed on the server'));
         } else if (checkCount >= maxChecks) {
           clearInterval(interval);
-          reject(new Error("Export timed out after 90 seconds"));
+          reject(new Error('Export timed out after 90 seconds'));
         }
       } catch (err) {
-        console.error("Error checking status:", err);
+        console.error('Error checking status:', err);
         clearInterval(interval);
         reject(err);
       }

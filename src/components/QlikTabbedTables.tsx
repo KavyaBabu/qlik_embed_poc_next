@@ -1,12 +1,14 @@
-import { Tabs } from "@arqiva-cs/react-component-lib";
-import QlikTable from "./QlikTable";
-import { useState } from "react";
+import { Tabs } from '@arqiva-cs/react-component-lib';
+import QlikTable from './QlikTable';
+import { useState } from 'react';
+
+export type TabName = 'Working Projects' | 'Closing Projects' | 'Closed Projects';
 
 interface TabbedTableProps {
   appId: string;
   tenantUrl: string;
   webIntegrationId: string;
-  tabs: { title: string; objectId: string }[];
+  tabs: { title: TabName; objectId: string }[];
 }
 
 export const QlikTabbedTables = ({
@@ -15,9 +17,13 @@ export const QlikTabbedTables = ({
   webIntegrationId,
   tabs,
 }: TabbedTableProps) => {
-  const [activeTab, setActiveTab] = useState(tabs[0].title);
+  const [activeTab, setActiveTab] = useState<TabName>(tabs[0].title);
 
-  const columnConfigsMap = {
+  const isValidTabName = (value: string): value is TabName => {
+    return ['Working Projects', 'Closing Projects', 'Closed Projects'].includes(value);
+  };
+
+  const columnConfigsMap: Record<TabName, { key: string; label: string }[]> = {
     'Working Projects': [
       { key: 'projectName', label: 'Project Name' },
       { key: 'projectNumber', label: 'Project Number' },
@@ -56,7 +62,14 @@ export const QlikTabbedTables = ({
   const currentTabConfigs = columnConfigsMap[activeTab] || [];
 
   return (
-    <Tabs.Root value={activeTab} onValueChange={setActiveTab}>
+    <Tabs.Root
+      value={activeTab}
+      onValueChange={(value) => {
+        if (isValidTabName(value)) {
+          setActiveTab(value);
+        }
+      }}
+    >
       <Tabs.List>
         {tabs.map(({ title }) => (
           <Tabs.Trigger key={title} value={title}>
@@ -72,7 +85,7 @@ export const QlikTabbedTables = ({
             tenantUrl={tenantUrl}
             webIntegrationId={webIntegrationId}
             objectId={objectId}
-            columnConfigs={currentTabConfigs} 
+            columnConfigs={currentTabConfigs}
             activeTab={title}
           />
         </Tabs.Content>

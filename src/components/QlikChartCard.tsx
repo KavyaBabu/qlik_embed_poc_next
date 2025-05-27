@@ -1,13 +1,11 @@
-import dynamic from "next/dynamic";
-import { useState, useEffect, useRef } from "react";
-import { Card } from "@arqiva-cs/react-component-lib";
-import { exportQlikObjectToExcel } from "../utils/qlikExport";
-import "../app/global.css";
+import { useState, useEffect, useRef } from 'react';
+import { Card } from '@arqiva-cs/react-component-lib';
+import { exportQlikObjectToExcel } from '../utils/qlikExport';
+import '../app/global.css';
 
 const QlikEmbed = 'qlik-embed' as any;
 
 export const QlikChartCard = ({
-  title,
   numberObjectId,
   chartObjectId,
   appId,
@@ -34,7 +32,7 @@ export const QlikChartCard = ({
       await exportQlikObjectToExcel(appId, chartObjectId);
     } catch (error) {
       console.error(`Error exporting chart ${chartObjectId}:`, error);
-      alert(`Export failed: ${error instanceof Error ? error.message : "Unknown error"}`);
+      alert(`Export failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
     } finally {
       setLoading(false);
     }
@@ -57,7 +55,7 @@ export const QlikChartCard = ({
     };
   }, [showMenu]);
 
-  if (!isClient) return null; // Prevent SSR rendering
+  if (!isClient) return null;
 
   return (
     <Card className="dashboard-card">
@@ -71,29 +69,22 @@ export const QlikChartCard = ({
           />
         </div>
       )}
-      <div 
+      <div
         className="qlik-chart-container"
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
       >
         <QlikEmbed ui="analytics/chart" app-id={appId} object-id={chartObjectId} />
-        
+
         {(isHovered || showMenu) && (
           <div ref={menuRef} className="menu-trigger-container">
-            <button
-              onClick={() => setShowMenu(!showMenu)}
-              className="menu-trigger-button"
-            >
+            <button onClick={() => setShowMenu(!showMenu)} className="menu-trigger-button">
               ⋮
             </button>
-            
+
             {showMenu && (
               <div className="menu-dropdown">
-                <button
-                  onClick={handleExport}
-                  disabled={loading}
-                  className="export-button"
-                >
+                <button onClick={handleExport} disabled={loading} className="export-button">
                   {loading ? (
                     <>
                       <span className="loading-spinner"></span> Exporting...

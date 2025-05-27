@@ -1,6 +1,6 @@
-import { Tabs } from "@arqiva-cs/react-component-lib";
-import { QlikChartCard } from "./QlikChartCard";
-import { useState } from "react";
+import { Tabs } from '@arqiva-cs/react-component-lib';
+import { QlikChartCard } from './QlikChartCard';
+import { useState } from 'react';
 
 export const QlikTabbedCharts = ({
   tabs,

@@ -1,23 +1,21 @@
 // components/DashboardLayout.tsx
-import { Sidebar, SidebarTemplates, Logo } from "@arqiva-cs/react-component-lib";
+import { Sidebar, SidebarTemplates, Logo } from '@arqiva-cs/react-component-lib';
 import {
   ChartBarIcon,
-  ChartPieIcon,
   ArrowPathIcon,
   ExclamationTriangleIcon,
   BugAntIcon,
-} from "@heroicons/react/24/outline";
-import { useRouter } from "next/router";
-import { routes } from "../lib/routes";
-import { ReactNode } from "react";
+  ArrowsRightLeftIcon,
+  DocumentChartBarIcon,
+} from '@heroicons/react/24/outline';
+import { routes } from '../lib/routes';
+import { ReactNode } from 'react';
 
 interface DashboardLayoutProps {
   children: ReactNode;
 }
 
 const DashboardLayout = ({ children }: DashboardLayoutProps) => {
-  const router = useRouter();
-
   return (
     <Sidebar.Provider>
       <Sidebar.Root collapsible="icon">
@@ -26,7 +24,7 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
         </Sidebar.Header>
         <Sidebar.Content>
           <Sidebar.Group.Root>
-            <Sidebar.Group.Label>Analytics Dashboard</Sidebar.Group.Label>
+            <Sidebar.Group.Label>Embedded Qlik Sheets</Sidebar.Group.Label>
             <Sidebar.Group.Content>
               <Sidebar.Menu.Root>
                 <SidebarTemplates.CollapsibleMenuItem.Root
@@ -36,19 +34,17 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
                 >
                   {routes
                     .filter((route) =>
-                      ["/dashboard", "/enterprise", "/utilities"].includes(route.path)
+                      ['/dashboard', '/enterprise', '/utilities'].includes(route.path),
                     )
                     .map((route) => {
-                      let label = "";
+                      let label = '';
                       switch (route.path) {
-                        case "/dashboard":
-                          label = "M&B";
+                        case '/dashboard':
+                          label = 'M&B';
                           break;
-                        case "/enterprise":
-                        case "/utilities":
-                          label = route.path
-                            .substring(1)
-                            .replace(/^\w/, (c) => c.toUpperCase());
+                        case '/enterprise':
+                        case '/utilities':
+                          label = route.path.substring(1).replace(/^\w/, (c) => c.toUpperCase());
                           break;
                       }
                       return (
@@ -63,7 +59,7 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
                 </SidebarTemplates.CollapsibleMenuItem.Root>
 
                 {routes
-                  .filter((route) => route.path === "/change-request")
+                  .filter((route) => route.path === '/change-request')
                   .map((route) => (
                     <SidebarTemplates.SimpleMenuItem
                       key={route.path}
@@ -73,7 +69,7 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
                     />
                   ))}
                 {routes
-                  .filter((route) => route.path === "/risk-assessment")
+                  .filter((route) => route.path === '/risk-assessment')
                   .map((route) => (
                     <SidebarTemplates.SimpleMenuItem
                       key={route.path}
@@ -83,7 +79,7 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
                     />
                   ))}
                 {routes
-                  .filter((route) => route.path === "/issues")
+                  .filter((route) => route.path === '/issues')
                   .map((route) => (
                     <SidebarTemplates.SimpleMenuItem
                       key={route.path}
@@ -92,14 +88,26 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
                       icon={<BugAntIcon />}
                     />
                   ))}
+                <Sidebar.Group.Label>Qlik Data + D3 Visuals</Sidebar.Group.Label>
                 {routes
-                  .filter((route) => route.path === "/analytics")
+                  .filter((route) => route.path === '/analytics')
                   .map((route) => (
                     <SidebarTemplates.SimpleMenuItem
                       key={route.path}
                       title="Custom Reports"
                       url={route.path}
-                      icon={<ChartPieIcon />}
+                      icon={<DocumentChartBarIcon />}
+                    />
+                  ))}
+                <Sidebar.Group.Label>Comparative Insights (Qlik + D3)</Sidebar.Group.Label>
+                {routes
+                  .filter((route) => route.path === '/comparative-insights')
+                  .map((route) => (
+                    <SidebarTemplates.SimpleMenuItem
+                      key={route.path}
+                      title="Qlik vs D3 Insights"
+                      url={route.path}
+                      icon={<ArrowsRightLeftIcon />}
                     />
                   ))}
               </Sidebar.Menu.Root>
@@ -109,7 +117,7 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
       </Sidebar.Root>
       <Sidebar.Inset>
         <Sidebar.Trigger />
-        <main style={{ padding: "2rem" }}>{children}</main>
+        <main style={{ padding: '2rem' }}>{children}</main>
       </Sidebar.Inset>
     </Sidebar.Provider>
   );
