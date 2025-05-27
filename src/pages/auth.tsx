@@ -7,6 +7,7 @@ const QlikEmbed = 'qlik-embed' as any;
 const AuthPage = () => {
   const router = useRouter();
   const [isAuthenticating, setIsAuthenticating] = useState(false);
+  const [isScriptLoaded, setIsScriptLoaded] = useState(false);
 
   useEffect(() => {
     // Check if already authenticated
@@ -14,6 +15,25 @@ const AuthPage = () => {
     if (token) {
       router.replace('/dashboard');
       return;
+    }
+
+    // Check if script is loaded
+    const checkScript = () => {
+      if (window.qlikEmbed) {
+        setIsScriptLoaded(true);
+        return true;
+      }
+      return false;
+    };
+
+    if (!checkScript()) {
+      const interval = setInterval(() => {
+        if (checkScript()) {
+          clearInterval(interval);
+        }
+      }, 100);
+
+      return () => clearInterval(interval);
     }
 
     // Listen for authentication events
@@ -31,8 +51,13 @@ const AuthPage = () => {
   }, [router]);
 
   const handleSignIn = () => {
+    if (!isScriptLoaded) {
+      console.error('Qlik embed script not loaded');
+      return;
+    }
+
     setIsAuthenticating(true);
-    const qlikAuth = (window as any).qlikEmbed.connect();
+    const qlikAuth = window.qlikEmbed.connect();
     
     qlikAuth.on('authenticated', (token: string) => {
       const event = new CustomEvent('qlik-auth-success', { detail: token });
@@ -56,10 +81,10 @@ const AuthPage = () => {
         <div>
           <Button
             onClick={handleSignIn}
-            disabled={isAuthenticating}
+            disabled={isAuthenticating || !isScriptLoaded}
             style={{ width: '100%' }}
           >
-            {isAuthenticating ? 'Signing in...' : 'Sign in with Qlik'}
+            {isAuthenticating ? 'Signing in...' : !isScriptLoaded ? 'Loading...' : 'Sign in with Qlik'}
           </Button>
         </div>
       </div>
