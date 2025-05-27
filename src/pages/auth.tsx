@@ -88,9 +88,7 @@ const AuthPage = () => {
           </Button>
         </div>
       </div>
-      <div style={{ display: 'none' }}>
-        <QlikEmbed ui="auth" />
-      </div>
+      <div id="qlik-embed"></div>
     </div>
   );
 };
