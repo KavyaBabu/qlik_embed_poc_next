@@ -1,4 +1,5 @@
-import { Sidebar, SidebarTemplates, Logo, Button } from '@arqiva-cs/react-component-lib';
+// components/DashboardLayout.tsx
+import { Sidebar, SidebarTemplates, Logo } from '@arqiva-cs/react-component-lib';
 import {
   ChartBarIcon,
   ArrowPathIcon,
@@ -9,33 +10,17 @@ import {
 } from '@heroicons/react/24/outline';
 import { routes } from '../lib/routes';
 import { ReactNode } from 'react';
-import { useRouter } from 'next/router';
 
 interface DashboardLayoutProps {
   children: ReactNode;
 }
 
 const DashboardLayout = ({ children }: DashboardLayoutProps) => {
-  const router = useRouter();
-
-  const handleSignOut = () => {
-    sessionStorage.removeItem('qlik_token');
-    router.replace('/auth');
-  };
-
   return (
     <Sidebar.Provider>
       <Sidebar.Root collapsible="icon">
         <Sidebar.Header>
           <Logo className="dashboard-logo" /> Meter Insight
-          <Button
-            variant="text"
-            size="sm"
-            onClick={handleSignOut}
-            style={{ marginLeft: 'auto' }}
-          >
-            Sign Out
-          </Button>
         </Sidebar.Header>
         <Sidebar.Content>
           <Sidebar.Group.Root>

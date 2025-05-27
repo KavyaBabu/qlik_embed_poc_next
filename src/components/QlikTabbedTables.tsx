@@ -1,72 +1,74 @@
 import { Tabs } from '@arqiva-cs/react-component-lib';
+import React, { useState } from 'react';
 import QlikTable from './QlikTable';
-import { useState } from 'react';
+import QlikTableRowClickable from './QlikTableRowClickable';
 
 export type TabName = 'Working Projects' | 'Closing Projects' | 'Closed Projects';
 
-interface TabbedTableProps {
+interface Tab {
+  title: 'Working Projects' | 'Closing Projects' | 'Closed Projects';
+  objectId: string;
+}
+
+interface QlikTabbedTablesProps {
   appId: string;
   tenantUrl: string;
   webIntegrationId: string;
-  tabs: { title: TabName; objectId: string }[];
+  tabs: Tab[];
+  onSelectionChange?: () => void;
 }
 
-export const QlikTabbedTables = ({
+const COLUMN_CONFIGS = {
+  'Working Projects': [
+    { key: 'projectName', label: 'Project Name', width: '200px' },
+    { key: 'projectNumber', label: 'Project Number', width: '120px' },
+    { key: 'projectManager', label: 'Project Manager', width: '150px' },
+    { key: 'rag', label: 'RAG', width: '60px' },
+    { key: 'phase', label: 'Phase', width: '100px' },
+    { key: 'summary', label: 'Summary', width: '300px' },
+    { key: 'investment', label: 'Investment', width: '120px' },
+    { key: 'startDate', label: 'Start Date', width: '100px' },
+    { key: 'endDate', label: 'End Date', width: '100px' },
+  ],
+  'Closing Projects': [
+    { key: 'projectName', label: 'Project Name', width: '200px' },
+    { key: 'projectNumber', label: 'Project Number', width: '120px' },
+    { key: 'rag', label: 'RAG', width: '60px' },
+    { key: 'plannedEndDate', label: 'Planned End Date', width: '120px' },
+    { key: 'summary', label: 'Summary', width: '300px' },
+    { key: 'investment', label: 'Investment', width: '120px' },
+  ],
+  'Closed Projects': [
+    { key: 'projectName', label: 'Project Name', width: '200px' },
+    { key: 'projectNumber', label: 'Project Number', width: '120px' },
+    { key: 'state', label: 'State', width: '100px' },
+    { key: 'closingTask', label: 'Closing Task', width: '150px' },
+    { key: 'totalBudget', label: 'Total Budget', width: '120px' },
+    { key: 'totalActuals', label: 'Total Actuals', width: '120px' },
+    { key: 'variance', label: 'Variance', width: '100px' },
+    { key: 'actualEndMMMYYY', label: 'Actual End', width: '100px' },
+    { key: 'plannedEndMMMYYY', label: 'Planned End', width: '100px' },
+    { key: 'closedMMMYYY', label: 'Closed', width: '100px' },
+    { key: 'withinOutsideDates', label: 'Within/Outside Dates', width: '120px' },
+    { key: 'withinOutsideBudget', label: 'Within/Outside Budget', width: '120px' },
+  ],
+};
+
+export const QlikTabbedTables: React.FC<QlikTabbedTablesProps> = ({
   appId,
   tenantUrl,
   webIntegrationId,
   tabs,
-}: TabbedTableProps) => {
-  const [activeTab, setActiveTab] = useState<TabName>(tabs[0].title);
-
-  const isValidTabName = (value: string): value is TabName => {
-    return ['Working Projects', 'Closing Projects', 'Closed Projects'].includes(value);
-  };
-
-  const columnConfigsMap: Record<TabName, { key: string; label: string }[]> = {
-    'Working Projects': [
-      { key: 'projectName', label: 'Project Name' },
-      { key: 'projectNumber', label: 'Project Number' },
-      { key: 'projectManager', label: 'Project Manager' },
-      { key: 'rag', label: 'RAG' },
-      { key: 'phase', label: 'Phase' },
-      { key: 'summary', label: 'Summary' },
-      { key: 'investment', label: 'Investment Type' },
-      { key: 'startDate', label: 'Start Date' },
-      { key: 'endDate', label: 'End Date' },
-    ],
-    'Closing Projects': [
-      { key: 'projectName', label: 'Project Name' },
-      { key: 'projectNumber', label: 'Project Number' },
-      { key: 'rag', label: 'RAG' },
-      { key: 'plannedEndDate', label: 'Planned End Date' },
-      { key: 'summary', label: 'Summary' },
-      { key: 'investment', label: 'Investment Type' },
-    ],
-    'Closed Projects': [
-      { key: 'projectName', label: 'Project Name' },
-      { key: 'projectNumber', label: 'Project Number' },
-      { key: 'state', label: 'State' },
-      { key: 'closingTask', label: 'Closing Task' },
-      { key: 'totalBudget', label: 'Total Budget' },
-      { key: 'totalActuals', label: 'Total Actuals' },
-      { key: 'variance', label: 'Variance' },
-      { key: 'actualEndMMMYYY', label: 'Actual End MMM-YYYY' },
-      { key: 'plannedEndMMMYYY', label: 'Planned End MMM-YYYY' },
-      { key: 'closedMMMYYY', label: 'Closed MMM-YYYY' },
-      { key: 'withinOutsideDates', label: 'Within/Outside Dates' },
-      { key: 'withinOutsideBudget', label: 'Within/Outside Budget' },
-    ],
-  };
-
-  const currentTabConfigs = columnConfigsMap[activeTab] || [];
+  onSelectionChange,
+}) => {
+  const [activeTab, setActiveTab] = useState<TabName>(tabs[0]?.title || 'Working Projects');
 
   return (
     <Tabs.Root
       value={activeTab}
       onValueChange={(value) => {
-        if (isValidTabName(value)) {
-          setActiveTab(value);
+        if (tabs.some((tab) => tab.title === value)) {
+          setActiveTab(value as TabName);
         }
       }}
     >
@@ -78,18 +80,26 @@ export const QlikTabbedTables = ({
         ))}
       </Tabs.List>
 
-      {tabs.map(({ title, objectId }) => (
-        <Tabs.Content key={title} value={title}>
-          <QlikTable
-            appId={appId}
-            tenantUrl={tenantUrl}
-            webIntegrationId={webIntegrationId}
-            objectId={objectId}
-            columnConfigs={currentTabConfigs}
-            activeTab={title}
-          />
-        </Tabs.Content>
-      ))}
+      {tabs.map(({ title, objectId }) => {
+        const CommonProps = {
+          appId,
+          tenantUrl,
+          webIntegrationId,
+          objectId,
+          columnConfigs: COLUMN_CONFIGS[title],
+          activeTab: title,
+        };
+
+        return (
+          <Tabs.Content key={title} value={title}>
+            {onSelectionChange ? (
+              <QlikTableRowClickable {...CommonProps} onSelectionChange={onSelectionChange} />
+            ) : (
+              <QlikTable {...CommonProps} />
+            )}
+          </Tabs.Content>
+        );
+      })}
     </Tabs.Root>
   );
 };

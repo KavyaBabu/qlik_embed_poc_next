@@ -26,15 +26,24 @@ const EXPORT_OPTIONS = [
   { label: 'Export as CSV', type: 'csv' },
 ];
 
-const QlikTable: React.FC<QlikTableProps> = ({
+const SELECTABLE_FIELDS = {
+  'Working Projects': ['projectName', 'projectNumber', 'projectManager', 'rag', 'phase'],
+  'Closing Projects': ['projectName', 'projectNumber', 'rag'],
+  'Closed Projects': ['projectName', 'projectNumber', 'state'],
+};
+
+const QlikTableRowClickable: React.FC<QlikTableProps> = ({
   appId,
   tenantUrl,
   webIntegrationId,
   objectId,
   columnConfigs,
   activeTab,
+  onSelectionChange,
 }) => {
   const [rows, setRows] = useState<any[]>([]);
+  const [rawQlikData, setRawQlikData] = useState<any[]>([]);
+  const [qlikApp, setQlikApp] = useState<any>(null);
   const [expandedRows, setExpandedRows] = useState<Set<number>>(new Set());
   const [currentPage, setCurrentPage] = useState(1);
   const [loading, setLoading] = useState(true);
@@ -88,10 +97,73 @@ const QlikTable: React.FC<QlikTableProps> = ({
     return {};
   };
 
+  const getFieldColumnIndex = (fieldKey: string, tab: string): number => {
+    const fieldMappings = {
+      'Working Projects': {
+        projectName: 0,
+        projectNumber: 1,
+        projectManager: 2,
+        rag: 3,
+        phase: 4,
+      },
+      'Closing Projects': {
+        projectName: 0,
+        projectNumber: 1,
+        rag: 2,
+      },
+      'Closed Projects': {
+        projectName: 0,
+        projectNumber: 1,
+        state: 2,
+      },
+    };
+
+    return (
+      fieldMappings[tab as keyof typeof fieldMappings]?.[
+        fieldKey as keyof (typeof fieldMappings)[keyof typeof fieldMappings]
+      ] ?? -1
+    );
+  };
+
+  const handleCellClick = async (rowIndex: number, fieldKey: string) => {
+    if (
+      !qlikApp ||
+      !SELECTABLE_FIELDS[activeTab as keyof typeof SELECTABLE_FIELDS]?.includes(fieldKey)
+    ) {
+      return;
+    }
+
+    try {
+      const columnIndex = getFieldColumnIndex(fieldKey, activeTab);
+      if (columnIndex === -1) return;
+
+      const globalRowIndex = (currentPage - 1) * PAGE_SIZE + rowIndex;
+      const rawRow = rawQlikData[globalRowIndex];
+
+      if (rawRow && rawRow[columnIndex]?.qElemNumber !== undefined) {
+        const object = await qlikApp.getObject(objectId);
+
+        await object.selectHyperCubeValues(
+          '/qHyperCubeDef',
+          columnIndex,
+          [rawRow[columnIndex].qElemNumber],
+          false,
+        );
+
+        if (onSelectionChange) {
+          onSelectionChange();
+        }
+      }
+    } catch (error) {
+      console.error('Error making table selection:', error);
+    }
+  };
+
   useEffect(() => {
     const fetchData = async () => {
       try {
         const { app } = await connectToQlik(appId, tenantUrl, webIntegrationId);
+        setQlikApp(app);
         const object = await app.getObject(objectId);
 
         let allRows: any[] = [];
@@ -117,6 +189,7 @@ const QlikTable: React.FC<QlikTableProps> = ({
           }
         }
 
+        setRawQlikData(allRows);
         const parsed = allRows.map((row: any[]) => parseRowData(row, activeTab));
         setRows(parsed);
       } catch (err) {
@@ -202,6 +275,12 @@ const QlikTable: React.FC<QlikTableProps> = ({
   const totalPages = Math.ceil(sortedRows.length / PAGE_SIZE);
   const paginatedRows = sortedRows.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
 
+  const isFieldSelectable = (fieldKey: string): boolean => {
+    return (
+      SELECTABLE_FIELDS[activeTab as keyof typeof SELECTABLE_FIELDS]?.includes(fieldKey) || false
+    );
+  };
+
   if (loading) return <div>Loading Data...</div>;
   if (error) return <div style={{ color: 'red' }}>{error}</div>;
 
@@ -280,6 +359,11 @@ const QlikTable: React.FC<QlikTableProps> = ({
                         }}
                       >
                         {config.label}
+                        {isFieldSelectable(config.key) && (
+                          <span style={{ fontSize: '12px', color: '#666', marginLeft: '4px' }}>
+                            ⚡
+                          </span>
+                        )}
                         {showSortOption && (
                           <Table.SortBy
                             asc={() => handleSortAsc(config.key)}
@@ -306,13 +390,26 @@ const QlikTable: React.FC<QlikTableProps> = ({
                   <Table.Row key={idx}>
                     {columnConfigs.map((config, colIndex) => {
                       const cellValue = row[config.key] ?? '';
+                      const isSelectable = isFieldSelectable(config.key);
 
                       if (config.key === 'rag') {
                         const ragClass = cellValue?.toLowerCase();
                         return (
                           <Table.Cell
                             key={colIndex}
-                            className={`qlik-table-cell qlik-rag ${ragClass}`}
+                            className={`qlik-table-cell qlik-rag ${ragClass} ${isSelectable ? 'selectable' : ''}`}
+                            onClick={
+                              isSelectable ? () => handleCellClick(idx, config.key) : undefined
+                            }
+                            style={{
+                              cursor: isSelectable ? 'pointer' : 'default',
+                              ...(isSelectable && {
+                                ':hover': {
+                                  backgroundColor: '#f0f8ff',
+                                  boxShadow: '0 0 2px rgba(64, 152, 173, 0.5)',
+                                },
+                              }),
+                            }}
                           />
                         );
                       }
@@ -339,7 +436,22 @@ const QlikTable: React.FC<QlikTableProps> = ({
                       }
 
                       return (
-                        <Table.Cell key={colIndex} className="qlik-table-cell">
+                        <Table.Cell
+                          key={colIndex}
+                          className={`qlik-table-cell ${isSelectable ? 'selectable' : ''}`}
+                          onClick={
+                            isSelectable ? () => handleCellClick(idx, config.key) : undefined
+                          }
+                          style={{
+                            cursor: isSelectable ? 'pointer' : 'default',
+                            ...(isSelectable && {
+                              ':hover': {
+                                backgroundColor: '#f0f8ff',
+                                boxShadow: '0 0 2px rgba(64, 152, 173, 0.5)',
+                              },
+                            }),
+                          }}
+                        >
                           {cellValue}
                         </Table.Cell>
                       );
@@ -363,4 +475,4 @@ const QlikTable: React.FC<QlikTableProps> = ({
   );
 };
 
-export default QlikTable;
+export default QlikTableRowClickable;
