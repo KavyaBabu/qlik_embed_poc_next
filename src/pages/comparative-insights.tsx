@@ -120,7 +120,7 @@ const InteractiveChartCard: React.FC<ChartCardProps> = React.memo(
         onMouseLeave={() => setIsHovered(false)}
       >
         {numberObjectId && (
-          <div className="qlik-number-container" style={{ marginBottom: '12px' }}>
+          <div className="qlik-number-container\" style={{ marginBottom: '12px' }}>
             <QlikEmbed
               key={`number-${refreshKey}`}
               ui="analytics/chart"
