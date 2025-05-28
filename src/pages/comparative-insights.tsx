@@ -4,14 +4,9 @@ import { QlikTabbedTables } from '../components/QlikTabbedTables';
 import { Card, Button } from '@arqiva-cs/react-component-lib';
 import { connectToQlik } from '../utils/qlikConnection';
 import { exportQlikObjectToExcel } from '../utils/qlikExport';
+import { QLIK_CONFIG } from '../config/qlik';
 
 const QlikEmbed = 'qlik-embed' as any;
-
-const QLIK_CONFIG = {
-  appId: '3769696e-b88d-4d36-8f08-42f3dccf14f2',
-  tenantUrl: 'arqiva.uk.qlikcloud.com',
-  webIntegrationId: 'YoBCJI85s1J_cpJWDd4CPTdOzS1hcNhm',
-};
 
 const TOP_CHARTS = [
   {
@@ -174,7 +169,6 @@ const InteractiveChartCard: React.FC<ChartCardProps> = React.memo(
   }
 );
 
-
 InteractiveChartCard.displayName = 'InteractiveChartCard';
 
 interface QlikApp {
@@ -187,9 +181,9 @@ interface QlikApp {
 
 const ComparativeInsightsPage: React.FC = () => {
   const [isClient, setIsClient] = useState(false);
-  const [qlikApp, setQlikApp] = useState<QlikApp | null>(null);
+  const [qlikApp, setQlikApp] = useState<any>(null);
   const [activeChart, setActiveChart] = useState<string | null>(null);
-  const [, setActiveChartTitle] = useState<string | null>(null);
+  const [activeChartTitle, setActiveChartTitle] = useState<string | null>(null);
   const [tableRefreshKey, setTableRefreshKey] = useState(0);
   const [chartRefreshKey, setChartRefreshKey] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
@@ -312,11 +306,7 @@ const ComparativeInsightsPage: React.FC = () => {
 
     const initializeQlik = async () => {
       try {
-        const { app } = await connectToQlik(
-          QLIK_CONFIG.appId,
-          QLIK_CONFIG.tenantUrl,
-          QLIK_CONFIG.webIntegrationId,
-        );
+        const { app } = await connectToQlik();
         setQlikApp(app);
 
         const events = [
@@ -338,6 +328,9 @@ const ComparativeInsightsPage: React.FC = () => {
         });
       } catch (error) {
         console.error('Failed to initialize Qlik connection:', error);
+        if (error.message === 'Session expired') {
+          window.location.href = '/auth';
+        }
       }
     };
 
