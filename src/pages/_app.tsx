@@ -4,8 +4,13 @@ import '@arqiva-cs/react-component-lib/styles/global.css';
 import '../app/global.css';
 import type { AppProps } from 'next/app';
 import DashboardLayout from 'layout/dashboard';
+import { useRouter } from 'next/router';
+import { QLIK_CONFIG } from '../config/qlik';
 
 export default function App({ Component, pageProps }: AppProps) {
+  const router = useRouter();
+  const showLayout = router.pathname !== '/auth';
+
   return (
     <>
       <Head>
@@ -16,15 +21,19 @@ export default function App({ Component, pageProps }: AppProps) {
         src="https://cdn.jsdelivr.net/npm/@qlik/embed-web-components"
         strategy="lazyOnload"
         crossOrigin="anonymous"
-        data-host="https://arqiva.uk.qlikcloud.com/"
-        data-client-id="f6ec83d532eadf375cd98cfe709859df"
-        data-redirect-uri="https://192.168.1.128:5500/oauth_callback.html"
+        data-host={QLIK_CONFIG.host}
+        data-client-id={QLIK_CONFIG.clientId}
+        data-redirect-uri={QLIK_CONFIG.redirectUri}
         data-access-token-storage="session"
         data-auth-type="oauth2"
       />
-      <DashboardLayout>
+      {showLayout ? (
+        <DashboardLayout>
+          <Component {...pageProps} />
+        </DashboardLayout>
+      ) : (
         <Component {...pageProps} />
-      </DashboardLayout>
+      )}
     </>
   );
 }

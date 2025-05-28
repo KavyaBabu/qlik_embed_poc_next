@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
 import { Button } from '@arqiva-cs/react-component-lib';
+import { QLIK_CONFIG } from '../config/qlik';
 
 const QlikEmbed = 'qlik-embed' as any;
 
@@ -35,19 +36,6 @@ const AuthPage = () => {
 
       return () => clearInterval(interval);
     }
-
-    // Listen for authentication events
-    const handleAuthenticated = (event: CustomEvent) => {
-      const token = event.detail;
-      sessionStorage.setItem('qlik_token', token);
-      router.replace('/dashboard');
-    };
-
-    window.addEventListener('qlik-auth-success', handleAuthenticated as EventListener);
-
-    return () => {
-      window.removeEventListener('qlik-auth-success', handleAuthenticated as EventListener);
-    };
   }, [router]);
 
   const handleSignIn = () => {
@@ -60,8 +48,8 @@ const AuthPage = () => {
     const qlikAuth = window.qlikEmbed.connect();
     
     qlikAuth.on('authenticated', (token: string) => {
-      const event = new CustomEvent('qlik-auth-success', { detail: token });
-      window.dispatchEvent(event);
+      sessionStorage.setItem('qlik_token', token);
+      router.replace('/dashboard');
     });
 
     qlikAuth.on('error', (error: Error) => {

@@ -1,65 +1,100 @@
 import enigma from 'enigma.js';
 import schema from 'enigma.js/schemas/12.612.0.json';
+import { QLIK_CONFIG } from '../config/qlik';
 
-export const connectToQlik = async (appId: string, tenantUrl: string, webIntegrationId: string) => {
-  let csrfToken = '';
+class QlikConnectionManager {
+  private static instance: QlikConnectionManager;
+  private session: any = null;
+  private app: any = null;
+  private connectionPromise: Promise<{ app: any; session: any }> | null = null;
 
-   try {
-    const csrfRes = await fetch(`https://${tenantUrl}/api/v1/csrf-token`, {
-      credentials: 'include', 
-      headers: {
-        'qlik-web-integration-id': webIntegrationId, 
-      },
-    });
+  private constructor() {}
 
-    if (!csrfRes.ok) {
-      if (csrfRes.status === 401 || csrfRes.status === 403) {
-        throw new Error('Qlik session expired or not authenticated. Please ensure you are logged in to Qlik Sense.');
-      } else if (csrfRes.status === 404) {
-        throw new Error('Qlik API endpoint not found. Please verify the tenant URL and web integration ID.');
-      } else {
-        throw new Error(`Failed to get Qlik CSRF token: HTTP Status ${csrfRes.status} - ${csrfRes.statusText}`);
+  static getInstance(): QlikConnectionManager {
+    if (!QlikConnectionManager.instance) {
+      QlikConnectionManager.instance = new QlikConnectionManager();
+    }
+    return QlikConnectionManager.instance;
+  }
+
+  async connect() {
+    if (this.connectionPromise) {
+      return this.connectionPromise;
+    }
+
+    this.connectionPromise = this.createConnection();
+    return this.connectionPromise;
+  }
+
+  private async createConnection() {
+    try {
+      const csrfRes = await fetch(`https://${QLIK_CONFIG.host}/api/v1/csrf-token`, {
+        credentials: 'include',
+        headers: {
+          'qlik-web-integration-id': QLIK_CONFIG.webIntegrationId,
+        },
+      });
+
+      if (!csrfRes.ok) {
+        if (csrfRes.status === 401 || csrfRes.status === 403) {
+          window.location.href = '/auth';
+          throw new Error('Session expired');
+        }
+        throw new Error(`Failed to get CSRF token: ${csrfRes.status}`);
       }
+
+      const csrfToken = csrfRes.headers.get('qlik-csrf-token');
+      if (!csrfToken) {
+        throw new Error('CSRF token missing');
+      }
+
+      const wsUrl = `wss://${QLIK_CONFIG.host}/app/${QLIK_CONFIG.appId}?qlik-web-integration-id=${QLIK_CONFIG.webIntegrationId}&qlik-csrf-token=${csrfToken}`;
+
+      this.session = enigma.create({
+        schema,
+        url: wsUrl,
+        createSocket: (url) => new WebSocket(url),
+        suspendOnClose: true,
+      });
+
+      const global = await this.session.open();
+      this.app = await global.openDoc(QLIK_CONFIG.appId);
+
+      this.session.on('suspended', () => {
+        console.warn('Session suspended');
+        this.reconnect();
+      });
+
+      this.session.on('closed', () => {
+        console.warn('Session closed');
+        this.reset();
+        window.location.href = '/auth';
+      });
+
+      return { app: this.app, session: this.session };
+    } catch (error) {
+      this.reset();
+      throw error;
     }
-
-    csrfToken = csrfRes.headers.get('qlik-csrf-token') || '';
-
-    if (!csrfToken) {
-      throw new Error('Qlik CSRF token missing in response headers. Session might be invalid or misconfigured.');
-    }
-
-  } catch (error: any) {
-    console.error("Error fetching Qlik CSRF token:", error);
-    throw error;
   }
 
-  const wsUrl = `wss://${tenantUrl}/app/${appId}?qlik-web-integration-id=${webIntegrationId}&qlik-csrf-token=${csrfToken}`;
-
-  const session = enigma.create({
-    schema, 
-    url: wsUrl, 
-    createSocket: (url) => new WebSocket(url), 
-    suspendOnClose: true, 
-  });
-
-  try {
-    const global = (await session.open()) as any; 
-    const app = await global.openDoc(appId); 
-    session.on('closed', (hadError: boolean) => {
-        console.warn('Enigma.js session closed.', hadError ? 'Due to error.' : '');
-    });
-
-    session.on('suspended', () => {
-        console.warn('Enigma.js session suspended. Attempting to resume...');
-    });
-
-    session.on('resumed', () => {
-        console.info('Enigma.js session resumed successfully.');
-    });
-
-    return { app, session }; 
-  } catch (error: any) {
-    console.error("Error opening Qlik session or app:", error);
-    throw new Error(`Failed to connect to Qlik app: ${error.message || 'Unknown error'}. Please check app ID or network connection.`);
+  private async reconnect() {
+    try {
+      await this.session?.resume();
+    } catch (error) {
+      console.error('Failed to resume session:', error);
+      this.reset();
+      window.location.href = '/auth';
+    }
   }
+
+  private reset() {
+    this.session = null;
+    this.app = null;
+    this.connectionPromise = null;
+  }
+}
+
+export const connectToQlik = async () => {
+  return QlikConnectionManager.getInstance().connect();
 };
