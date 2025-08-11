@@ -41,6 +41,12 @@ States:
     Choices:
       - Condition: '{% $workOrderStatusCode = 201 %}'
         Next: Prepare Hearst Schedule Mapper Payload
+      - Condition: '{% $workOrderStatusCode = 200 %}'
+        Next: Prepare Hearst Schedule Mapper Payload
+      - Condition: '{% $workOrderStatusCode = 400 %}'
+        Next: Work Order Creation Bad Request
+      - Condition: '{% $workOrderStatusCode = 404 %}'
+        Next: Work Order Creation Not Found
     Default: Work Order Creation Failed
 
   Prepare Hearst Schedule Mapper Payload:
@@ -48,7 +54,7 @@ States:
     Assign:
       hearstMapperPayload:
         work_order_id: '{% $workOrderResponse.id %}'
-        file_name: '{% $workOrderResponse.detail %}'
+        file_name: '{% $last($split($workOrderResponse.detail, "/")) %}'
         vipe_channel_id: '{% $workOrderResponse.channel %}'
     Next: Trigger Hearst Schedule Mapper
 
@@ -60,7 +66,17 @@ States:
       Payload: '{% $hearstMapperPayload %}'
     End: true
 
+  Work Order Creation Bad Request:
+    Type: Fail
+    Error: WorkOrderCreationBadRequest
+    Cause: Work order creation returned status code 400 (Bad Request)
+
+  Work Order Creation Not Found:
+    Type: Fail
+    Error: WorkOrderCreationNotFound
+    Cause: Work order creation returned status code 404 (Not Found)
+
   Work Order Creation Failed:
     Type: Fail
     Error: WorkOrderCreationFailed
-    Cause: Work order creation did not return status code 201
+    Cause: Work order creation did not return status code 200, 201, 400, or 404
