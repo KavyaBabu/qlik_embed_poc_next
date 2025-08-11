@@ -11,3 +11,6 @@
   "resource": "invoke",
   "resourceType": "lambda"
 }
+
+
+file_name: '{% $last($split($workOrderResponse.detail, "/")) %}'
