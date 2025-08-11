@@ -31,38 +31,36 @@ States:
 
   Extract Work Order Result:
     Type: Pass
-    Parameters:
-      workOrderStatusCode.$: "$.Payload.statusCode"
-      workOrderResponse.$: "States.StringToJson($.Payload.body)"
+    Assign:
+      workOrderStatusCode: '{% $states.input.Payload.statusCode %}'
+      workOrderResponse: '{% $states.input.Payload.body %}'
     Next: Check Work Order Creation Status
 
   Check Work Order Creation Status:
     Type: Choice
     Choices:
-      - Variable: "$.workOrderStatusCode"
-        NumericEquals: 201
+      - Condition: '{% $workOrderStatusCode = 201 %}'
         Next: Prepare Hearst Schedule Mapper Payload
     Default: Work Order Creation Failed
 
   Prepare Hearst Schedule Mapper Payload:
     Type: Pass
-    Parameters:
-      work_order_id.$: "$.workOrderResponse.id"
-      file_name.$: "$.workOrderResponse.detail"
-      vipe_channel_id.$: "$.workOrderResponse.channel"
-    ResultPath: "$.hearstMapperPayload"
+    Assign:
+      hearstMapperPayload:
+        work_order_id: '{% $workOrderResponse.id %}'
+        file_name: '{% $workOrderResponse.detail %}'
+        vipe_channel_id: '{% $workOrderResponse.channel %}'
     Next: Trigger Hearst Schedule Mapper
 
   Trigger Hearst Schedule Mapper:
     Type: Task
     Resource: arn:aws:states:::lambda:invoke
-    Parameters:
+    Arguments:
       FunctionName: arn:aws:lambda:${region}:${aws_account_id}:function:${environment}-hearst_schedule_mapper
-      Payload.$: "$.hearstMapperPayload"
+      Payload: '{% $hearstMapperPayload %}'
     End: true
 
   Work Order Creation Failed:
     Type: Fail
     Error: WorkOrderCreationFailed
     Cause: Work order creation did not return status code 201
-
