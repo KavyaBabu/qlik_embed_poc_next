@@ -1,6 +1,6 @@
-{
-  "cause": "An error occurred while executing the state 'Prepare Hearst Schedule Mapper Payload' (entered at the event id #13). The JSONata expression '$last($split($workOrderResponse.detail, \"/\"))' specified for the field 'Assign/hearstMapperPayload/file_name' threw an error during evaluation. T1006: Attempted to invoke a non-function",
-  "error": "States.QueryEvaluationError",
-  "location": "Assign/hearstMapperPayload/file_name",
-  "state": "Prepare Hearst Schedule Mapper Payload"
-}
+An error occurred while executing the state 'Prepare Hearst Schedule Mapper Payload' (entered at the event id #13). The JSONata expression '$split($workOrderResponse.detail, "/")[count($split($workOrderResponse.detail, "/")) - 1]' specified for the field 'Assign/hearstMapperPayload/file_name' threw an error during evaluation. T1005: Attempted to invoke a non-function. Did you mean $count?
+
+
+$states.input.detail.object.key: 
+
+"key": "tx-schedules/incoming/SCH_HHUN_20250515_Final_v1.xml",
