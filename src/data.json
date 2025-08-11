@@ -1,16 +1,6 @@
 {
-  "parameters": {
-    "FunctionName": "arn:aws:lambda:eu-west-1:943412361827:function:dev-hearst_schedule_mapper",
-    "Payload": {
-      "file_name": "dev-playout-schedule-943412361827tx-schedules/incoming/SCH_HHUN_20250515_Final_v1.xml",
-      "vipe_channel_id": "ARQTV3",
-      "work_order_id": "e1efd89c-7e5e-4708-9888-31b45e8fc164"
-    }
-  },
-  "region": "eu-west-1",
-  "resource": "invoke",
-  "resourceType": "lambda"
+  "cause": "An error occurred while executing the state 'Prepare Hearst Schedule Mapper Payload' (entered at the event id #13). The JSONata expression '$last($split($workOrderResponse.detail, \"/\"))' specified for the field 'Assign/hearstMapperPayload/file_name' threw an error during evaluation. T1006: Attempted to invoke a non-function",
+  "error": "States.QueryEvaluationError",
+  "location": "Assign/hearstMapperPayload/file_name",
+  "state": "Prepare Hearst Schedule Mapper Payload"
 }
-
-
-file_name: '{% $last($split($workOrderResponse.detail, "/")) %}'
