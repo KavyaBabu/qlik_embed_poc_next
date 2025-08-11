@@ -1,0 +1,68 @@
+Comment: File ingest state machine
+QueryLanguage: JSONata
+StartAt: Prepare Lambda Payload
+
+States:
+
+  Prepare Lambda Payload:
+    Type: Pass
+    Assign:
+      lambdaPayload:
+        httpMethod: POST
+        Headers:
+          Content-Type:
+            - application/json
+        queryStringParameters: null
+        body:
+          type: SCHEDULE_INGESTION
+          brand: ARQ
+          detail: '{% $states.input.detail.bucket.name & $states.input.detail.object.key %}'
+          org_id: '{% $states.input.id %}'
+          channel: ARQTV3
+    Next: Trigger work order create lambda
+
+  Trigger work order create lambda:
+    Type: Task
+    Resource: arn:aws:states:::lambda:invoke
+    Arguments:
+      FunctionName: arn:aws:lambda:${region}:${aws_account_id}:function:${environment}-work_order_create
+      Payload: '{% $lambdaPayload.body %}'
+    Next: Extract Work Order Result
+
+  Extract Work Order Result:
+    Type: Pass
+    Parameters:
+      workOrderStatusCode.$: "$.Payload.statusCode"
+      workOrderResponse.$: "States.StringToJson($.Payload.body)"
+    Next: Check Work Order Creation Status
+
+  Check Work Order Creation Status:
+    Type: Choice
+    Choices:
+      - Variable: "$.workOrderStatusCode"
+        NumericEquals: 201
+        Next: Prepare Hearst Schedule Mapper Payload
+    Default: Work Order Creation Failed
+
+  Prepare Hearst Schedule Mapper Payload:
+    Type: Pass
+    Parameters:
+      work_order_id.$: "$.workOrderResponse.id"
+      file_name.$: "$.workOrderResponse.detail"
+      vipe_channel_id.$: "$.workOrderResponse.channel"
+    ResultPath: "$.hearstMapperPayload"
+    Next: Trigger Hearst Schedule Mapper
+
+  Trigger Hearst Schedule Mapper:
+    Type: Task
+    Resource: arn:aws:states:::lambda:invoke
+    Parameters:
+      FunctionName: arn:aws:lambda:${region}:${aws_account_id}:function:${environment}-hearst_schedule_mapper
+      Payload.$: "$.hearstMapperPayload"
+    End: true
+
+  Work Order Creation Failed:
+    Type: Fail
+    Error: WorkOrderCreationFailed
+    Cause: Work order creation did not return status code 201
+
