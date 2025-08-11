@@ -1,66 +1,13 @@
-An error occurred while executing the state 'Prepare Hearst Schedule Mapper Payload' (entered at the event id #13). The JSONata expression '$workOrderResponse.detail' specified for the field 'Assign/hearstMapperPayload/file_name' returned nothing (undefined).
-
-
-
 {
-  "name": "Trigger work order create lambda",
-  "output": {
-    "ExecutedVersion": "$LATEST",
+  "parameters": {
+    "FunctionName": "arn:aws:lambda:eu-west-1:943412361827:function:dev-hearst_schedule_mapper",
     "Payload": {
-      "statusCode": 201,
-      "headers": {
-        "Content-Type": "application/json",
-        "Access-Control-Allow-Origin": "http://localhost:8080",
-        "Access-Control-Allow-Methods": "GET,POST,OPTIONS",
-        "Access-Control-Allow-Headers": "Content-Type,Authorization,X-Amz-Date,X-Api-Key,X-Amz-Security-Token",
-        "Access-Control-Allow-Credentials": "true"
-      },
-      "body": "{\"id\": \"b2d2535f-341f-4ebb-84f3-ba1bdf04b441\", \"org_id\": \"d3b8b4fa-1eda-8087-64a9-66b555eb34fd\", \"type\": \"SCHEDULE_INGESTION\", \"state\": null, \"state_extra_info\": null, \"state_machine_exec_arn\": null, \"brand\": \"ARQ\", \"steps\": null, \"channel\": \"ARQTV3\", \"detail\": \"dev-playout-schedule-943412361827tx-schedules/incoming/SCH_HHUN_20250515_Final_v1.xml\", \"required_by_timestamp\": null, \"collection_id\": null, \"asset_id\": null, \"created_at\": \"2025-08-11 15:44:30.252229+00:00\", \"updated_at\": null}"
-    },
-    "SdkHttpMetadata": {
-      "AllHttpHeaders": {
-        "X-Amz-Executed-Version": [
-          "$LATEST"
-        ],
-        "x-amzn-Remapped-Content-Length": [
-          "0"
-        ],
-        "Connection": [
-          "keep-alive"
-        ],
-        "x-amzn-RequestId": [
-          "8d64bfdd-53f8-4d42-ae7a-036232dd2044"
-        ],
-        "Content-Length": [
-          "872"
-        ],
-        "Date": [
-          "Mon, 11 Aug 2025 15:44:30 GMT"
-        ],
-        "X-Amzn-Trace-Id": [
-          "Root=1-689a0fdb-467bc8c86a15d6ef42d92823;Parent=1abd08e156585d3e;Sampled=0;Lineage=1:02ed3a50:0"
-        ],
-        "Content-Type": [
-          "application/json"
-        ]
-      },
-      "HttpHeaders": {
-        "Connection": "keep-alive",
-        "Content-Length": "872",
-        "Content-Type": "application/json",
-        "Date": "Mon, 11 Aug 2025 15:44:30 GMT",
-        "X-Amz-Executed-Version": "$LATEST",
-        "x-amzn-Remapped-Content-Length": "0",
-        "x-amzn-RequestId": "8d64bfdd-53f8-4d42-ae7a-036232dd2044",
-        "X-Amzn-Trace-Id": "Root=1-689a0fdb-467bc8c86a15d6ef42d92823;Parent=1abd08e156585d3e;Sampled=0;Lineage=1:02ed3a50:0"
-      },
-      "HttpStatusCode": 200
-    },
-    "SdkResponseMetadata": {
-      "RequestId": "8d64bfdd-53f8-4d42-ae7a-036232dd2044"
-    },
-    "StatusCode": 200
+      "file_name": "dev-playout-schedule-943412361827tx-schedules/incoming/SCH_HHUN_20250515_Final_v1.xml",
+      "vipe_channel_id": "ARQTV3",
+      "work_order_id": "e1efd89c-7e5e-4708-9888-31b45e8fc164"
+    }
   },
-  "outputDetails": {
-    "truncated": false
-  }
+  "region": "eu-west-1",
+  "resource": "invoke",
+  "resourceType": "lambda"
+}
