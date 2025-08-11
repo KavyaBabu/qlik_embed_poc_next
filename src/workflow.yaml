@@ -33,7 +33,7 @@ States:
     Type: Pass
     Assign:
       workOrderStatusCode: '{% $states.input.Payload.statusCode %}'
-      workOrderResponse: '{% $states.input.Payload.body %}'
+      workOrderResponse: '{% $parse($states.input.Payload.body) %}'
     Next: Check Work Order Creation Status
 
   Check Work Order Creation Status:
