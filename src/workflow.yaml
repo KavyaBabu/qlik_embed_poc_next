@@ -54,7 +54,7 @@ States:
     Assign:
       hearstMapperPayload:
         work_order_id: '{% $workOrderResponse.id %}'
-        file_name: '{% $split($workOrderResponse.detail, "/")[count($split($workOrderResponse.detail, "/")) - 1] %}'
+        file_name: '{% $split($workOrderResponse.detail, "/")[$count($split($workOrderResponse.detail, "/")) - 1] %}'
         vipe_channel_id: '{% $workOrderResponse.channel %}'
     Next: Trigger Hearst Schedule Mapper
 
