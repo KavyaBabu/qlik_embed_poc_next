@@ -1,85 +1,60 @@
-Status: Succeeded
-Test Event Name: Test
+22:55:27.393 ERROR  terraform: ╷
+22:55:27.393 ERROR  terraform: │ Error: Duplicate variable declaration
+22:55:27.394 ERROR  terraform: │ 
+22:55:27.394 ERROR  terraform: │   on variables.tf line 1:
+22:55:27.394 ERROR  terraform: │    1: variable "environment" {
+22:55:27.394 ERROR  terraform: │ 
+22:55:27.394 ERROR  terraform: │ A variable named "environment" was already declared at iam.tf:41,1-23.
+22:55:27.394 ERROR  terraform: │ Variable names must be unique within a module.
+22:55:27.394 ERROR  terraform: ╵
+22:55:27.394 ERROR  terraform: ╷
+22:55:27.394 ERROR  terraform: │ Error: Duplicate variable declaration
+22:55:27.394 ERROR  terraform: │ 
+22:55:27.394 ERROR  terraform: │   on variables.tf line 6:
+22:55:27.394 ERROR  terraform: │    6: variable "aws_account_id" {
+22:55:27.394 ERROR  terraform: │ 
+22:55:27.394 ERROR  terraform: │ A variable named "aws_account_id" was already declared at iam.tf:31,1-26.
+22:55:27.394 ERROR  terraform: │ Variable names must be unique within a module.
+22:55:27.394 ERROR  terraform: ╵
+22:55:27.394 ERROR  terraform: ╷
+22:55:27.394 ERROR  terraform: │ Error: Duplicate variable declaration
+22:55:27.394 ERROR  terraform: │ 
+22:55:27.394 ERROR  terraform: │   on variables.tf line 80:
+22:55:27.394 ERROR  terraform: │   80: variable "vipe_aws_account_id" {
+22:55:27.394 ERROR  terraform: │ 
+22:55:27.394 ERROR  terraform: │ A variable named "vipe_aws_account_id" was already declared at
+22:55:27.394 ERROR  terraform: │ iam.tf:36,1-31. Variable names must be unique within a module.
+22:55:27.394 ERROR  terraform: ╵
+22:55:27.397 ERROR  terraform invocation failed in ./.terragrunt-cache/EGeE_LaFmdcnpJT1RAS1Sdxn4MA/3nKWefrNlt-PAkAtwe1JNBIPpUI
+22:55:27.397 ERROR  error occurred:
 
-Response:
-{
-  "status": "IN_PROGRESS",
-  "message": "Schedule file 'SCH_HHUN_20250515_Final_v1.xml' uploaded but processed file not confirmed within timeout.",
-  "archived_json": "s3://dev-playout-schedule-943412361827/tx-schedules/archive/SCH_HHUN_20250515_Final_v1.json",
-  "vipe_json": "s3://uat-inbound-media-files-980921750886/rt-demo/schedules/ARQTV3/SCH_HHUN_20250515_Final_v1.json",
-  "file_name": "SCH_HHUN_20250515_Final_v1.xml",
-  "channel": "ARQTV3",
-  "polling_enabled": true,
-  "processed_found": false,
-  "processed_path": "rt-demo/procschedules/ARQTV3/done/"
-}
-
-Function Logs:
-PE Native JSON...
-2025-08-14 21:41:05.552 | INFO     | app:handler:291 - Uploading JSON archive to s3://dev-playout-schedule-943412361827/tx-schedules/archive/SCH_HHUN_20250515_Final_v1.json
-2025-08-14 21:41:05.650 | INFO     | app:handler:296 - Assuming cross-account role to upload to VIPE bucket...
-2025-08-14 21:41:05.748 | INFO     | app:assume_cross_account_role:48 - Assumed role: arn:aws:sts::980921750886:assumed-role/dev-vipe-cross-account-role/VipeS3UploadSession
-2025-08-14 21:41:05.771 | INFO     | app:handler:299 - Uploading JSON to VIPE bucket s3://uat-inbound-media-files-980921750886/rt-demo/schedules/ARQTV3/SCH_HHUN_20250515_Final_v1.json with ACL bucket-owner-full-control
-2025-08-14 21:41:05.932 | SUCCESS  | app:handler:311 - Schedule file 'SCH_HHUN_20250515_Final_v1.xml' successfully transformed and uploaded.
-2025-08-14 21:41:05.932 | INFO     | app:handler:319 - Polling enabled. Starting to poll for processed schedule for channel: ARQTV3
-2025-08-14 21:41:05.932 | INFO     | app:handler:331 - Polling for max 53s with 5s intervals; strategy=exists, window=[30,60]
-2025-08-14 21:41:05.942 | ERROR    | app:list_files_in_done_path:106 - Error listing files in rt-demo/procschedules/ARQTV3/done/: An error occurred (AccessDenied) when calling the ListObjectsV2 operation: User: arn:aws:sts::980921750886:assumed-role/dev-vipe-cross-account-role/VipeS3UploadSession is not authorized to perform: s3:ListBucket on resource: "arn:aws:s3:::uat-inbound-media-files-980921750886" because no identity-based policy allows the s3:ListBucket action
-2025-08-14 21:41:05.942 | INFO     | app:poll_for_processed_schedule:170 - Starting to poll for processed file in path: s3://uat-inbound-media-files-980921750886/rt-demo/procschedules/ARQTV3/done/ (strategy=exists)
-2025-08-14 21:41:05.956 | ERROR    | app:poll_for_processed_schedule:208 - Access denied on uat-inbound-media-files-980921750886/rt-demo/procschedules/ARQTV3/done/: An error occurred (AccessDenied) when calling the ListObjectsV2 operation: User: arn:aws:sts::980921750886:assumed-role/dev-vipe-cross-account-role/VipeS3UploadSession is not authorized to perform: s3:ListBucket on resource: "arn:aws:s3:::uat-inbound-media-files-980921750886" because no identity-based policy allows the s3:ListBucket action
-2025-08-14 21:41:05.957 | WARNING  | app:handler:363 - Processed schedule not found or not accessible for SCH_HHUN_20250515_Final_v1.xml in channel ARQTV3 within timeout
-2025-08-14 21:41:05.957 | INFO     | core.database:get_database_credentials:27 - Fetching new database credentials from Secrets Manager: arn:aws:secretsmanager:eu-west-1:943412361827:secret:/database/dev/base/master_credentials-5gtulW
-2025-08-14 21:41:06.316 | INFO     | core.database:get_database_connection:57 - Creating new connection pool for database 'playout_dev_db_provisioned' via proxy 'dev-base-playout-aurora.cluster-clqeoqmuuyhc.eu-west-1.rds.amazonaws.com'...
-2025-08-14 21:41:06.317 | INFO     | core.database:get_database_connection:60 - Database connection pool created successfully.
-2025-08-14 21:41:06.531 | INFO     | repositories.work_order:get_by_id:106 - Executing GET query for work_order with ID: 3259eeb5-62dc-416a-8e05-51b6be20fa6d
-2025-08-14 21:41:06.663 | INFO     | repositories.work_order:update_status:136 - Updating status of work order 3259eeb5-62dc-416a-8e05-51b6be20fa6d to IN_PROGRESS
-2025-08-14 21:41:06.694 | INFO     | repositories.work_order:update_status:144 - Successfully updated work order 3259eeb5-62dc-416a-8e05-51b6be20fa6d status to IN_PROGRESS
-2025-08-14 21:41:06.695 | INFO     | work_order_status_updater:update_work_order_status:61 - Successfully updated status of work order 3259eeb5-62dc-416a-8e05-51b6be20fa6d to IN_PROGRESS
-2025-08-14 21:41:06.695 | INFO     | work_order_status_updater:update_work_order_status:72 - Database connection closed successfully.
-END RequestId: bfb91f23-f339-4a36-989b-4ffb13d93a87
-REPORT RequestId: bfb91f23-f339-4a36-989b-4ffb13d93a87	Duration: 3185.61 ms	Billed Duration: 3186 ms	Memory Size: 512 MB	Max Memory Used: 163 MB	Init Duration: 1308.47 ms
-
-Request ID: bfb91f23-f339-4a36-989b-4ffb13d93a87
-
-1. file is processed and updated on /done in 30 to 50 secs still its saying file not found more over its not able to list out the files,
-2. may be using assumerole or any alternate way and can we find file is present or not
-3. listObject access is there in iam.tf still its saying the same
-
-permissions ->uat-inbound-media-files-980921750886
-
-{
-    "Version": "2012-10-17",
-    "Statement": [
-        {
-            "Sid": "AllowCrossAccountVipePutAccess",
-            "Effect": "Allow",
-            "Principal": {
-                "AWS": "AROA5XJ6CHJRURTWWKPIM"
-            },
-            "Action": [
-                "s3:PutObject",
-                "s3:PutObjectAcl"
-            ],
-            "Resource": "arn:aws:s3:::uat-inbound-media-files-980921750886/*",
-            "Condition": {
-                "StringEquals": {
-                    "s3:x-amz-acl": "bucket-owner-full-control"
-                }
-            }
-        },
-        {
-            "Sid": "AllowCrossAccountVipeReadAccess",
-            "Effect": "Allow",
-            "Principal": {
-                "AWS": "AROA5XJ6CHJRURTWWKPIM"
-            },
-            "Action": [
-                "s3:GetObject",
-                "s3:ListBucket"
-            ],
-            "Resource": [
-                "arn:aws:s3:::uat-inbound-media-files-980921750886",
-                "arn:aws:s3:::uat-inbound-media-files-980921750886/*"
-            ]
-        }
-    ]
-}
+* Failed to execute "terraform init" in ./.terragrunt-cache/EGeE_LaFmdcnpJT1RAS1Sdxn4MA/3nKWefrNlt-PAkAtwe1JNBIPpUI
+  ╷
+  │ Error: Duplicate variable declaration
+  │ 
+  │   on variables.tf line 1:
+  │    1: variable "environment" {
+  │ 
+  │ A variable named "environment" was already declared at iam.tf:41,1-23.
+  │ Variable names must be unique within a module.
+  ╵
+  ╷
+  │ Error: Duplicate variable declaration
+  │ 
+  │   on variables.tf line 6:
+  │    6: variable "aws_account_id" {
+  │ 
+  │ A variable named "aws_account_id" was already declared at iam.tf:31,1-26.
+  │ Variable names must be unique within a module.
+  ╵
+  ╷
+  │ Error: Duplicate variable declaration
+  │ 
+  │   on variables.tf line 80:
+  │   80: variable "vipe_aws_account_id" {
+  │ 
+  │ A variable named "vipe_aws_account_id" was already declared at
+  │ iam.tf:36,1-31. Variable names must be unique within a module.
+  ╵
+  
+  exit status 1
