@@ -6,6 +6,7 @@ from types import SimpleNamespace
 from datetime import datetime, timezone
 from typing import Iterator, List, Optional
 
+import re
 import boto3
 from botocore.exceptions import ClientError
 from loguru import logger
@@ -109,6 +110,36 @@ def list_files_in_done_path(s3_client, bucket: str, channel: str) -> List[str]:
         return []
 
 
+def _age_seconds_from_filename_or_lastmod(
+    basename: str, item_last_modified: Optional[datetime], now: datetime
+) -> Optional[float]:
+    """
+    Try to compute age (seconds) from the timestamp embedded in the filename:
+    <base>.json.done.<dow mon dd yyyy HH:MM:SS GMT+0000 (Coordinated Universal Time)>
+    Fallback to S3 LastModified if parsing fails.
+    """
+    try:
+        # Extract the part after ".json.done."
+        # Example basename: SCH_X.json.done.Thu Aug 14 2025 16:19:14 GMT+0000 (Coordinated Universal Time)
+        parts = basename.split(".json.done.", 1)
+        if len(parts) == 2:
+            ts_raw = parts[1]
+            ts_core = ts_raw.split(" GMT")[0]  # "Thu Aug 14 2025 16:19:14"
+            file_dt = datetime.strptime(ts_core, "%a %b %d %Y %H:%M:%S").replace(tzinfo=timezone.utc)
+            return (now - file_dt).total_seconds()
+    except Exception:
+        # ignore and try LastModified
+        pass
+
+    if item_last_modified:
+        try:
+            return (now - item_last_modified).total_seconds()
+        except Exception:
+            return None
+
+    return None
+
+
 def poll_for_processed_schedule(
     s3_client,
     bucket: str,
@@ -118,19 +149,25 @@ def poll_for_processed_schedule(
     poll_interval: int = 10,
     time_window_min: int = 30,
     time_window_max: int = 60,
+    match_strategy: str = "exists",  # "exists" or "window"
 ) -> Optional[bool]:
     """
     Poll the processed schedules 'done' path for a file corresponding to file_name.
-    Instead of parsing timestamps from filenames, rely on S3 LastModified time.
+
+    match_strategy:
+      - "exists": any matching "<file>.json.done.*" is accepted immediately.
+      - "window": require age to be within [time_window_min, time_window_max] seconds,
+                  using filename-embedded timestamp when available, else LastModified.
 
     Returns:
-        True if a matching file is found within the age window,
-        False if not found before timeout or access denied,
-        None if a non-permission S3 error occurred (caller may decide how to treat).
+        True  = success (match found according to strategy)
+        False = not found before timeout OR access denied
+        None  = other S3 error (caller may treat as soft failure)
     """
     done_path_prefix = f"rt-demo/procschedules/{channel}/done/"
-    expected_prefix = file_name.replace(".xml", ".json.done")
-    logger.info(f"Starting to poll for processed file in path: s3://{bucket}/{done_path_prefix}")
+    base_prefix = file_name.replace(".xml", ".json.done")
+    pattern = re.compile(rf"^{re.escape(base_prefix)}\..+$")
+    logger.info(f"Starting to poll for processed file in path: s3://{bucket}/{done_path_prefix} (strategy={match_strategy})")
 
     start_time = time.time()
     while time.time() - start_time < max_wait_time:
@@ -141,22 +178,29 @@ def poll_for_processed_schedule(
             for item in _paginate_list_objects(s3_client, bucket, done_path_prefix):
                 key = item["Key"]
                 basename = key.rsplit("/", 1)[-1]
-                if not basename.startswith(expected_prefix):
+
+                if not pattern.match(basename):
                     continue
 
                 found_any_matching_basename = True
-                lastmod = item.get("LastModified")
-                if not lastmod:
+
+                if match_strategy == "exists":
+                    logger.success(f"Found processed file (exists strategy): {key}")
+                    return True
+
+                # match_strategy == "window"
+                age_sec = _age_seconds_from_filename_or_lastmod(basename, item.get("LastModified"), now)
+                if age_sec is None:
+                    logger.debug(f"Could not determine age for {basename}; skipping under 'window' strategy")
                     continue
 
-                age_sec = (now - lastmod).total_seconds()
                 logger.debug(f"Candidate: {key} (age: {age_sec:.1f}s)")
                 if time_window_min <= age_sec <= time_window_max:
                     logger.success(f"Found processed file within time window: {key}")
                     return True
 
             if not found_any_matching_basename:
-                logger.debug(f"No candidates yet under {done_path_prefix} for base {expected_prefix}")
+                logger.debug(f"No candidates yet under {done_path_prefix} for base {base_prefix}")
 
         except ClientError as ce:
             code = ce.response.get("Error", {}).get("Code")
@@ -279,7 +323,15 @@ def handler(event: dict, context: dict) -> dict:
             max_wait_time = min(float(event.get("poll_max_wait_time", remaining_time)), remaining_time)
             poll_interval = int(event.get("poll_interval", 5))  # reasonable default for Lambda
 
-            logger.info(f"Polling for max {max_wait_time:.0f} seconds with {poll_interval}s intervals")
+            # Strategy selection (exists | window)
+            match_strategy = str(event.get("poll_match_strategy", "exists")).lower()
+            time_window_min = int(event.get("time_window_min", 30))
+            time_window_max = int(event.get("time_window_max", 60))
+
+            logger.info(
+                f"Polling for max {max_wait_time:.0f}s with {poll_interval}s intervals; "
+                f"strategy={match_strategy}, window=[{time_window_min},{time_window_max}]"
+            )
 
             if max_wait_time > 0:
                 # Optional: list current keys for immediate visibility
@@ -292,6 +344,9 @@ def handler(event: dict, context: dict) -> dict:
                     file_name=file_name,
                     max_wait_time=int(max_wait_time),
                     poll_interval=poll_interval,
+                    time_window_min=time_window_min,
+                    time_window_max=time_window_max,
+                    match_strategy=match_strategy,
                 )
 
                 if processed_found is True:
