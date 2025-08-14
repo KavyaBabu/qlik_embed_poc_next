@@ -1,6 +1,49 @@
-An error occurred while executing the state 'Prepare Hearst Schedule Mapper Payload' (entered at the event id #13). The JSONata expression '$split($workOrderResponse.detail, "/")[count($split($workOrderResponse.detail, "/")) - 1]' specified for the field 'Assign/hearstMapperPayload/file_name' threw an error during evaluation. T1005: Attempted to invoke a non-function. Did you mean $count?
+if i use head_object inside polling it returns 403 forbidden error as the filename in done path is not specific it should be like filename.json.done.timestamp(SCH_HHUN_20250515_Final_v1.json.done.Fri Aug 08 2025 11:21:00 GMT+0000 (Coordinated Universal Time)
+
+and if i try to use list_object_v2 to list all files start with this filename and within 30 to 60secs filenames but accessdenied even though my iam.tf file does have policy to list
+
+suggest good solution to fix this polling and instead of running like 60secs as soon as find the file it will give response
+
+Status: Succeeded
+
+Test Event Name: Test
 
 
-$states.input.detail.object.key: 
 
-"key": "tx-schedules/incoming/SCH_HHUN_20250515_Final_v1.xml",
+Response:
+
+{
+
+"status": "IN_PROGRESS",
+
+"message": "Schedule file 'SCH_HHUN_20250515_Final_v1.xml' uploaded but processed file not confirmed within timeout.",
+
+"archived_json": "s3://dev-playout-schedule-943412361827/tx-schedules/archive/SCH_HHUN_20250515_Final_v1.json",
+
+"vipe_json": "s3://uat-inbound-media-files-980921750886/rt-demo/schedules/ARQTV3/SCH_HHUN_20250515_Final_v1.json",
+
+"file_name": "SCH_HHUN_20250515_Final_v1.xml",
+
+"channel": "ARQTV3",
+
+"polling_enabled": true,
+
+"processed_found": false,
+
+"processed_path": "procschedules/ARQTV3/done/"
+
+}
+
+
+
+Function Logs:
+
+olicy allows the s3:ListBucket action
+
+2025-08-14 12:04:01.633 | WARNING | app:poll_for_processed_schedule:88 - Error listing files in rt-demo/procschedules/ARQTV3/done/: An error occurred (AccessDenied) when calling the ListObjectsV2 operation: User: arn:aws:sts::980921750886:assumed-role/dev-vipe-cross-account-role/VipeS3UploadSession is not authorized to perform: s3:ListBucket on resource: "arn:aws:s3:::uat-inbound-media-files-980921750886" because no identity-based policy allows the s3:ListBucket action
+
+2025-08-14 12:04:06.640 | WARNING | app:poll_for_processed_schedule:88 - Error listing files in rt-demo/procschedules/ARQTV3/done/: An error occurred (AccessDenied) when calling the ListObjectsV2 operation: User: arn:aws:sts::980921750886:assumed-role/dev-vipe-cross-account-role/VipeS3UploadSession is not authorized to perform: s3:ListBucket on resource: "arn:aws:s3:::uat-inbound-media-files-980921750886" because no identity-based policy allows the s3:ListBucket action
+
+2025-08-14 12:04:11.647 | WARNING | app:poll_for_processed_schedule:88 - Error listing files in rt-demo/procschedules/ARQTV3/done/: An error occurred (AccessDenied) when calling the ListObjectsV2 operation: User: arn:aws:sts::980921750886:assumed-role/dev-vipe-cross-account-role/VipeS3UploadSession is not authorized to perform: s3:ListBucket on resource: "arn:aws:s3:::uat-inbound-media-files-980921750886" because no identity-based policy allows the s3:ListBucket action
+
+2025-08-14 12:04:16.654 | WARNING |
