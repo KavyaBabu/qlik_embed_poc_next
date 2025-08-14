@@ -4,30 +4,63 @@ locals {
   vipe_bucket_name          = "uat-inbound-media-files-${var.vipe_aws_account_id}"
 }
 
+# -----------------------------
 # Policy for cross-account S3 access to VIPE bucket
+# Split bucket-level (ListBucket) and object-level permissions; add prefix constraint.
+# -----------------------------
 data "aws_iam_policy_document" "vipe_s3_cross_account_policy" {
+  # Bucket-level: allow listing only under the done prefix used by the poller
+  statement {
+    effect = "Allow"
+    actions = [
+      "s3:ListBucket"
+    ]
+    resources = [
+      "arn:aws:s3:::${local.vipe_bucket_name}"
+    ]
+    condition {
+      test     = "StringLike"
+      variable = "s3:prefix"
+      values   = [
+        "rt-demo/procschedules/ARQTV3/done/*"
+      ]
+    }
+  }
+
+  # Object-level: read the processed file(s) if needed
+  statement {
+    effect = "Allow"
+    actions = [
+      "s3:GetObject"
+    ]
+    resources = [
+      "arn:aws:s3:::${local.vipe_bucket_name}/rt-demo/procschedules/ARQTV3/done/*"
+    ]
+  }
+
+  # Object-level: write uploads to schedules path (used during ingest)
   statement {
     effect = "Allow"
     actions = [
       "s3:PutObject",
-      "s3:PutObjectAcl",
-      "s3:GetObject",
-      "s3:ListBucket"
+      "s3:PutObjectAcl"
     ]
     resources = [
-      "arn:aws:s3:::${local.vipe_bucket_name}",
-      "arn:aws:s3:::${local.vipe_bucket_name}/*"
+      "arn:aws:s3:::${local.vipe_bucket_name}/rt-demo/schedules/*"
     ]
   }
 }
 
+# -----------------------------
 # Trust policy for the cross-account role
+# Use the lambda_execution_role_arn (parametrized) instead of a hardcoded role name.
+# -----------------------------
 data "aws_iam_policy_document" "cross_account_assume_role_policy" {
   statement {
     effect = "Allow"
     principals {
       type        = "AWS"
-      identifiers = ["arn:aws:iam::${var.aws_account_id}:role/dev-hearst_schedule_mapper-executionrole"]
+      identifiers = [local.lambda_execution_role_arn]
     }
     actions = ["sts:AssumeRole"]
 
@@ -39,7 +72,9 @@ data "aws_iam_policy_document" "cross_account_assume_role_policy" {
   }
 }
 
-# Policy for local S3 operations 
+# -----------------------------
+# Local S3 operations policy (same account)
+# -----------------------------
 data "aws_iam_policy_document" "local_s3_policy" {
   statement {
     effect = "Allow"
@@ -56,7 +91,10 @@ data "aws_iam_policy_document" "local_s3_policy" {
   }
 }
 
-# Cross-account role for accessing VIPE bucket
+# -----------------------------
+# Cross-account role in VIPE account
+# IMPORTANT: ensure this runs with the provider/credentials for account ${var.vipe_aws_account_id}
+# -----------------------------
 resource "aws_iam_role" "vipe_cross_account_role" {
   name               = "${var.environment}-vipe-cross-account-role"
   assume_role_policy = data.aws_iam_policy_document.cross_account_assume_role_policy.json
@@ -67,20 +105,20 @@ resource "aws_iam_role" "vipe_cross_account_role" {
   }
 }
 
-# Policy for VIPE bucket access
 resource "aws_iam_policy" "vipe_s3_cross_account_policy" {
   name        = "${var.environment}-vipe-s3-cross-account-policy"
   description = "Policy for cross-account access to VIPE S3 bucket"
   policy      = data.aws_iam_policy_document.vipe_s3_cross_account_policy.json
 }
 
-# Attach VIPE policy to cross-account role
 resource "aws_iam_role_policy_attachment" "attach_vipe_policy" {
   role       = aws_iam_role.vipe_cross_account_role.name
   policy_arn = aws_iam_policy.vipe_s3_cross_account_policy.arn
 }
 
-# Lambda execution role with assume role permissions
+# -----------------------------
+# Lambda execution role policies (source account)
+# -----------------------------
 data "aws_iam_policy_document" "lambda_assume_cross_account_policy" {
   statement {
     effect = "Allow"
@@ -99,26 +137,25 @@ resource "aws_iam_policy" "lambda_assume_cross_account_policy" {
   policy      = data.aws_iam_policy_document.lambda_assume_cross_account_policy.json
 }
 
-# Policy for Lambda to access local S3 bucket
 resource "aws_iam_policy" "lambda_local_s3_policy" {
   name        = "${var.environment}-lambda-local-s3-policy"
   description = "Policy for Lambda to access local S3 bucket"
   policy      = data.aws_iam_policy_document.local_s3_policy.json
 }
 
-# Attach local S3 policy to Lambda execution role
 resource "aws_iam_role_policy_attachment" "attach_local_s3_policy" {
   role       = local.lambda_role_name
   policy_arn = aws_iam_policy.lambda_local_s3_policy.arn
 }
 
-# Attach assume role policy to Lambda execution role
 resource "aws_iam_role_policy_attachment" "attach_assume_cross_account_policy" {
   role       = local.lambda_role_name
   policy_arn = aws_iam_policy.lambda_assume_cross_account_policy.arn
 }
 
+# -----------------------------
 # Outputs
+# -----------------------------
 output "vipe_cross_account_role_arn" {
   description = "ARN of the cross-account role for VIPE bucket access"
   value       = aws_iam_role.vipe_cross_account_role.arn
