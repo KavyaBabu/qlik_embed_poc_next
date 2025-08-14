@@ -39,3 +39,8 @@ END RequestId: 9b9dd3ba-5d33-49a1-886d-f04fa661d745
 REPORT RequestId: 9b9dd3ba-5d33-49a1-886d-f04fa661d745	Duration: 3156.25 ms	Billed Duration: 3157 ms	Memory Size: 512 MB	Max Memory Used: 163 MB	Init Duration: 1318.67 ms
 
 Request ID: 9b9dd3ba-5d33-49a1-886d-f04fa661d745
+
+
+sample done/path file name is SCH_HHUN_20250515_Final_v1.json.done.Thu Aug 14 2025 16:19:14 GMT+0000 (Coordinated Universal Time)
+
+from source it will send like SCH_HHUN_20250515_Final_v1.xml , parsed and transformed store as .json, and in done/ path as .done.timestamp
