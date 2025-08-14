@@ -328,7 +328,7 @@ def handler(event: dict, context: dict) -> dict:
                         try:
                             update_work_order_status_sync(work_order_id, "IN_PROGRESS")
                         except Exception as async_e:
-                            logger.error(f"Failed to update work order status for {work_order_id}: {async_e}")
+                            logger.error(f"Failed to update work_order status for {work_order_id}: {async_e}")
             else:
                 logger.warning("Not enough time remaining for polling")
                 final_status = "IN_PROGRESS"
@@ -350,7 +350,7 @@ def handler(event: dict, context: dict) -> dict:
             "channel": channel,
             "polling_enabled": enable_polling,
             "processed_found": processed_found,
-            # FIX: include 'rt-demo/' so it matches actual listing prefix
+            # include 'rt-demo/' so it matches actual listing prefix
             "processed_path": f"rt-demo/procschedules/{channel}/done/" if enable_polling else None,
         }
 
