@@ -61,53 +61,76 @@ def is_valid_xml(xml_path: str) -> bool:
         return False
 
 
-def poll_for_processed_schedule(s3_client, bucket: str, channel: str, file_name: str, max_wait_time: int = 300, poll_interval: int = 10) -> bool:
+def poll_for_processed_schedule(
+    s3_client, bucket: str, channel: str, file_name: str, max_wait_time: int = 300, poll_interval: int = 10,
+    time_window_min: int = 30, time_window_max: int = 60
+) -> bool:
     """
-    Poll the processed schedules done path for the uploaded file.
+    Poll the processed schedules done path for the uploaded file, matching files with a timestamp in the filename
+    within a given time window (in seconds).
     
     Args:
         s3_client: boto3 S3 client
         bucket: S3 bucket name
         channel: Channel identifier (e.g., 'ARQTV3')
-        file_name: Name of the file to look for (without .xml extension)
+        file_name: Name of the file to look for (with .xml extension)
         max_wait_time: Maximum time to wait in seconds (default: 5 minutes)
         poll_interval: Interval between polls in seconds (default: 10 seconds)
+        time_window_min: Minimum age of file in seconds (default: 30)
+        time_window_max: Maximum age of file in seconds (default: 60)
     
     Returns:
         bool: True if file is found, False if timeout reached
     """
-    # Use the directory path as the prefix
+    import re
+    from datetime import datetime, timezone
+
     done_path_prefix = f"rt-demo/procschedules/{channel}/done/"
-    
-    # Define the part of the filename we are looking for
     expected_filename_part = file_name.replace('.xml', '.json.done')
-    
     logger.info(f"Starting to poll for processed file in path: s3://{bucket}/{done_path_prefix}")
-    
+
+    # Regex to extract timestamp from filename
+    # Example: SCH_HHUN_20250515_Final_v1.json.done.Fri Aug 08 2025 11:21:00 GMT+0000 (Coordinated Universal Time)
+    timestamp_regex = re.compile(
+        re.escape(expected_filename_part) + r"\.(.+)$"
+    )
+
     start_time = time.time()
     while time.time() - start_time < max_wait_time:
         try:
-            # Use the directory path as the prefix for the ListObjectsV2 call
             response = s3_client.list_objects_v2(
                 Bucket=bucket,
                 Prefix=done_path_prefix
             )
-            
             contents = response.get("Contents", [])
-            
-            # Iterate through all objects in the directory and check if any match
+            now = datetime.now(timezone.utc)
+
             for item in contents:
                 key = item["Key"]
-                if pathlib.Path(key).name.startswith(expected_filename_part):
-                    logger.success(f"Found processed file: {key}")
-                    return True
-            
+                filename = pathlib.Path(key).name
+                match = timestamp_regex.match(filename)
+                if match:
+                    timestamp_str = match.group(1)
+                    # Try to parse the timestamp (assume format: Fri Aug 08 2025 11:21:00 GMT+0000 (Coordinated Universal Time))
+                    try:
+                        # Remove the timezone part for parsing
+                        ts_core = timestamp_str.split(" GMT")[0]
+                        file_dt = datetime.strptime(ts_core, "%a %b %d %Y %H:%M:%S")
+                        # Assume file is in UTC
+                        file_dt = file_dt.replace(tzinfo=timezone.utc)
+                        age_sec = (now - file_dt).total_seconds()
+                        logger.debug(f"Found candidate file: {filename} (age: {age_sec:.1f}s)")
+                        if time_window_min <= age_sec <= time_window_max:
+                            logger.success(f"Found processed file within time window: {key}")
+                            return True
+                    except Exception as parse_e:
+                        logger.warning(f"Could not parse timestamp in {filename}: {parse_e}")
+                        continue
             logger.debug(f"File not found yet. Waiting {poll_interval} seconds...")
         except Exception as e:
             logger.warning(f"Error checking for files in path {done_path_prefix}: {str(e)}")
-        
         time.sleep(poll_interval)
-    
+
     logger.warning(f"Timeout reached. File not found after {max_wait_time} seconds.")
     return False
 
@@ -233,18 +256,32 @@ def handler(event: dict, context: dict) -> dict:
         # Only poll if explicitly enabled to avoid Lambda timeouts
         if enable_polling:
             logger.info(f"Polling enabled. Starting to poll for processed schedule for channel: {channel}")
-            
+
+            # Log the current AWS identity for debugging IAM issues
+            try:
+                sts = s3_client_cross._client_config.credentials._client_creator.create_client('sts', region_name=s3_client_cross.meta.region_name)
+                identity = sts.get_caller_identity()
+                logger.info(f"Current AWS identity for polling: {identity}")
+            except Exception as id_e:
+                try:
+                    import boto3
+                    sts = boto3.client("sts")
+                    identity = sts.get_caller_identity()
+                    logger.info(f"Current AWS identity for polling (fallback): {identity}")
+                except Exception as id_e2:
+                    logger.warning(f"Could not fetch AWS identity: {id_e2}")
+
             # Calculate remaining time for polling (leave 5 seconds buffer for cleanup)
             remaining_time = context.get_remaining_time_in_millis() / 1000 - 5
             max_wait_time = min(event.get("poll_max_wait_time", remaining_time), remaining_time)
             poll_interval = event.get("poll_interval", 5)  # Reduced to 5 seconds for Lambda
-            
+
             logger.info(f"Polling for max {max_wait_time} seconds with {poll_interval}s intervals")
-            
+
             if max_wait_time > 0:
                 # List files in done path for debugging (optional)
                 list_files_in_done_path(s3_client_cross, VIPE_S3_BUCKET, channel)
-                
+
                 processed_found = poll_for_processed_schedule(
                     s3_client=s3_client_cross,
                     bucket=VIPE_S3_BUCKET,
