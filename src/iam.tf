@@ -1,47 +1,14 @@
 ########################################
-# Providers
+# iam.tf  (no variable blocks here)
+# - Assumes variables exist in variables.tf:
+#   * var.aws_account_id
+#   * var.vipe_aws_account_id
+#   * var.environment
+#   * var.aws_region
+# - Assumes providers are defined elsewhere:
+#   * provider "aws" {...}              # source account
+#   * provider "aws" { alias = "vipe" } # VIPE account
 ########################################
-# Default provider -> SOURCE account (where Lambda runs), e.g., 943412361827
-provider "aws" {
-  region = var.aws_region
-}
-
-# Aliased provider -> VIPE account (bucket lives here), e.g., 980921750886
-# Configure creds or assume_role to target VIPE. Update this block to your env.
-provider "aws" {
-  alias  = "vipe"
-  region = var.aws_region
-
-  # Example assume-role into VIPE (uncomment and set a real role if needed)
-  # assume_role {
-  #   role_arn     = "arn:aws:iam::${var.vipe_aws_account_id}:role/Admin"
-  #   session_name = "tf-vipe"
-  # }
-}
-
-########################################
-# Variables
-########################################
-variable "aws_region" {
-  description = "AWS region (e.g., eu-west-1)"
-  type        = string
-  default     = "eu-west-1"
-}
-
-variable "aws_account_id" {
-  description = "Source account ID (Lambda account)"
-  type        = string
-}
-
-variable "vipe_aws_account_id" {
-  description = "Target VIPE account ID (bucket account)"
-  type        = string
-}
-
-variable "environment" {
-  description = "Environment name (e.g., dev, uat, prod)"
-  type        = string
-}
 
 ########################################
 # Locals
@@ -50,14 +17,14 @@ locals {
   lambda_execution_role_arn = "arn:aws:iam::${var.aws_account_id}:role/${var.environment}-hearst_schedule_mapper-executionrole"
   lambda_role_name          = element(split("/", local.lambda_execution_role_arn), 1)
 
-  vipe_bucket_name          = "uat-inbound-media-files-${var.vipe_aws_account_id}"
+  vipe_bucket_name    = "uat-inbound-media-files-${var.vipe_aws_account_id}"
 
   # EXACT prefixes your code lists against (must match list_objects_v2 Prefix)
-  done_prefix_folder        = "rt-demo/procschedules/ARQTV3/done/"
-  done_prefix_objects       = "rt-demo/procschedules/ARQTV3/done/*"
+  done_prefix_folder  = "rt-demo/procschedules/ARQTV3/done/"
+  done_prefix_objects = "rt-demo/procschedules/ARQTV3/done/*"
 
   # Local/source bucket (where archive json goes)
-  local_bucket_name         = "${var.environment}-playout-schedule-${var.aws_account_id}"
+  local_bucket_name   = "${var.environment}-playout-schedule-${var.aws_account_id}"
 }
 
 ########################################
@@ -175,8 +142,8 @@ resource "aws_iam_policy" "vipe_s3_cross_account_policy" {
 }
 
 resource "aws_iam_role_policy_attachment" "attach_vipe_policy" {
-  provider  = aws.vipe
-  role      = aws_iam_role.vipe_cross_account_role.name
+  provider   = aws.vipe
+  role       = aws_iam_role.vipe_cross_account_role.name
   policy_arn = aws_iam_policy.vipe_s3_cross_account_policy.arn
 }
 
