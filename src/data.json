@@ -11,27 +11,31 @@ Response:
   "channel": "ARQTV3",
   "polling_enabled": true,
   "processed_found": false,
-  "processed_path": "procschedules/ARQTV3/done/"
+  "processed_path": "rt-demo/procschedules/ARQTV3/done/"
 }
 
 Function Logs:
-o identity-based policy allows the s3:ListBucket action
-2025-08-14 21:02:25.942 | WARNING  | app:poll_for_processed_schedule:131 - Error checking for files in path rt-demo/procschedules/ARQTV3/done/: An error occurred (AccessDenied) when calling the ListObjectsV2 operation: User: arn:aws:sts::980921750886:assumed-role/dev-vipe-cross-account-role/VipeS3UploadSession is not authorized to perform: s3:ListBucket on resource: "arn:aws:s3:::uat-inbound-media-files-980921750886" because no identity-based policy allows the s3:ListBucket action
-2025-08-14 21:02:30.948 | WARNING  | app:poll_for_processed_schedule:131 - Error checking for files in path rt-demo/procschedules/ARQTV3/done/: An error occurred (AccessDenied) when calling the ListObjectsV2 operation: User: arn:aws:sts::980921750886:assumed-role/dev-vipe-cross-account-role/VipeS3UploadSession is not authorized to perform: s3:ListBucket on resource: "arn:aws:s3:::uat-inbound-media-files-980921750886" because no identity-based policy allows the s3:ListBucket action
-2025-08-14 21:02:35.965 | WARNING  | app:poll_for_processed_schedule:131 - Error checking for files in path rt-demo/procschedules/ARQTV3/done/: An error occurred (AccessDenied) when calling the ListObjectsV2 operation: User: arn:aws:sts::980921750886:assumed-role/dev-vipe-cross-account-role/VipeS3UploadSession is not authorized to perform: s3:ListBucket on resource: "arn:aws:s3:::uat-inbound-media-files-980921750886" because no identity-based policy allows the s3:ListBucket action
-2025-08-14 21:02:40.972 | WARNING  | app:poll_for_processed_schedule:131 - Error checking for files in path rt-demo/procschedules/ARQTV3/done/: An error occurred (AccessDenied) when calling the ListObjectsV2 operation: User: arn:aws:sts::980921750886:assumed-role/dev-vipe-cross-account-role/VipeS3UploadSession is not authorized to perform: s3:ListBucket on resource: "arn:aws:s3:::uat-inbound-media-files-980921750886" because no identity-based policy allows the s3:ListBucket action
-2025-08-14 21:02:45.972 | WARNING  | app:poll_for_processed_schedule:134 - Timeout reached. File not found after 52.527 seconds.
-2025-08-14 21:02:45.972 | WARNING  | app:handler:306 - Processed schedule not found for SCH_HHUN_20250515_Final_v1.xml in channel ARQTV3 within timeout period
-2025-08-14 21:02:45.972 | INFO     | core.database:get_database_credentials:27 - Fetching new database credentials from Secrets Manager: arn:aws:secretsmanager:eu-west-1:943412361827:secret:/database/dev/base/master_credentials-5gtulW
-2025-08-14 21:02:46.314 | INFO     | core.database:get_database_connection:57 - Creating new connection pool for database 'playout_dev_db_provisioned' via proxy 'dev-base-playout-aurora.cluster-clqeoqmuuyhc.eu-west-1.rds.amazonaws.com'...
-2025-08-14 21:02:46.315 | INFO     | core.database:get_database_connection:60 - Database connection pool created successfully.
-2025-08-14 21:02:46.523 | INFO     | repositories.work_order:get_by_id:106 - Executing GET query for work_order with ID: 3259eeb5-62dc-416a-8e05-51b6be20fa6d
-2025-08-14 21:02:46.618 | INFO     | repositories.work_order:update_status:136 - Updating status of work order 3259eeb5-62dc-416a-8e05-51b6be20fa6d to IN_PROGRESS
-2025-08-14 21:02:46.646 | INFO     | repositories.work_order:update_status:144 - Successfully updated work order 3259eeb5-62dc-416a-8e05-51b6be20fa6d status to IN_PROGRESS
-2025-08-14 21:02:46.647 | INFO     | work_order_status_updater:update_work_order_status:59 - Successfully updated status of work order 3259eeb5-62dc-416a-8e05-51b6be20fa6d to IN_PROGRESS
-2025-08-14 21:02:46.647 | INFO     | work_order_status_updater:update_work_order_status:68 - Database connection closed successfully.
-2025-08-14 21:02:46.648 | ERROR    | app:handler:315 - Failed to update work order status for 3259eeb5-62dc-416a-8e05-51b6be20fa6d: a coroutine was expected, got None
-END RequestId: 8c816839-ccd0-4a02-b520-35a5ed8a6606
-REPORT RequestId: 8c816839-ccd0-4a02-b520-35a5ed8a6606	Duration: 58262.62 ms	Billed Duration: 58263 ms	Memory Size: 512 MB	Max Memory Used: 163 MB	Init Duration: 1318.85 ms
+forming SCH_HHUN_20250515_Final_v1.xml to VIPE Native JSON...
+2025-08-14 21:21:27.819 | INFO     | app:handler:247 - Uploading JSON archive to s3://dev-playout-schedule-943412361827/tx-schedules/archive/SCH_HHUN_20250515_Final_v1.json
+2025-08-14 21:21:27.919 | INFO     | app:handler:252 - Assuming cross-account role to upload to VIPE bucket...
+2025-08-14 21:21:28.011 | INFO     | app:assume_cross_account_role:47 - Assumed role: arn:aws:sts::980921750886:assumed-role/dev-vipe-cross-account-role/VipeS3UploadSession
+2025-08-14 21:21:28.034 | INFO     | app:handler:255 - Uploading JSON to VIPE bucket s3://uat-inbound-media-files-980921750886/rt-demo/schedules/ARQTV3/SCH_HHUN_20250515_Final_v1.json with ACL bucket-owner-full-control
+2025-08-14 21:21:28.187 | SUCCESS  | app:handler:267 - Schedule file 'SCH_HHUN_20250515_Final_v1.xml' successfully transformed and uploaded.
+2025-08-14 21:21:28.187 | INFO     | app:handler:275 - Polling enabled. Starting to poll for processed schedule for channel: ARQTV3
+2025-08-14 21:21:28.187 | INFO     | app:handler:282 - Polling for max 53 seconds with 5s intervals
+2025-08-14 21:21:28.197 | ERROR    | app:list_files_in_done_path:105 - Error listing files in rt-demo/procschedules/ARQTV3/done/: An error occurred (AccessDenied) when calling the ListObjectsV2 operation: User: arn:aws:sts::980921750886:assumed-role/dev-vipe-cross-account-role/VipeS3UploadSession is not authorized to perform: s3:ListBucket on resource: "arn:aws:s3:::uat-inbound-media-files-980921750886" because no identity-based policy allows the s3:ListBucket action
+2025-08-14 21:21:28.197 | INFO     | app:poll_for_processed_schedule:133 - Starting to poll for processed file in path: s3://uat-inbound-media-files-980921750886/rt-demo/procschedules/ARQTV3/done/
+2025-08-14 21:21:28.204 | ERROR    | app:poll_for_processed_schedule:164 - Access denied on uat-inbound-media-files-980921750886/rt-demo/procschedules/ARQTV3/done/: An error occurred (AccessDenied) when calling the ListObjectsV2 operation: User: arn:aws:sts::980921750886:assumed-role/dev-vipe-cross-account-role/VipeS3UploadSession is not authorized to perform: s3:ListBucket on resource: "arn:aws:s3:::uat-inbound-media-files-980921750886" because no identity-based policy allows the s3:ListBucket action
+2025-08-14 21:21:28.204 | WARNING  | app:handler:308 - Processed schedule not found or not accessible for SCH_HHUN_20250515_Final_v1.xml in channel ARQTV3 within timeout
+2025-08-14 21:21:28.204 | INFO     | core.database:get_database_credentials:27 - Fetching new database credentials from Secrets Manager: arn:aws:secretsmanager:eu-west-1:943412361827:secret:/database/dev/base/master_credentials-5gtulW
+2025-08-14 21:21:28.567 | INFO     | core.database:get_database_connection:57 - Creating new connection pool for database 'playout_dev_db_provisioned' via proxy 'dev-base-playout-aurora.cluster-clqeoqmuuyhc.eu-west-1.rds.amazonaws.com'...
+2025-08-14 21:21:28.568 | INFO     | core.database:get_database_connection:60 - Database connection pool created successfully.
+2025-08-14 21:21:28.793 | INFO     | repositories.work_order:get_by_id:106 - Executing GET query for work_order with ID: 3259eeb5-62dc-416a-8e05-51b6be20fa6d
+2025-08-14 21:21:28.933 | INFO     | repositories.work_order:update_status:136 - Updating status of work order 3259eeb5-62dc-416a-8e05-51b6be20fa6d to IN_PROGRESS
+2025-08-14 21:21:28.962 | INFO     | repositories.work_order:update_status:144 - Successfully updated work order 3259eeb5-62dc-416a-8e05-51b6be20fa6d status to IN_PROGRESS
+2025-08-14 21:21:28.962 | INFO     | work_order_status_updater:update_work_order_status:61 - Successfully updated status of work order 3259eeb5-62dc-416a-8e05-51b6be20fa6d to IN_PROGRESS
+2025-08-14 21:21:28.962 | INFO     | work_order_status_updater:update_work_order_status:72 - Database connection closed successfully.
+END RequestId: 9b9dd3ba-5d33-49a1-886d-f04fa661d745
+REPORT RequestId: 9b9dd3ba-5d33-49a1-886d-f04fa661d745	Duration: 3156.25 ms	Billed Duration: 3157 ms	Memory Size: 512 MB	Max Memory Used: 163 MB	Init Duration: 1318.67 ms
 
-Request ID: 8c816839-ccd0-4a02-b520-35a5ed8a6606
+Request ID: 9b9dd3ba-5d33-49a1-886d-f04fa661d745
