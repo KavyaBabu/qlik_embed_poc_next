@@ -1,5 +1,6 @@
 import sys
 import uuid
+from typing import Optional
 
 from core.database import get_database_connection
 from loguru import logger
@@ -21,9 +22,7 @@ logger.add(sys.stderr, level=settings.LOG_LEVEL.upper())
 
 
 def is_valid_uuid(val: str) -> bool:
-    """
-    Validate whether a string is a valid UUID format.
-    """
+    """Validate whether a string is a valid UUID format."""
     try:
         uuid.UUID(val)
         return True
@@ -31,14 +30,17 @@ def is_valid_uuid(val: str) -> bool:
         return False
 
 
-def update_work_order_status(work_order_id: str, new_status: str):
+def update_work_order_status(work_order_id: str, new_status: str) -> bool:
     """
     Updates the status of a work order in the DB.
     Ensures the work order exists before updating.
+
+    Returns:
+        True on success; False if validation failed, not found, or an error occurred.
     """
     if not work_order_id or not is_valid_uuid(work_order_id):
         logger.warning(f"Invalid or missing work_order_id: '{work_order_id}' — skipping status update.")
-        return
+        return False
 
     conn = None
     try:
@@ -53,13 +55,15 @@ def update_work_order_status(work_order_id: str, new_status: str):
         existing = repo.get_by_id(work_order_id)
         if not existing:
             logger.warning(f"Work order {work_order_id} does not exist. Skipping status update.")
-            return
+            return False
 
         repo.update_status(work_order_id, new_status)
         logger.info(f"Successfully updated status of work order {work_order_id} to {new_status}")
+        return True
 
     except Exception:
         logger.exception(f"Failed to update status for work order {work_order_id}")
+        return False
 
     finally:
         if conn:
