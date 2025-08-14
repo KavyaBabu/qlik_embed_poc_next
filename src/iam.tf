@@ -6,10 +6,11 @@ locals {
 
 # -----------------------------
 # Policy for cross-account S3 access to VIPE bucket
-# Split bucket-level (ListBucket) and object-level permissions; add prefix constraint.
+# Split bucket-level (ListBucket) and object-level permissions; add prefix constraints.
 # -----------------------------
 data "aws_iam_policy_document" "vipe_s3_cross_account_policy" {
-  # Bucket-level: allow listing only under the done prefix used by the poller
+  # Bucket-level: allow listing only under the done prefix used by the poller.
+  # Include BOTH the folder and folder/* to match the exact Prefix your code sends.
   statement {
     effect = "Allow"
     actions = [
@@ -22,6 +23,7 @@ data "aws_iam_policy_document" "vipe_s3_cross_account_policy" {
       test     = "StringLike"
       variable = "s3:prefix"
       values   = [
+        "rt-demo/procschedules/ARQTV3/done/",
         "rt-demo/procschedules/ARQTV3/done/*"
       ]
     }
@@ -38,7 +40,7 @@ data "aws_iam_policy_document" "vipe_s3_cross_account_policy" {
     ]
   }
 
-  # Object-level: write uploads to schedules path (used during ingest)
+  # Object-level: uploads to schedules path (used during ingest)
   statement {
     effect = "Allow"
     actions = [
