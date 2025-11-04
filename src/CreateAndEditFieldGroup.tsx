@@ -231,9 +231,8 @@ function CreateAndEditGroupFieldGroup({
                 parseFile
                 onFileSelect={(file: File | null) => field.setValue(file ?? undefined)}
                 onFileRemove={() => {
+                  // Only clear the file input itself; keep parsed selections so counts don't reset.
                   field.setValue(undefined);
-                  setFileUploadedMeterIds(new Set());
-                  updateFormMeterIds(new Set(), dropdownSelectedMeterIds);
                 }}
                 onFileParse={handleFileParse}
               />
@@ -244,25 +243,39 @@ function CreateAndEditGroupFieldGroup({
             <Message.Root variant="info" style={{ marginTop: "var(--spacing-lg)", marginBottom: "var(--spacing-lg)" }}>
               <Message.Title>Meter Selection Summary</Message.Title>
               <Message.Description>
-                <div style={{ lineHeight: 1.6 }}>
-                  <div><strong>Total meters:</strong> {totalSelectedMeters}</div>
-                  {existingSnapshotRef.current.size > 0 && (
-                    <div><strong>Existing meters:</strong> {existingSnapshotRef.current.size}</div>
+                <>
+                  <span><strong>Total meters:</strong> {totalSelectedMeters}</span><br />
+                  {isEditMode && existingSnapshotRef.current.size > 0 && (
+                    <>
+                      <span><strong>Existing meters:</strong> {existingSnapshotRef.current.size}</span><br />
+                    </>
                   )}
-                  {newAddsExcludingExisting.length > 0 && (
-                    <div>
-                      <strong>New meters to add:</strong> {newAddsExcludingExisting.length}
-                      {(fileNewCount > 0 || dropdownNewCount > 0) && " ("}
-                      {fileNewCount > 0 && `${fileNewCount} from file`}
-                      {fileNewCount > 0 && dropdownNewCount > 0 && ", "}
-                      {dropdownNewCount > 0 && `${dropdownNewCount} from selection`}
-                      {(fileNewCount > 0 || dropdownNewCount > 0) && ")"}
-                    </div>
+                  {isEditMode && newAddsExcludingExisting.length > 0 && (
+                    <>
+                      <span>
+                        <strong>New meters to add:</strong> {newAddsExcludingExisting.length}
+                        {(fileNewCount > 0 || dropdownNewCount > 0) && " ("}
+                        {fileNewCount > 0 && `${fileNewCount} from file`}
+                        {fileNewCount > 0 && dropdownNewCount > 0 && ", "}
+                        {dropdownNewCount > 0 && `${dropdownNewCount} from selection`}
+                        {(fileNewCount > 0 || dropdownNewCount > 0) && ")"}
+                      </span>
+                    </>
                   )}
-                  {existingSnapshotRef.current.size === 0 && newAddsExcludingExisting.length === 0 && (
-                    <div style={{ color: "#999" }}>No meters selected</div>
+                  {!isEditMode && fileUploadedMeterIds.size > 0 && (
+                    <>
+                      <span><strong>From file upload:</strong> {fileUploadedMeterIds.size}</span><br />
+                    </>
                   )}
-                </div>
+                  {!isEditMode && dropdownSelectedMeterIds.size > 0 && (
+                    <>
+                      <span><strong>From manual selection:</strong> {dropdownSelectedMeterIds.size}</span>
+                    </>
+                  )}
+                  {((isEditMode && existingSnapshotRef.current.size === 0 && newAddsExcludingExisting.length === 0) || (!isEditMode && totalSelectedMeters === 0)) && (
+                    <span style={{ color: "#999" }}>No meters selected</span>
+                  )}
+                </>
               </Message.Description>
             </Message.Root>
           )}
@@ -271,15 +284,39 @@ function CreateAndEditGroupFieldGroup({
             <Message.Root variant="info" style={{ marginTop: "var(--spacing-lg)", marginBottom: "var(--spacing-lg)" }}>
               <Message.Title>Meter Selection</Message.Title>
               <Message.Description>
-                <div style={{ lineHeight: 1.6 }}>
-                  <div><strong>Total meters selected:</strong> {totalSelectedMeters}</div>
-                  {fileUploadedMeterIds.size > 0 && (
-                    <div><strong>From file upload:</strong> {fileUploadedMeterIds.size}</div>
+                <>
+                  <span><strong>Total meters:</strong> {totalSelectedMeters}</span><br />
+                  {isEditMode && existingSnapshotRef.current.size > 0 && (
+                    <>
+                      <span><strong>Existing meters:</strong> {existingSnapshotRef.current.size}</span><br />
+                    </>
                   )}
-                  {dropdownSelectedMeterIds.size > 0 && (
-                    <div><strong>From manual selection:</strong> {dropdownSelectedMeterIds.size}</div>
+                  {isEditMode && newAddsExcludingExisting.length > 0 && (
+                    <>
+                      <span>
+                        <strong>New meters to add:</strong> {newAddsExcludingExisting.length}
+                        {(fileNewCount > 0 || dropdownNewCount > 0) && " ("}
+                        {fileNewCount > 0 && `${fileNewCount} from file`}
+                        {fileNewCount > 0 && dropdownNewCount > 0 && ", "}
+                        {dropdownNewCount > 0 && `${dropdownNewCount} from selection`}
+                        {(fileNewCount > 0 || dropdownNewCount > 0) && ")"}
+                      </span>
+                    </>
                   )}
-                </div>
+                  {!isEditMode && fileUploadedMeterIds.size > 0 && (
+                    <>
+                      <span><strong>From file upload:</strong> {fileUploadedMeterIds.size}</span><br />
+                    </>
+                  )}
+                  {!isEditMode && dropdownSelectedMeterIds.size > 0 && (
+                    <>
+                      <span><strong>From manual selection:</strong> {dropdownSelectedMeterIds.size}</span>
+                    </>
+                  )}
+                  {((isEditMode && existingSnapshotRef.current.size === 0 && newAddsExcludingExisting.length === 0) || (!isEditMode && totalSelectedMeters === 0)) && (
+                    <span style={{ color: "#999" }}>No meters selected</span>
+                  )}
+                </>
               </Message.Description>
             </Message.Root>
           )}
