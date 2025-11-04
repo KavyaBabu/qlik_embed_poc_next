@@ -1,0 +1,5 @@
+In HTML, <div> cannot be a descendant of <p>.
+This will cause a hydration error.
+
+<p> cannot contain a nested <div>.
+See this log for the ancestor stack trace.
