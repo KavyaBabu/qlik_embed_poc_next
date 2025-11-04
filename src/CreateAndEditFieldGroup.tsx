@@ -16,6 +16,7 @@ import type { GetGroupMetersResponse } from "@/lib/services/api/dashboard/Meters
 import SearchQueryFilter, {
   searchQueryFilterOverride,
 } from "@/lib/services/common/SearchQueryFilter";
+import { useToastNotifications } from "@/hooks/useToastNotifications";
 
 const FileUpload = dynamic(
   () =>
@@ -50,6 +51,7 @@ function CreateAndEditGroupFieldGroup({
   const FieldGroup = withFieldGroup<CreateGroupFields, CreateGroupFields>({
     render: ({ group }: any) => {
       const { data: allMeters, isLoading: metersLoading } = useListAllMeters();
+      const toast = useToastNotifications();
 
       const [meterOptions, setMeterOptions] = useState<Array<{ value: string; label: string }>>([]);
       const [fileUploadedMeterIds, setFileUploadedMeterIds] = useState<Set<string>>(new Set());
@@ -66,12 +68,13 @@ function CreateAndEditGroupFieldGroup({
         }
       }, [isEditMode, group.form, isInitialized]);
 
-      // Helper
+      // Helpers
       const union = (a: Set<string>, b: Set<string>) => {
         const out = new Set<string>(a);
         b.forEach((v) => out.add(v));
         return out;
       };
+      const toUnique = (arr: string[]) => Array.from(new Set(arr));
 
       // Build dropdown options, optionally hiding already-existing meters in edit mode
       useEffect(() => {
@@ -100,11 +103,33 @@ function CreateAndEditGroupFieldGroup({
         if (!parsed?.data || !Array.isArray(parsed.data) || parsed.data.length === 0) return;
 
         type ParsedRow = { meter_id?: string | number | null };
-        const parsedIds = (parsed.data as ParsedRow[])
+        const raw = (parsed.data as ParsedRow[])
           .map((row) => (row.meter_id ? String(row.meter_id).trim() : ""))
           .filter(Boolean);
 
-        const newFileIds = new Set(parsedIds);
+        // Detect duplicates inside the uploaded file itself
+        const uniqueFromFile = new Set<string>();
+        const duplicatesInFile: string[] = [];
+        for (const id of raw) {
+          if (uniqueFromFile.has(id)) duplicatesInFile.push(id);
+          else uniqueFromFile.add(id);
+        }
+
+        // Remove anything already chosen via dropdown and (in edit mode) anything already in the group
+        const alreadyChosen = union(dropdownSelectedMeterIds, isEditMode ? existingMeterIds : new Set());
+        const filtered = Array.from(uniqueFromFile).filter((id) => !alreadyChosen.has(id));
+
+        // If we filtered out any duplicates or existing IDs, notify and only keep non-duplicates
+        const removedAsDuplicate = duplicatesInFile.length;
+        const removedAsExisting = Array.from(uniqueFromFile).filter((id) => alreadyChosen.has(id));
+        if (removedAsDuplicate > 0 || removedAsExisting.length > 0) {
+          const parts: string[] = [];
+          if (removedAsDuplicate > 0) parts.push(`${removedAsDuplicate} duplicate${removedAsDuplicate > 1 ? "s" : ""} in file`);
+          if (removedAsExisting.length > 0) parts.push(`${removedAsExisting.length} already selected/existing`);
+          toast.error(`Ignored ${parts.join(" and ")}. Using unique, non-duplicate IDs.`);
+        }
+
+        const newFileIds = new Set(filtered);
         setFileUploadedMeterIds(newFileIds);
         updateFormMeterIds(newFileIds, dropdownSelectedMeterIds);
       };
@@ -116,7 +141,20 @@ function CreateAndEditGroupFieldGroup({
           ? selectedOptions.map((opt: any) => String(opt.value))
           : [String(selectedOptions.value)];
 
-        const newDropdownIds = new Set(selectedIds);
+        // De-dup against file selections and (in edit) existing meters
+        const alreadyChosen = union(fileUploadedMeterIds, isEditMode ? existingMeterIds : new Set());
+        const uniqueIds: string[] = [];
+        const dupes: string[] = [];
+        for (const id of selectedIds) {
+          if (alreadyChosen.has(id) || uniqueIds.includes(id)) dupes.push(id);
+          else uniqueIds.push(id);
+        }
+        if (dupes.length > 0) {
+          const display = toUnique(dupes);
+          toast.error(`Ignored ${display.length} duplicate selection${display.length > 1 ? "s" : ""}.`);
+        }
+
+        const newDropdownIds = new Set(uniqueIds);
         setDropdownSelectedMeterIds(newDropdownIds);
         updateFormMeterIds(fileUploadedMeterIds, newDropdownIds);
       };
