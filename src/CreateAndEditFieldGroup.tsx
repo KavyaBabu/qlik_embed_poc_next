@@ -47,6 +47,7 @@ function CreateAndEditGroupFieldGroup({
   initialGroupMetersData?: GetGroupMetersResponse;
   existingMetersInitial?: string[];
 }) {
+  console.log("[DEBUG] CreateAndEditGroupFieldGroup mounted/re-rendered");
   const isEditMode = !!groupId;
 
   const FieldGroup = withFieldGroup<CreateGroupFields, CreateGroupFields>({
@@ -126,12 +127,13 @@ function CreateAndEditGroupFieldGroup({
 
         // Merge file IDs instead of replacing them
         const newFileIds = new Set(trulyNew);
-        const merged = union(fileUploadedMeterIds, newFileIds);
-        console.log("[DEBUG] Before setFileUploadedMeterIds, merged:", merged);
-        setFileUploadedMeterIds(merged);
-        updateFormMeterIds(merged, dropdownSelectedMeterIds);
-        updateFormMeterIds(merged, dropdownSelectedMeterIds);
-        console.log("[DEBUG] After setFileUploadedMeterIds, fileUploadedMeterIds:", fileUploadedMeterIds);
+        setFileUploadedMeterIds(prev => {
+          const merged = union(prev, newFileIds);
+          console.log("[DEBUG] [FIX] setFileUploadedMeterIds functional, merged:", merged);
+          updateFormMeterIds(merged, dropdownSelectedMeterIds);
+          updateFormMeterIds(merged, dropdownSelectedMeterIds);
+          return merged;
+        });
       };
 
       const handleDropdownChange = (selectedOptions: any) => {
