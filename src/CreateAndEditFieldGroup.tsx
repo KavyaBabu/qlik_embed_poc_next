@@ -1,4 +1,3 @@
-// File: app/(dashboard)/groups/_components/CreateAndEditFieldGroup.tsx
 "use client";
 
 import dynamic from "next/dynamic";
@@ -97,6 +96,7 @@ function CreateAndEditGroupFieldGroup({
       );
 
       const handleFileParse = (parsed: any) => {
+        console.log("[DEBUG] handleFileParse called with parsed:", parsed);
         if (!parsed?.data || !Array.isArray(parsed.data) || parsed.data.length === 0) return;
 
         type ParsedRow = { meter_id?: string | number | null };
@@ -125,13 +125,17 @@ function CreateAndEditGroupFieldGroup({
         }
 
         // Merge file IDs instead of replacing them
-        const merged = union(fileUploadedMeterIds, new Set(trulyNew));
+        const newFileIds = new Set(trulyNew);
+        const merged = union(fileUploadedMeterIds, newFileIds);
+        console.log("[DEBUG] Before setFileUploadedMeterIds, merged:", merged);
         setFileUploadedMeterIds(merged);
         updateFormMeterIds(merged, dropdownSelectedMeterIds);
-        updateFormMeterIds(newFileIds, dropdownSelectedMeterIds);
+        updateFormMeterIds(merged, dropdownSelectedMeterIds);
+        console.log("[DEBUG] After setFileUploadedMeterIds, fileUploadedMeterIds:", fileUploadedMeterIds);
       };
 
       const handleDropdownChange = (selectedOptions: any) => {
+        console.log("[DEBUG] handleDropdownChange called with selectedOptions:", selectedOptions);
         const selectedIds = !selectedOptions
           ? []
           : Array.isArray(selectedOptions)
@@ -152,8 +156,10 @@ function CreateAndEditGroupFieldGroup({
         }
 
         const newDropdownIds = new Set(uniqueIds);
+        console.log("[DEBUG] Before setDropdownSelectedMeterIds, newDropdownIds:", newDropdownIds);
         setDropdownSelectedMeterIds(newDropdownIds);
         updateFormMeterIds(fileUploadedMeterIds, newDropdownIds);
+        console.log("[DEBUG] After setDropdownSelectedMeterIds, dropdownSelectedMeterIds:", dropdownSelectedMeterIds);
       };
 
       // Presentation counts
@@ -166,6 +172,7 @@ function CreateAndEditGroupFieldGroup({
         ? existingSnapshotRef.current.size + newAddsExcludingExisting.length
         : rawNewAdds.length;
 
+      console.log("[DEBUG] Render: fileUploadedMeterIds", fileUploadedMeterIds, "dropdownSelectedMeterIds", dropdownSelectedMeterIds, "meterOptions", meterOptions);
       return (
         <>
           <group.AppField
@@ -364,215 +371,4 @@ export default dynamic(
 );
 
 
-// File: app/(dashboard)/groups/create/CreateGroupInner.tsx
-"use client";
 
-import { ButtonGroup, Separator, useAppForm } from "@arqiva/react-component-lib";
-import {
-  createGroupSchema,
-  toCreateGroupApiBody,
-} from "@/lib/services/api/dashboard/Groups/models/createGroup";
-import CreateAndEditGroupFieldGroup from "../_components/CreateAndEditFieldGroup";
-import groupsService from "@/lib/services/api/dashboard/Groups/api";
-import CancelAlertDialog from "@/app/_components/CancelAlertDialog";
-import { getFormattedFormValidationErrors, isAPIResponseError } from "@/lib/services/api/dashboard/shared";
-import { useRouter } from "next/navigation";
-import { useToastNotifications } from "@/hooks/useToastNotifications";
-import routes from "@/lib/routes";
-
-const CURRENT_USER_EMAIL_FALLBACK = "kavya.babu@arqiva.com";
-
-export default function CreateGroupInner() {
-  const router = useRouter();
-  const toast = useToastNotifications();
-
-  const form = useAppForm({
-    validators: { onSubmit: createGroupSchema as any },
-    defaultValues: {
-      name: "",
-      description: "",
-      file: undefined as File | undefined,
-      meterId: [] as string[],
-      created_by: CURRENT_USER_EMAIL_FALLBACK,
-      customer_id: undefined as string | undefined,
-    },
-    onSubmit: async ({ value, formApi }) => {
-      try {
-        const parsed = createGroupSchema.parse(value);
-        const payload = {
-          ...toCreateGroupApiBody(parsed),
-          created_by: parsed.created_by,
-          description: parsed.description,
-          customer_id: "TEST1",
-        };
-        await groupsService.create(payload);
-        router.push(routes.dashboard.groups.root);
-      } catch (err: unknown) {
-        const validationErrors = getFormattedFormValidationErrors(err);
-        if (validationErrors) formApi.setErrorMap(validationErrors);
-
-        if (isAPIResponseError(err)) {
-          const serverMessage =
-            (err as { cause?: { message?: string }; message?: string })?.cause?.message ||
-            (err as { message?: string })?.message ||
-            "Unknown API error";
-          toast.error(`Failed to create group: ${serverMessage}`);
-        }
-        return err;
-      }
-    },
-  });
-
-  return (
-    <form
-      onSubmit={(e) => {
-        e.preventDefault();
-        form.handleSubmit();
-      }}
-    >
-      <form.AppForm>
-        <form.ErrorMessage />
-        <CreateAndEditGroupFieldGroup form={form} />
-        <Separator />
-        <ButtonGroup justify="between">
-          <CancelAlertDialog />
-          <form.SubmitButton>Create Group</form.SubmitButton>
-        </ButtonGroup>
-      </form.AppForm>
-    </form>
-  );
-}
-
-
-// File: app/(dashboard)/groups/[id]/edit/EditGroupInner.tsx
-"use client";
-
-import { ButtonGroup, Separator, useAppForm } from "@arqiva/react-component-lib";
-import { createGroupSchema } from "@/lib/services/api/dashboard/Groups/models/createGroup";
-import CreateAndEditGroupFieldGroup from "../../_components/CreateAndEditFieldGroup";
-import groupsService from "@/lib/services/api/dashboard/Groups/api";
-import CancelAlertDialog from "@/app/_components/CancelAlertDialog";
-import { getFormattedFormValidationErrors, isAPIResponseError } from "@/lib/services/api/dashboard/shared";
-import { useRouter } from "next/navigation";
-import { useToastNotifications } from "@/hooks/useToastNotifications";
-import routes from "@/lib/routes";
-import type { GetGroupMetersResponse } from "@/lib/services/api/dashboard/Meters/models/getGroupMeters";
-
-interface GroupDetails {
-  description?: string;
-  created_by?: string;
-  list_of_meters?: number[];
-}
-
-interface EditGroupInnerProps {
-  id: number;
-  group: Awaited<ReturnType<typeof groupsService.getById>> &
-    GroupDetails & {
-      description?: string | undefined;
-    };
-  initialGroupMetersData?: GetGroupMetersResponse;
-}
-
-export default function EditGroupInner({ id, group, initialGroupMetersData }: EditGroupInnerProps) {
-  const router = useRouter();
-  const toast = useToastNotifications();
-
-  const form = useAppForm({
-    validators: { onSubmit: createGroupSchema },
-    defaultValues: {
-      name: group.name ?? "",
-      description: group.description ?? "",
-      created_by: group.created_by ?? "kavya.babu@arqiva.com",
-      // Preload existing IDs for submission logic, but the FieldGroup will snapshot them and
-      // only store NEW ids back into meterId as the user adds.
-      meterId: group.list_of_meters?.map(String) ?? [],
-    },
-    onSubmit: async ({ value, formApi }) => {
-      try {
-        const parsed = createGroupSchema.parse(value);
-
-        const existingMeterIds = group.list_of_meters?.map(String) ?? [];
-        const newSelectedIds = parsed.meterId?.map(String) ?? [];
-
-        // Only send newly-added IDs. Never send removals.
-        const add_meter_ids = newSelectedIds
-          .filter((id) => !existingMeterIds.includes(id))
-          .map(Number);
-
-        const payload = {
-          group_id: id,
-          name: parsed.name,
-          description: parsed.description,
-          add_meter_ids,
-        } as const;
-
-        await groupsService.update(payload);
-        router.push(routes.dashboard.groups.root);
-      } catch (err: unknown) {
-        const validationErrors = getFormattedFormValidationErrors(err);
-        if (validationErrors) formApi.setErrorMap(validationErrors);
-
-        if (isAPIResponseError(err)) {
-          const serverMessage =
-            (err as { cause?: { message?: string }; message?: string })?.cause?.message ||
-            (err as { message?: string })?.message ||
-            "Unknown API error";
-          toast.error(`Failed to update group: ${serverMessage}`);
-        }
-        return err;
-      }
-    },
-  });
-
-  return (
-    <form
-      onSubmit={(e) => {
-        e.preventDefault();
-        form.handleSubmit();
-      }}
-    >
-      <form.AppForm>
-        <form.ErrorMessage />
-
-        <CreateAndEditGroupFieldGroup
-          form={form}
-          groupId={id}
-          initialGroupMetersData={initialGroupMetersData}
-          existingMetersInitial={group.list_of_meters?.map(String) ?? []}
-        />
-
-        <Separator />
-
-        <ButtonGroup justify="between">
-          <CancelAlertDialog />
-          <form.SubmitButton>Save Changes</form.SubmitButton>
-        </ButtonGroup>
-      </form.AppForm>
-    </form>
-  );
-}
-    <form
-      onSubmit={(e) => {
-        e.preventDefault();
-        form.handleSubmit();
-      }}
-    >
-      <form.AppForm>
-        <form.ErrorMessage />
-
-        <CreateAndEditGroupFieldGroup
-          form={form}
-          groupId={id}
-          initialGroupMetersData={initialGroupMetersData}
-        />
-
-        <Separator />
-
-        <ButtonGroup justify="between">
-          <CancelAlertDialog />
-          <form.SubmitButton>Save Changes</form.SubmitButton>
-        </ButtonGroup>
-      </form.AppForm>
-    </form>
-  );
-}
