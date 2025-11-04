@@ -556,28 +556,4 @@ export default function EditGroupInner({ id, group, initialGroupMetersData }: Ed
     </form>
   );
 }
-    <form
-      onSubmit={(e) => {
-        e.preventDefault();
-        form.handleSubmit();
-      }}
-    >
-      <form.AppForm>
-        <form.ErrorMessage />
-
-        <CreateAndEditGroupFieldGroup
-          form={form}
-          groupId={id}
-          initialGroupMetersData={initialGroupMetersData}
-        />
-
-        <Separator />
-
-        <ButtonGroup justify="between">
-          <CancelAlertDialog />
-          <form.SubmitButton>Save Changes</form.SubmitButton>
-        </ButtonGroup>
-      </form.AppForm>
-    </form>
-  );
-}
+  
