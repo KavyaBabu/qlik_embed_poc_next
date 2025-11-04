@@ -233,8 +233,12 @@ function CreateAndEditGroupFieldGroup({
                 placeholder={isEditMode ? "Upload CSV / TXT to add meters" : "Upload CSV / TXT (meter IDs)"}
                 accept=".csv,.txt,.xls,.xlsx"
                 parseFile
-                onFileSelect={(file: File | null) => field.setValue(file ?? undefined)}
+                onFileSelect={(file: File | null) => {
+                  console.log("[DEBUG] onFileSelect called, file:", file);
+                  field.setValue(file ?? undefined);
+                }}
                 onFileRemove={() => {
+                  console.log("[DEBUG] onFileRemove called");
                   // Only clear the file input itself; keep parsed selections so counts don't reset.
                   field.setValue(undefined);
                 }}
