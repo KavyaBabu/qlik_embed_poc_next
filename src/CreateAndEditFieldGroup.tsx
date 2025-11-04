@@ -10,7 +10,7 @@ import {
 } from "@arqiva/react-component-lib";
 import { createGroupSchema } from "@/lib/services/api/dashboard/Groups/models/createGroup";
 import { useListAllMeters } from "@/lib/services/api/dashboard/Meters/hooks/useListMeters";
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { List } from "@/lib/services/api/dashboard/Meters/components/List";
 import type { GetGroupMetersResponse } from "@/lib/services/api/dashboard/Meters/models/getGroupMeters";
 import SearchQueryFilter, {
@@ -41,10 +41,12 @@ function CreateAndEditGroupFieldGroup({
   form,
   groupId,
   initialGroupMetersData,
+  existingMetersInitial,
 }: {
   form: unknown;
   groupId?: number;
   initialGroupMetersData?: GetGroupMetersResponse;
+  existingMetersInitial?: string[];
 }) {
   const isEditMode = !!groupId;
 
@@ -56,17 +58,12 @@ function CreateAndEditGroupFieldGroup({
       const [meterOptions, setMeterOptions] = useState<Array<{ value: string; label: string }>>([]);
       const [fileUploadedMeterIds, setFileUploadedMeterIds] = useState<Set<string>>(new Set());
       const [dropdownSelectedMeterIds, setDropdownSelectedMeterIds] = useState<Set<string>>(new Set());
-      const [existingMeterIds, setExistingMeterIds] = useState<Set<string>>(new Set());
-      const [isInitialized, setIsInitialized] = useState(false);
 
-      // Capture the existing group meters once (from the form's initial value)
-      useEffect(() => {
-        if (isEditMode && !isInitialized) {
-          const currentFormValue = (group.form.getFieldValue("meterId") as string[]) || [];
-          setExistingMeterIds(new Set(currentFormValue));
-          setIsInitialized(true);
-        }
-      }, [isEditMode, group.form, isInitialized]);
+      // Snapshot existing IDs once via ref so remounts don't reset
+      const existingSnapshotRef = useRef<Set<string>>(new Set(existingMetersInitial ?? (() => {
+        const initial = (group.form.getFieldValue("meterId") as string[]) || [];
+        return initial;
+      })()));
 
       // Helpers
       const union = (a: Set<string>, b: Set<string>) => {
@@ -81,22 +78,22 @@ function CreateAndEditGroupFieldGroup({
         if (allMeters?.items && Array.isArray(allMeters.items)) {
           const options = allMeters.items
             .map((meter) => ({ value: String(meter.id), label: String(meter.id) }))
-            .filter((opt) => !isEditMode || !existingMeterIds.has(opt.value));
+            .filter((opt) => !isEditMode || !existingSnapshotRef.current.has(opt.value));
           setMeterOptions(options);
         }
-      }, [allMeters, isEditMode, existingMeterIds]);
+      }, [allMeters, isEditMode]);
 
       // Update the form value: in edit mode, store ONLY truly-new IDs; in create, store all selections
       const updateFormMeterIds = useCallback(
         (fileIds: Set<string>, dropdownIds: Set<string>) => {
           const combined = union(fileIds, dropdownIds);
           const newOnly = isEditMode
-            ? Array.from(combined).filter((id) => !existingMeterIds.has(id))
+            ? Array.from(combined).filter((id) => !existingSnapshotRef.current.has(id))
             : Array.from(combined);
 
           group.form.setFieldValue("meterId", newOnly);
         },
-        [group.form, isEditMode, existingMeterIds]
+        [group.form, isEditMode]
       );
 
       const handleFileParse = (parsed: any) => {
@@ -116,7 +113,7 @@ function CreateAndEditGroupFieldGroup({
         }
 
         // Remove anything already chosen via dropdown and (in edit mode) anything already in the group
-        const alreadyChosen = union(dropdownSelectedMeterIds, isEditMode ? existingMeterIds : new Set());
+        const alreadyChosen = union(dropdownSelectedMeterIds, isEditMode ? existingSnapshotRef.current : new Set());
         const filtered = Array.from(uniqueFromFile).filter((id) => !alreadyChosen.has(id));
 
         // If we filtered out any duplicates or existing IDs, notify and only keep non-duplicates
@@ -127,6 +124,11 @@ function CreateAndEditGroupFieldGroup({
           if (removedAsDuplicate > 0) parts.push(`${removedAsDuplicate} duplicate${removedAsDuplicate > 1 ? "s" : ""} in file`);
           if (removedAsExisting.length > 0) parts.push(`${removedAsExisting.length} already selected/existing`);
           toast.error(`Ignored ${parts.join(" and ")}. Using unique, non-duplicate IDs.`);
+        }
+
+        // Positive confirmation toast for the number of unique IDs actually taken from the file
+        if (filtered.length > 0) {
+          toast.success(`Added ${filtered.length} unique meter ID${filtered.length > 1 ? "s" : ""} from file.`);
         }
 
         const newFileIds = new Set(filtered);
@@ -142,7 +144,7 @@ function CreateAndEditGroupFieldGroup({
           : [String(selectedOptions.value)];
 
         // De-dup against file selections and (in edit) existing meters
-        const alreadyChosen = union(fileUploadedMeterIds, isEditMode ? existingMeterIds : new Set());
+        const alreadyChosen = union(fileUploadedMeterIds, isEditMode ? existingSnapshotRef.current : new Set());
         const uniqueIds: string[] = [];
         const dupes: string[] = [];
         for (const id of selectedIds) {
@@ -161,12 +163,12 @@ function CreateAndEditGroupFieldGroup({
 
       // Presentation counts
       const rawNewAdds = Array.from(union(fileUploadedMeterIds, dropdownSelectedMeterIds));
-      const newAddsExcludingExisting = rawNewAdds.filter((id) => !existingMeterIds.has(id));
-      const fileNewCount = Array.from(fileUploadedMeterIds).filter((id) => !existingMeterIds.has(id)).length;
-      const dropdownNewCount = Array.from(dropdownSelectedMeterIds).filter((id) => !existingMeterIds.has(id)).length;
+      const newAddsExcludingExisting = rawNewAdds.filter((id) => !existingSnapshotRef.current.has(id));
+      const fileNewCount = Array.from(fileUploadedMeterIds).filter((id) => !existingSnapshotRef.current.has(id)).length;
+      const dropdownNewCount = Array.from(dropdownSelectedMeterIds).filter((id) => !existingSnapshotRef.current.has(id)).length;
 
       const totalSelectedMeters = isEditMode
-        ? existingMeterIds.size + newAddsExcludingExisting.length
+        ? existingSnapshotRef.current.size + newAddsExcludingExisting.length
         : rawNewAdds.length;
 
       return (
@@ -244,8 +246,8 @@ function CreateAndEditGroupFieldGroup({
               <Message.Description>
                 <div style={{ lineHeight: 1.6 }}>
                   <div><strong>Total meters:</strong> {totalSelectedMeters}</div>
-                  {existingMeterIds.size > 0 && (
-                    <div><strong>Existing meters:</strong> {existingMeterIds.size}</div>
+                  {existingSnapshotRef.current.size > 0 && (
+                    <div><strong>Existing meters:</strong> {existingSnapshotRef.current.size}</div>
                   )}
                   {newAddsExcludingExisting.length > 0 && (
                     <div>
@@ -257,7 +259,7 @@ function CreateAndEditGroupFieldGroup({
                       {(fileNewCount > 0 || dropdownNewCount > 0) && ")"}
                     </div>
                   )}
-                  {existingMeterIds.size === 0 && newAddsExcludingExisting.length === 0 && (
+                  {existingSnapshotRef.current.size === 0 && newAddsExcludingExisting.length === 0 && (
                     <div style={{ color: "#999" }}>No meters selected</div>
                   )}
                 </div>
@@ -449,8 +451,8 @@ export default function EditGroupInner({ id, group, initialGroupMetersData }: Ed
       name: group.name ?? "",
       description: group.description ?? "",
       created_by: group.created_by ?? "kavya.babu@arqiva.com",
-      // IMPORTANT: preload existing IDs so the FieldGroup can snapshot them into `existingMeterIds`.
-      // The FieldGroup will then ensure only NEW IDs are put back into `meterId` when the user adds.
+      // Preload existing IDs for submission logic, but the FieldGroup will snapshot them and
+      // only store NEW ids back into meterId as the user adds.
       meterId: group.list_of_meters?.map(String) ?? [],
     },
     onSubmit: async ({ value, formApi }) => {
@@ -469,8 +471,7 @@ export default function EditGroupInner({ id, group, initialGroupMetersData }: Ed
           group_id: id,
           name: parsed.name,
           description: parsed.description,
-          add_meter_ids, // ✅ adds only
-          // ❌ do not include remove_meter_ids
+          add_meter_ids,
         } as const;
 
         await groupsService.update(payload);
@@ -492,6 +493,32 @@ export default function EditGroupInner({ id, group, initialGroupMetersData }: Ed
   });
 
   return (
+    <form
+      onSubmit={(e) => {
+        e.preventDefault();
+        form.handleSubmit();
+      }}
+    >
+      <form.AppForm>
+        <form.ErrorMessage />
+
+        <CreateAndEditGroupFieldGroup
+          form={form}
+          groupId={id}
+          initialGroupMetersData={initialGroupMetersData}
+          existingMetersInitial={group.list_of_meters?.map(String) ?? []}
+        />
+
+        <Separator />
+
+        <ButtonGroup justify="between">
+          <CancelAlertDialog />
+          <form.SubmitButton>Save Changes</form.SubmitButton>
+        </ButtonGroup>
+      </form.AppForm>
+    </form>
+  );
+}
     <form
       onSubmit={(e) => {
         e.preventDefault();
