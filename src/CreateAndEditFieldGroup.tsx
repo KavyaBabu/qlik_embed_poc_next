@@ -104,35 +104,30 @@ function CreateAndEditGroupFieldGroup({
           .map((row) => (row.meter_id ? String(row.meter_id).trim() : ""))
           .filter(Boolean);
 
-        // Detect duplicates inside the uploaded file itself
-        const uniqueFromFile = new Set<string>();
-        const duplicatesInFile: string[] = [];
-        for (const id of raw) {
-          if (uniqueFromFile.has(id)) duplicatesInFile.push(id);
-          else uniqueFromFile.add(id);
-        }
+        const newUniqueFileIds = new Set(raw);
 
-        // Remove anything already chosen via dropdown and (in edit mode) anything already in the group
+        // Deduplicate across existing and dropdown
         const alreadyChosen = union(dropdownSelectedMeterIds, isEditMode ? existingSnapshotRef.current : new Set());
-        const filtered = Array.from(uniqueFromFile).filter((id) => !alreadyChosen.has(id));
+        const trulyNew = Array.from(newUniqueFileIds).filter((id) => !alreadyChosen.has(id));
 
-        // If we filtered out any duplicates or existing IDs, notify and only keep non-duplicates
-        const removedAsDuplicate = duplicatesInFile.length;
-        const removedAsExisting = Array.from(uniqueFromFile).filter((id) => alreadyChosen.has(id));
-        if (removedAsDuplicate > 0 || removedAsExisting.length > 0) {
+        const duplicatesInFile = raw.length - newUniqueFileIds.size;
+        const alreadyExisting = raw.filter((id) => alreadyChosen.has(id));
+
+        if (duplicatesInFile > 0 || alreadyExisting.length > 0) {
           const parts: string[] = [];
-          if (removedAsDuplicate > 0) parts.push(`${removedAsDuplicate} duplicate${removedAsDuplicate > 1 ? "s" : ""} in file`);
-          if (removedAsExisting.length > 0) parts.push(`${removedAsExisting.length} already selected/existing`);
+          if (duplicatesInFile > 0) parts.push(`${duplicatesInFile} duplicate${duplicatesInFile > 1 ? "s" : ""} in file`);
+          if (alreadyExisting.length > 0) parts.push(`${alreadyExisting.length} already selected/existing`);
           toast.error(`Ignored ${parts.join(" and ")}. Using unique, non-duplicate IDs.`);
         }
 
-        // Positive confirmation toast for the number of unique IDs actually taken from the file
-        if (filtered.length > 0) {
-          toast.success(`Added ${filtered.length} unique meter ID${filtered.length > 1 ? "s" : ""} from file.`);
+        if (trulyNew.length > 0) {
+          toast.success(`Added ${trulyNew.length} unique meter ID${trulyNew.length > 1 ? "s" : ""} from file.`);
         }
 
-        const newFileIds = new Set(filtered);
-        setFileUploadedMeterIds(newFileIds);
+        // Merge file IDs instead of replacing them
+        const merged = union(fileUploadedMeterIds, new Set(trulyNew));
+        setFileUploadedMeterIds(merged);
+        updateFormMeterIds(merged, dropdownSelectedMeterIds);
         updateFormMeterIds(newFileIds, dropdownSelectedMeterIds);
       };
 
@@ -556,4 +551,28 @@ export default function EditGroupInner({ id, group, initialGroupMetersData }: Ed
     </form>
   );
 }
-  
+    <form
+      onSubmit={(e) => {
+        e.preventDefault();
+        form.handleSubmit();
+      }}
+    >
+      <form.AppForm>
+        <form.ErrorMessage />
+
+        <CreateAndEditGroupFieldGroup
+          form={form}
+          groupId={id}
+          initialGroupMetersData={initialGroupMetersData}
+        />
+
+        <Separator />
+
+        <ButtonGroup justify="between">
+          <CancelAlertDialog />
+          <form.SubmitButton>Save Changes</form.SubmitButton>
+        </ButtonGroup>
+      </form.AppForm>
+    </form>
+  );
+}
