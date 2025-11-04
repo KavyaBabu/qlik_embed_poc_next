@@ -1,4 +1,127 @@
-Meter Selection Summary
-Total meters: 35
-Existing meters: 31
-New meters to add: 4 (4 from selection)
+Download the React DevTools for a better development experience: https://react.dev/link/react-devtools
+on-recoverable-error.ts:30 Uncaught Error: Switched to client rendering because the server rendering errored:
+
+useToast must be used within a ToastsContext Provider
+    at ML (/Users/kavyapriyababu/Library/CloudStorage/OneDrive-ArqivaLtd/Arqiva Work/CSLD-V2/csld-ui/.next/server/chunks/ssr/node_modules_@arqiva_react-component-lib_dist_index-CxVPNKyn_a3a50c63.js:28805:29)
+    at useToastNotifications (/Users/kavyapriyababu/Library/CloudStorage/OneDrive-ArqivaLtd/Arqiva Work/CSLD-V2/csld-ui/.next/server/chunks/ssr/_2590c2fb._.js:920:255)
+    at EditGroupInner (/Users/kavyapriyababu/Library/CloudStorage/OneDrive-ArqivaLtd/Arqiva Work/CSLD-V2/csld-ui/.next/server/chunks/ssr/_2590c2fb._.js:2379:184)
+    at Object.react_stack_bottom_frame (/Users/kavyapriyababu/Library/CloudStorage/OneDrive-ArqivaLtd/Arqiva Work/CSLD-V2/csld-ui/node_modules/next/dist/compiled/next-server/app-page-turbo.runtime.dev.js:2:292649)
+    at renderWithHooks (/Users/kavyapriyababu/Library/CloudStorage/OneDrive-ArqivaLtd/Arqiva Work/CSLD-V2/csld-ui/node_modules/next/dist/compiled/next-server/app-page-turbo.runtime.dev.js:2:114080)
+    at renderElement (/Users/kavyapriyababu/Library/CloudStorage/OneDrive-ArqivaLtd/Arqiva Work/CSLD-V2/csld-ui/node_modules/next/dist/compiled/next-server/app-page-turbo.runtime.dev.js:2:128752)
+    at renderElement (/Users/kavyapriyababu/Library/CloudStorage/OneDrive-ArqivaLtd/Arqiva Work/CSLD-V2/csld-ui/node_modules/next/dist/compiled/next-server/app-page-turbo.runtime.dev.js:2:187713)
+    at retryNode (/Users/kavyapriyababu/Library/CloudStorage/OneDrive-ArqivaLtd/Arqiva Work/CSLD-V2/csld-ui/node_modules/next/dist/compiled/next-server/app-page-turbo.runtime.dev.js:2:194584)
+    at renderNodeDestructive (/Users/kavyapriyababu/Library/CloudStorage/OneDrive-ArqivaLtd/Arqiva Work/CSLD-V2/csld-ui/node_modules/next/dist/compiled/next-server/app-page-turbo.runtime.dev.js:2:193847)
+    at renderNode (/Users/kavyapriyababu/Library/CloudStorage/OneDrive-ArqivaLtd/Arqiva Work/CSLD-V2/csld-ui/node_modules/next/dist/compiled/next-server/app-page-turbo.runtime.dev.js:2:203204)
+    at renderChildrenArray (/Users/kavyapriyababu/Library/CloudStorage/OneDrive-ArqivaLtd/Arqiva Work/CSLD-V2/csld-ui/node_modules/next/dist/compiled/next-server/app-page-turbo.runtime.dev.js:2:200308)
+    at retryNode (/Users/kavyapriyababu/Library/CloudStorage/OneDrive-ArqivaLtd/Arqiva Work/CSLD-V2/csld-ui/node_modules/next/dist/compiled/next-server/app-page-turbo.runtime.dev.js:2:195061)
+    at renderNodeDestructive (/Users/kavyapriyababu/Library/CloudStorage/OneDrive-ArqivaLtd/Arqiva Work/CSLD-V2/csld-ui/node_modules/next/dist/compiled/next-server/app-page-turbo.runtime.dev.js:2:193847)
+    at renderNode (/Users/kavyapriyababu/Library/CloudStorage/OneDrive-ArqivaLtd/Arqiva Work/CSLD-V2/csld-ui/node_modules/next/dist/compiled/next-server/app-page-turbo.runtime.dev.js:2:203204)
+    at renderElement (/Users/kavyapriyababu/Library/CloudStorage/OneDrive-ArqivaLtd/Arqiva Work/CSLD-V2/csld-ui/node_modules/next/dist/compiled/next-server/app-page-turbo.runtime.dev.js:2:176646)
+    at retryNode (/Users/kavyapriyababu/Library/CloudStorage/OneDrive-ArqivaLtd/Arqiva Work/CSLD-V2/csld-ui/node_modules/next/dist/compiled/next-server/app-page-turbo.runtime.dev.js:2:194584)
+    at renderNodeDestructive (/Users/kavyapriyababu/Library/CloudStorage/OneDrive-ArqivaLtd/Arqiva Work/CSLD-V2/csld-ui/node_modules/next/dist/compiled/next-server/app-page-turbo.runtime.dev.js:2:193847)
+    at finishFunctionComponent (/Users/kavyapriyababu/Library/CloudStorage/OneDrive-ArqivaLtd/Arqiva Work/CSLD-V2/csld-ui/node_modules/next/dist/compiled/next-server/app-page-turbo.runtime.dev.js:2:115090)
+    at renderElement (/Users/kavyapriyababu/Library/CloudStorage/OneDrive-ArqivaLtd/Arqiva Work/CSLD-V2/csld-ui/node_modules/next/dist/compiled/next-server/app-page-turbo.runtime.dev.js:2:130261)
+    at renderElement (/Users/kavyapriyababu/Library/CloudStorage/OneDrive-ArqivaLtd/Arqiva Work/CSLD-V2/csld-ui/node_modules/next/dist/compiled/next-server/app-page-turbo.runtime.dev.js:2:187713)
+    at retryNode (/Users/kavyapriyababu/Library/CloudStorage/OneDrive-ArqivaLtd/Arqiva Work/CSLD-V2/csld-ui/node_modules/next/dist/compiled/next-server/app-page-turbo.runtime.dev.js:2:194584)
+    at renderNodeDestructive (/Users/kavyapriyababu/Library/CloudStorage/OneDrive-ArqivaLtd/Arqiva Work/CSLD-V2/csld-ui/node_modules/next/dist/compiled/next-server/app-page-turbo.runtime.dev.js:2:193847)
+    at retryNode (/Users/kavyapriyababu/Library/CloudStorage/OneDrive-ArqivaLtd/Arqiva Work/CSLD-V2/csld-ui/node_modules/next/dist/compiled/next-server/app-page-turbo.runtime.dev.js:2:194969)
+    at performWork (/Users/kavyapriyababu/Library/CloudStorage/OneDrive-ArqivaLtd/Arqiva Work/CSLD-V2/csld-ui/node_modules/next/dist/compiled/next-server/app-page-turbo.runtime.dev.js:2:215436)
+    at Immediate._onImmediate (/Users/kavyapriyababu/Library/CloudStorage/OneDrive-ArqivaLtd/Arqiva Work/CSLD-V2/csld-ui/node_modules/next/dist/compiled/next-server/app-page-turbo.runtime.dev.js:2:98974)
+    at process.processImmediate (node:internal/timers:505:21)
+    at process.callbackTrampoline (node:internal/async_hooks:130:17)
+updateSuspenseComponent @ react-dom-client.development.js:10079
+beginWork @ react-dom-client.development.js:11172
+runWithFiberInDEV @ react-dom-client.development.js:871
+performUnitOfWork @ react-dom-client.development.js:15726
+workLoopSync @ react-dom-client.development.js:15546
+renderRootSync @ react-dom-client.development.js:15526
+performWorkOnRoot @ react-dom-client.development.js:14990
+performSyncWorkOnRoot @ react-dom-client.development.js:16830
+flushSyncWorkAcrossRoots_impl @ react-dom-client.development.js:16676
+flushSpawnedWork @ react-dom-client.development.js:16273
+commitRoot @ react-dom-client.development.js:15997
+commitRootWhenReady @ react-dom-client.development.js:15227
+performWorkOnRoot @ react-dom-client.development.js:15146
+performWorkOnRootViaSchedulerTask @ react-dom-client.development.js:16815
+performWorkUntilDeadline @ scheduler.development.js:45
+<Suspense>
+exports.jsx @ react-jsx-runtime.development.js:323
+LoadingBoundary @ layout-router.tsx:474
+react_stack_bottom_frame @ react-dom-client.development.js:23583
+renderWithHooksAgain @ react-dom-client.development.js:6892
+renderWithHooks @ react-dom-client.development.js:6804
+updateFunctionComponent @ react-dom-client.development.js:9246
+beginWork @ react-dom-client.development.js:10857
+runWithFiberInDEV @ react-dom-client.development.js:871
+performUnitOfWork @ react-dom-client.development.js:15726
+workLoopConcurrentByScheduler @ react-dom-client.development.js:15720
+renderRootConcurrent @ react-dom-client.development.js:15695
+performWorkOnRoot @ react-dom-client.development.js:14989
+performWorkOnRootViaSchedulerTask @ react-dom-client.development.js:16815
+performWorkUntilDeadline @ scheduler.development.js:45
+<LoadingBoundary>
+exports.jsx @ react-jsx-runtime.development.js:323
+OuterLayoutRouter @ layout-router.tsx:649
+react_stack_bottom_frame @ react-dom-client.development.js:23583
+renderWithHooksAgain @ react-dom-client.development.js:6892
+renderWithHooks @ react-dom-client.development.js:6804
+updateFunctionComponent @ react-dom-client.development.js:9246
+beginWork @ react-dom-client.development.js:10806
+runWithFiberInDEV @ react-dom-client.development.js:871
+performUnitOfWork @ react-dom-client.development.js:15726
+workLoopConcurrentByScheduler @ react-dom-client.development.js:15720
+renderRootConcurrent @ react-dom-client.development.js:15695
+performWorkOnRoot @ react-dom-client.development.js:14989
+performWorkOnRootViaSchedulerTask @ react-dom-client.development.js:16815
+performWorkUntilDeadline @ scheduler.development.js:45
+"use client"
+Promise.all @ VM3163 <anonymous>:1
+Promise.all @ VM3163 <anonymous>:1
+Promise.all @ VM3163 <anonymous>:1
+Promise.all @ VM3163 <anonymous>:1
+Promise.all @ VM3163 <anonymous>:1
+initializeElement @ react-server-dom-turbopack-client.browser.development.js:1332
+(anonymous) @ react-server-dom-turbopack-client.browser.development.js:3055
+initializeModelChunk @ react-server-dom-turbopack-client.browser.development.js:1235
+resolveModelChunk @ react-server-dom-turbopack-client.browser.development.js:1092
+processFullStringRow @ react-server-dom-turbopack-client.browser.development.js:2888
+processFullBinaryRow @ react-server-dom-turbopack-client.browser.development.js:2755
+processBinaryChunk @ react-server-dom-turbopack-client.browser.development.js:2958
+progress @ react-server-dom-turbopack-client.browser.development.js:3222
+"use server"
+ResponseInstance @ react-server-dom-turbopack-client.browser.development.js:2030
+createResponseFromOptions @ react-server-dom-turbopack-client.browser.development.js:3083
+exports.createFromReadableStream @ react-server-dom-turbopack-client.browser.development.js:3460
+__TURBOPACK__module__evaluation__ @ app-index.tsx:156
+(anonymous) @ dev-base.ts:241
+runModuleExecutionHooks @ dev-base.ts:275
+instantiateModule @ dev-base.ts:235
+getOrInstantiateModuleFromParent @ dev-base.ts:162
+commonJsRequire @ runtime-utils.ts:366
+(anonymous) @ app-next-turbopack.ts:11
+(anonymous) @ app-bootstrap.ts:76
+loadScriptsInSequence @ app-bootstrap.ts:22
+appBootstrap @ app-bootstrap.ts:58
+__TURBOPACK__module__evaluation__ @ app-next-turbopack.ts:10
+(anonymous) @ dev-base.ts:241
+runModuleExecutionHooks @ dev-base.ts:275
+instantiateModule @ dev-base.ts:235
+getOrInstantiateRuntimeModule @ dev-base.ts:128
+registerChunk @ runtime-backend-dom.ts:57
+await in registerChunk
+registerChunk @ dev-base.ts:1146
+(anonymous) @ dev-backend-dom.ts:126
+(anonymous) @ dev-backend-dom.ts:126Understand this error
+index.tsx:175 [DEBUG] Render: fileUploadedMeterIds Set(0) {size: 0} dropdownSelectedMeterIds Set(0) {size: 0} meterOptions []
+index.tsx:175 [DEBUG] Render: fileUploadedMeterIds Set(0) {size: 0} dropdownSelectedMeterIds Set(0) {size: 0} meterOptions []
+index.tsx:175 [DEBUG] Render: fileUploadedMeterIds Set(0) {size: 0} dropdownSelectedMeterIds Set(0) {size: 0} meterOptions []
+index.tsx:175 [DEBUG] Render: fileUploadedMeterIds Set(0) {size: 0} dropdownSelectedMeterIds Set(0) {size: 0} meterOptions []
+index.tsx:175 [DEBUG] Render: fileUploadedMeterIds Set(0) {size: 0} dropdownSelectedMeterIds Set(0) {size: 0} meterOptions (1667) [{…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, …]
+index.tsx:175 [DEBUG] Render: fileUploadedMeterIds Set(0) {size: 0} dropdownSelectedMeterIds Set(0) {size: 0} meterOptions (1667) [{…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, …]
+index.tsx:99 [DEBUG] handleFileParse called with parsed: {headers: Array(1), data: Array(4), file: File, message: 'Parsed Excel file using SheetJS'}data: (4) [{…}, {…}, {…}, {…}]file: File {name: 'meter-test-file.xlsx', lastModified: 1761305303225, lastModifiedDate: Fri Oct 24 2025 12:28:23 GMT+0100 (British Summer Time), webkitRelativePath: '', size: 9859, …}headers: ['meter_id']message: "Parsed Excel file using SheetJS"[[Prototype]]: Object
+index.tsx:130 [DEBUG] Before setFileUploadedMeterIds, merged: Set(4) {'7305959167508270000', '7293644575103660000', '7328496926376030000', '7305958256794850000'}
+index.tsx:134 [DEBUG] After setFileUploadedMeterIds, fileUploadedMeterIds: Set(0) {size: 0}
+index.tsx:175 [DEBUG] Render: fileUploadedMeterIds Set(0) {size: 0} dropdownSelectedMeterIds Set(0) {size: 0} meterOptions []
+index.tsx:175 [DEBUG] Render: fileUploadedMeterIds Set(0) {size: 0} dropdownSelectedMeterIds Set(0) {size: 0} meterOptions []
+index.tsx:175 [DEBUG] Render: fileUploadedMeterIds Set(0) {size: 0} dropdownSelectedMeterIds Set(0) {size: 0} meterOptions (1667) [{…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, …]
+index.tsx:175 [DEBUG] Render: fileUploadedMeterIds Set(0) {size: 0} dropdownSelectedMeterIds Set(0) {size: 0} meterOptions (1667) [{…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, …]
