@@ -1,5 +1,4 @@
-In HTML, <div> cannot be a descendant of <p>.
-This will cause a hydration error.
-
-<p> cannot contain a nested <div>.
-See this log for the ancestor stack trace.
+Meter Selection Summary
+Total meters: 35
+Existing meters: 31
+New meters to add: 4 (4 from selection)
