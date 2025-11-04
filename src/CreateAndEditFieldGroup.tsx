@@ -328,3 +328,14 @@ export default dynamic(
   { ssr: false }
 );
 
+1. optimize createandedit field page code
+2. file upload parser use
+3. edit make sure passing right number of counts
+4. unit test and linting check and close groups task
+
+Edit flow logic:
+* Existing meters are displayed in the list. (which wont need to touch)
+* Any newly added meters (from file or dropdown) should be compared with existing meters. (from API)
+* Send only new meters in add_meter_ids.
+* Do not send anything in remove_group_ids.
+* Total count displayed includes existing + new added meters.
