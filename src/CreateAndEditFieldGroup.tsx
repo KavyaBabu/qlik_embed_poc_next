@@ -1,3 +1,4 @@
+// File: app/(dashboard)/groups/_components/CreateAndEditFieldGroup.tsx
 "use client";
 
 import dynamic from "next/dynamic";
@@ -6,7 +7,6 @@ import {
   createDefaultFieldValidators,
   QueryParams,
   Message,
-  Button,
 } from "@arqiva/react-component-lib";
 import { createGroupSchema } from "@/lib/services/api/dashboard/Groups/models/createGroup";
 import { useListAllMeters } from "@/lib/services/api/dashboard/Meters/hooks/useListMeters";
@@ -31,7 +31,7 @@ interface CreateGroupFields {
   name: string;
   description: string;
   created_by: string;
-  meterId: string[];
+  meterId: string[]; // IMPORTANT: in edit-mode this holds **only new** meter IDs
   file?: File;
   customer_id?: string;
 }
@@ -50,108 +50,99 @@ function CreateAndEditGroupFieldGroup({
   const FieldGroup = withFieldGroup<CreateGroupFields, CreateGroupFields>({
     render: ({ group }: any) => {
       const { data: allMeters, isLoading: metersLoading } = useListAllMeters();
+
       const [meterOptions, setMeterOptions] = useState<Array<{ value: string; label: string }>>([]);
-      
       const [fileUploadedMeterIds, setFileUploadedMeterIds] = useState<Set<string>>(new Set());
       const [dropdownSelectedMeterIds, setDropdownSelectedMeterIds] = useState<Set<string>>(new Set());
       const [existingMeterIds, setExistingMeterIds] = useState<Set<string>>(new Set());
       const [isInitialized, setIsInitialized] = useState(false);
 
+      // Capture the existing group meters once (from the form's initial value)
       useEffect(() => {
         if (isEditMode && !isInitialized) {
-          const currentFormValue = group.form.getFieldValue("meterId") as string[] || [];
+          const currentFormValue = (group.form.getFieldValue("meterId") as string[]) || [];
           setExistingMeterIds(new Set(currentFormValue));
           setIsInitialized(true);
         }
       }, [isEditMode, group.form, isInitialized]);
 
+      // Helper
+      const union = (a: Set<string>, b: Set<string>) => {
+        const out = new Set<string>(a);
+        b.forEach((v) => out.add(v));
+        return out;
+      };
+
+      // Build dropdown options, optionally hiding already-existing meters in edit mode
       useEffect(() => {
         if (allMeters?.items && Array.isArray(allMeters.items)) {
           const options = allMeters.items
-            .map((meter) => ({
-              value: String(meter.id),
-              label: String(meter.id),
-            }));
-
+            .map((meter) => ({ value: String(meter.id), label: String(meter.id) }))
+            .filter((opt) => !isEditMode || !existingMeterIds.has(opt.value));
           setMeterOptions(options);
         }
-      }, [allMeters]);
+      }, [allMeters, isEditMode, existingMeterIds]);
 
+      // Update the form value: in edit mode, store ONLY truly-new IDs; in create, store all selections
       const updateFormMeterIds = useCallback(
         (fileIds: Set<string>, dropdownIds: Set<string>) => {
-            const newMeters = Array.from(
-            new Set([...fileIds, ...dropdownIds])
-          );
-          group.form.setFieldValue("meterId", newMeters);
+          const combined = union(fileIds, dropdownIds);
+          const newOnly = isEditMode
+            ? Array.from(combined).filter((id) => !existingMeterIds.has(id))
+            : Array.from(combined);
+
+          group.form.setFieldValue("meterId", newOnly);
         },
-        [group.form]
+        [group.form, isEditMode, existingMeterIds]
       );
 
       const handleFileParse = (parsed: any) => {
-        if (
-          !parsed?.data ||
-          !Array.isArray(parsed.data) ||
-          parsed.data.length === 0
-        )
-          return;
+        if (!parsed?.data || !Array.isArray(parsed.data) || parsed.data.length === 0) return;
 
-        type ParsedRow = {
-          meter_id?: string | number | null;
-        };
-
+        type ParsedRow = { meter_id?: string | number | null };
         const parsedIds = (parsed.data as ParsedRow[])
-          .map((row) =>
-            row.meter_id ? String(row.meter_id).trim() : ""
-          )
+          .map((row) => (row.meter_id ? String(row.meter_id).trim() : ""))
           .filter(Boolean);
 
         const newFileIds = new Set(parsedIds);
         setFileUploadedMeterIds(newFileIds);
-        
         updateFormMeterIds(newFileIds, dropdownSelectedMeterIds);
       };
 
       const handleDropdownChange = (selectedOptions: any) => {
-        if (!selectedOptions) {
-          setDropdownSelectedMeterIds(new Set());
-          updateFormMeterIds(fileUploadedMeterIds, new Set());
-          return;
-        }
-
-        const selectedIds = Array.isArray(selectedOptions)
+        const selectedIds = !selectedOptions
+          ? []
+          : Array.isArray(selectedOptions)
           ? selectedOptions.map((opt: any) => String(opt.value))
           : [String(selectedOptions.value)];
 
         const newDropdownIds = new Set(selectedIds);
         setDropdownSelectedMeterIds(newDropdownIds);
-        
         updateFormMeterIds(fileUploadedMeterIds, newDropdownIds);
       };
 
-      const newAddedMeters = Array.from(
-        new Set([...fileUploadedMeterIds, ...dropdownSelectedMeterIds])
-      );
-      
+      // Presentation counts
+      const rawNewAdds = Array.from(union(fileUploadedMeterIds, dropdownSelectedMeterIds));
+      const newAddsExcludingExisting = rawNewAdds.filter((id) => !existingMeterIds.has(id));
+      const fileNewCount = Array.from(fileUploadedMeterIds).filter((id) => !existingMeterIds.has(id)).length;
+      const dropdownNewCount = Array.from(dropdownSelectedMeterIds).filter((id) => !existingMeterIds.has(id)).length;
+
       const totalSelectedMeters = isEditMode
-        ? existingMeterIds.size + newAddedMeters.length
-        : newAddedMeters.length;
+        ? existingMeterIds.size + newAddsExcludingExisting.length
+        : rawNewAdds.length;
 
       return (
         <>
           <group.AppField
             name="name"
-            validators={createDefaultFieldValidators(
-              createGroupSchema.shape.name
-            )}
+            validators={createDefaultFieldValidators(createGroupSchema.shape.name)}
           >
             {(field: any) => <field.TextField label="Name" placeholder="Group Name" />}
           </group.AppField>
 
           <group.AppField
             name="description"
-            validators={createDefaultFieldValidators(
-              createGroupSchema.shape.description
-            )}
+            validators={createDefaultFieldValidators(createGroupSchema.shape.description)}
           >
             {(field: any) => (
               <field.TextareaField
@@ -163,19 +154,12 @@ function CreateAndEditGroupFieldGroup({
           </group.AppField>
 
           {isEditMode && (
-            <div style={{
-              marginBottom: "var(--spacing-3xl)",
-              maxWidth: "600px",
-              width: "100%"
-            }}>
-              <h6 style={{ marginBottom: "var(--spacing-lg)" }}>
-                Current Meters in Group
-              </h6>
-
+            <div style={{ marginBottom: "var(--spacing-3xl)", maxWidth: "600px", width: "100%" }}>
+              <h6 style={{ marginBottom: "var(--spacing-lg)" }}>Current Meters in Group</h6>
               <QueryParams.Root>
                 <div style={{ width: "100%", maxWidth: "100%" }}>
-                  <List 
-                    groupId={groupId} 
+                  <List
+                    groupId={groupId}
                     groupName={group.form.getFieldValue("name")}
                     groupDescription={group.form.getFieldValue("description")}
                     initialData={initialGroupMetersData}
@@ -186,9 +170,7 @@ function CreateAndEditGroupFieldGroup({
                         <QueryParams.Params.SelectedValues
                           resultsLoading={resultsLoading}
                           resultsCount={resultsCount}
-                          filterOverrides={{
-                            ...searchQueryFilterOverride,
-                          }}
+                          filterOverrides={{ ...searchQueryFilterOverride }}
                         />
                       </QueryParams.Params.Root>
                     )}
@@ -200,9 +182,7 @@ function CreateAndEditGroupFieldGroup({
 
           <group.AppField
             name="file"
-            validators={createDefaultFieldValidators(
-              createGroupSchema.shape.file
-            )}
+            validators={createDefaultFieldValidators(createGroupSchema.shape.file)}
           >
             {(field: any) => (
               <FileUpload
@@ -224,24 +204,22 @@ function CreateAndEditGroupFieldGroup({
             <Message.Root variant="info" style={{ marginTop: "var(--spacing-lg)", marginBottom: "var(--spacing-lg)" }}>
               <Message.Title>Meter Selection Summary</Message.Title>
               <Message.Description>
-                <div style={{ lineHeight: "1.6" }}>
-                  <div>
-                    <strong>Total meters:</strong> {totalSelectedMeters}
-                  </div>
+                <div style={{ lineHeight: 1.6 }}>
+                  <div><strong>Total meters:</strong> {totalSelectedMeters}</div>
                   {existingMeterIds.size > 0 && (
+                    <div><strong>Existing meters:</strong> {existingMeterIds.size}</div>
+                  )}
+                  {newAddsExcludingExisting.length > 0 && (
                     <div>
-                      <strong>Existing meters:</strong> {existingMeterIds.size}
+                      <strong>New meters to add:</strong> {newAddsExcludingExisting.length}
+                      {(fileNewCount > 0 || dropdownNewCount > 0) && " ("}
+                      {fileNewCount > 0 && `${fileNewCount} from file`}
+                      {fileNewCount > 0 && dropdownNewCount > 0 && ", "}
+                      {dropdownNewCount > 0 && `${dropdownNewCount} from selection`}
+                      {(fileNewCount > 0 || dropdownNewCount > 0) && ")"}
                     </div>
                   )}
-                  {newAddedMeters.length > 0 && (
-                    <div>
-                      <strong>New meters to add:</strong> {newAddedMeters.length}
-                      {fileUploadedMeterIds.size > 0 && ` (${fileUploadedMeterIds.size} from file`}
-                      {fileUploadedMeterIds.size > 0 && dropdownSelectedMeterIds.size > 0 && `, `}
-                      {dropdownSelectedMeterIds.size > 0 && `${dropdownSelectedMeterIds.size} from selection)`}
-                    </div>
-                  )}
-                  {existingMeterIds.size === 0 && newAddedMeters.length === 0 && (
+                  {existingMeterIds.size === 0 && newAddsExcludingExisting.length === 0 && (
                     <div style={{ color: "#999" }}>No meters selected</div>
                   )}
                 </div>
@@ -253,19 +231,13 @@ function CreateAndEditGroupFieldGroup({
             <Message.Root variant="info" style={{ marginTop: "var(--spacing-lg)", marginBottom: "var(--spacing-lg)" }}>
               <Message.Title>Meter Selection</Message.Title>
               <Message.Description>
-                <div style={{ lineHeight: "1.6" }}>
-                  <div>
-                    <strong>Total meters selected:</strong> {totalSelectedMeters}
-                  </div>
+                <div style={{ lineHeight: 1.6 }}>
+                  <div><strong>Total meters selected:</strong> {totalSelectedMeters}</div>
                   {fileUploadedMeterIds.size > 0 && (
-                    <div>
-                      <strong>From file upload:</strong> {fileUploadedMeterIds.size}
-                    </div>
+                    <div><strong>From file upload:</strong> {fileUploadedMeterIds.size}</div>
                   )}
                   {dropdownSelectedMeterIds.size > 0 && (
-                    <div>
-                      <strong>From manual selection:</strong> {dropdownSelectedMeterIds.size}
-                    </div>
+                    <div><strong>From manual selection:</strong> {dropdownSelectedMeterIds.size}</div>
                   )}
                 </div>
               </Message.Description>
@@ -274,26 +246,19 @@ function CreateAndEditGroupFieldGroup({
 
           <group.AppField
             name="meterId"
-            validators={createDefaultFieldValidators(
-              createGroupSchema.shape.meterId
-            )}
+            validators={createDefaultFieldValidators(createGroupSchema.shape.meterId)}
           >
             {(field: any) => (
               <div style={{ marginTop: "var(--spacing-3xl)" }}>
                 <field.SearchableSelectField
                   label="Meter ID"
-                  placeholder={
-                    metersLoading ? "Loading meters..." : "Select a meter"
-                  }
+                  placeholder={metersLoading ? "Loading meters..." : "Select a meter"}
                   options={meterOptions}
                   isClearable
                   isMulti
                   isLoading={metersLoading}
                   onChange={handleDropdownChange}
-                  value={Array.from(dropdownSelectedMeterIds).map((id) => ({
-                    value: id,
-                    label: id,
-                  }))}
+                  value={Array.from(dropdownSelectedMeterIds).map((id) => ({ value: id, label: id }))}
                 />
               </div>
             )}
@@ -306,16 +271,14 @@ function CreateAndEditGroupFieldGroup({
   return (
     <FieldGroup
       form={form as any}
-      fields={
-        {
-          name: "name",
-          description: "description",
-          created_by: "created_by",
-          meterId: "meterId",
-          file: "file",
-          customer_id: "customer_id",
-        } as any
-      }
+      fields={{
+        name: "name",
+        description: "description",
+        created_by: "created_by",
+        meterId: "meterId",
+        file: "file",
+        customer_id: "customer_id",
+      } as any}
     />
   );
 }
@@ -328,14 +291,191 @@ export default dynamic(
   { ssr: false }
 );
 
-1. optimize createandedit field page code
-2. file upload parser use
-3. edit make sure passing right number of counts
-4. unit test and linting check and close groups task
 
-Edit flow logic:
-* Existing meters are displayed in the list. (which wont need to touch)
-* Any newly added meters (from file or dropdown) should be compared with existing meters. (from API)
-* Send only new meters in add_meter_ids.
-* Do not send anything in remove_group_ids.
-* Total count displayed includes existing + new added meters.
+// File: app/(dashboard)/groups/create/CreateGroupInner.tsx
+"use client";
+
+import { ButtonGroup, Separator, useAppForm } from "@arqiva/react-component-lib";
+import {
+  createGroupSchema,
+  toCreateGroupApiBody,
+} from "@/lib/services/api/dashboard/Groups/models/createGroup";
+import CreateAndEditGroupFieldGroup from "../_components/CreateAndEditFieldGroup";
+import groupsService from "@/lib/services/api/dashboard/Groups/api";
+import CancelAlertDialog from "@/app/_components/CancelAlertDialog";
+import { getFormattedFormValidationErrors, isAPIResponseError } from "@/lib/services/api/dashboard/shared";
+import { useRouter } from "next/navigation";
+import { useToastNotifications } from "@/hooks/useToastNotifications";
+import routes from "@/lib/routes";
+
+const CURRENT_USER_EMAIL_FALLBACK = "kavya.babu@arqiva.com";
+
+export default function CreateGroupInner() {
+  const router = useRouter();
+  const toast = useToastNotifications();
+
+  const form = useAppForm({
+    validators: { onSubmit: createGroupSchema as any },
+    defaultValues: {
+      name: "",
+      description: "",
+      file: undefined as File | undefined,
+      meterId: [] as string[],
+      created_by: CURRENT_USER_EMAIL_FALLBACK,
+      customer_id: undefined as string | undefined,
+    },
+    onSubmit: async ({ value, formApi }) => {
+      try {
+        const parsed = createGroupSchema.parse(value);
+        const payload = {
+          ...toCreateGroupApiBody(parsed),
+          created_by: parsed.created_by,
+          description: parsed.description,
+          customer_id: "TEST1",
+        };
+        await groupsService.create(payload);
+        router.push(routes.dashboard.groups.root);
+      } catch (err: unknown) {
+        const validationErrors = getFormattedFormValidationErrors(err);
+        if (validationErrors) formApi.setErrorMap(validationErrors);
+
+        if (isAPIResponseError(err)) {
+          const serverMessage =
+            (err as { cause?: { message?: string }; message?: string })?.cause?.message ||
+            (err as { message?: string })?.message ||
+            "Unknown API error";
+          toast.error(`Failed to create group: ${serverMessage}`);
+        }
+        return err;
+      }
+    },
+  });
+
+  return (
+    <form
+      onSubmit={(e) => {
+        e.preventDefault();
+        form.handleSubmit();
+      }}
+    >
+      <form.AppForm>
+        <form.ErrorMessage />
+        <CreateAndEditGroupFieldGroup form={form} />
+        <Separator />
+        <ButtonGroup justify="between">
+          <CancelAlertDialog />
+          <form.SubmitButton>Create Group</form.SubmitButton>
+        </ButtonGroup>
+      </form.AppForm>
+    </form>
+  );
+}
+
+
+// File: app/(dashboard)/groups/[id]/edit/EditGroupInner.tsx
+"use client";
+
+import { ButtonGroup, Separator, useAppForm } from "@arqiva/react-component-lib";
+import { createGroupSchema } from "@/lib/services/api/dashboard/Groups/models/createGroup";
+import CreateAndEditGroupFieldGroup from "../../_components/CreateAndEditFieldGroup";
+import groupsService from "@/lib/services/api/dashboard/Groups/api";
+import CancelAlertDialog from "@/app/_components/CancelAlertDialog";
+import { getFormattedFormValidationErrors, isAPIResponseError } from "@/lib/services/api/dashboard/shared";
+import { useRouter } from "next/navigation";
+import { useToastNotifications } from "@/hooks/useToastNotifications";
+import routes from "@/lib/routes";
+import type { GetGroupMetersResponse } from "@/lib/services/api/dashboard/Meters/models/getGroupMeters";
+
+interface GroupDetails {
+  description?: string;
+  created_by?: string;
+  list_of_meters?: number[];
+}
+
+interface EditGroupInnerProps {
+  id: number;
+  group: Awaited<ReturnType<typeof groupsService.getById>> &
+    GroupDetails & {
+      description?: string | undefined;
+    };
+  initialGroupMetersData?: GetGroupMetersResponse;
+}
+
+export default function EditGroupInner({ id, group, initialGroupMetersData }: EditGroupInnerProps) {
+  const router = useRouter();
+  const toast = useToastNotifications();
+
+  const form = useAppForm({
+    validators: { onSubmit: createGroupSchema },
+    defaultValues: {
+      name: group.name ?? "",
+      description: group.description ?? "",
+      created_by: group.created_by ?? "kavya.babu@arqiva.com",
+      // IMPORTANT: preload existing IDs so the FieldGroup can snapshot them into `existingMeterIds`.
+      // The FieldGroup will then ensure only NEW IDs are put back into `meterId` when the user adds.
+      meterId: group.list_of_meters?.map(String) ?? [],
+    },
+    onSubmit: async ({ value, formApi }) => {
+      try {
+        const parsed = createGroupSchema.parse(value);
+
+        const existingMeterIds = group.list_of_meters?.map(String) ?? [];
+        const newSelectedIds = parsed.meterId?.map(String) ?? [];
+
+        // Only send newly-added IDs. Never send removals.
+        const add_meter_ids = newSelectedIds
+          .filter((id) => !existingMeterIds.includes(id))
+          .map(Number);
+
+        const payload = {
+          group_id: id,
+          name: parsed.name,
+          description: parsed.description,
+          add_meter_ids, // ✅ adds only
+          // ❌ do not include remove_meter_ids
+        } as const;
+
+        await groupsService.update(payload);
+        router.push(routes.dashboard.groups.root);
+      } catch (err: unknown) {
+        const validationErrors = getFormattedFormValidationErrors(err);
+        if (validationErrors) formApi.setErrorMap(validationErrors);
+
+        if (isAPIResponseError(err)) {
+          const serverMessage =
+            (err as { cause?: { message?: string }; message?: string })?.cause?.message ||
+            (err as { message?: string })?.message ||
+            "Unknown API error";
+          toast.error(`Failed to update group: ${serverMessage}`);
+        }
+        return err;
+      }
+    },
+  });
+
+  return (
+    <form
+      onSubmit={(e) => {
+        e.preventDefault();
+        form.handleSubmit();
+      }}
+    >
+      <form.AppForm>
+        <form.ErrorMessage />
+
+        <CreateAndEditGroupFieldGroup
+          form={form}
+          groupId={id}
+          initialGroupMetersData={initialGroupMetersData}
+        />
+
+        <Separator />
+
+        <ButtonGroup justify="between">
+          <CancelAlertDialog />
+          <form.SubmitButton>Save Changes</form.SubmitButton>
+        </ButtonGroup>
+      </form.AppForm>
+    </form>
+  );
+}
