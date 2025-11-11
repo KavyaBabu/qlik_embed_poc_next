@@ -6,57 +6,25 @@ import {
   createDefaultFieldValidators,
 } from "@arqiva/react-component-lib";
 import { createGroupSchema } from "@/lib/services/api/dashboard/Groups/models/createGroup";
+import { useCallback, useEffect } from "react";
+import type { GetGroupMetersResponse } from "@/lib/services/api/dashboard/Meters/models/getGroupMeters";
+import { useToastNotifications } from "@/hooks/useToastNotifications";
+import { useMeterSelection } from "@/lib/services/api/dashboard/Meters/hooks/useMeterSelection";
+import {
+  handleMeterFileUpload,
+  handleDropdownSelectionChange,
+} from "@/lib/services/api/dashboard/Meters/hooks/meterFileHandler";
+import { MeterSelectionSummary } from "./meterSelectionSummary";
+import { ExistingMetersList } from "./existingMeterList";
+import { FileParseResult } from "@/utils/common/fileParser";
 
 const FileUpload = dynamic(
   () =>
     import("@arqiva/react-component-lib")
       .then((mod) => mod.FileUpload)
-      .catch((err) => {
-        throw err;
-      }),
+      .catch(() => () => <div>FileUpload component failed to load</div>),
   { ssr: false }
 );
-
-//TODO: replace them with actual options from API
-const meterOptions = [
-  { value: "523581134", label: "523581134" },
-  { value: "336903430", label: "336903430" },
-  { value: "795366496", label: "795366496" },
-  { value: "919811200", label: "919811200" },
-  { value: "340068532", label: "340068532" },
-  { value: "883276265", label: "883276265" },
-  { value: "830866255", label: "830866255" },
-  { value: "973548020", label: "973548020" },
-  { value: "342963428", label: "342963428" },
-  { value: "700215083", label: "700215083" },
-  { value: "292381761", label: "292381761" },
-  { value: "386439614", label: "386439614" },
-  { value: "296723952", label: "296723952" },
-  { value: "429939057", label: "429939057" },
-  { value: "800165147", label: "800165147" },
-  { value: "228476443", label: "228476443" },
-  { value: "693571419", label: "693571419" },
-  { value: "992999991", label: "992999991" },
-  { value: "936212291", label: "936212291" },
-  { value: "275353451", label: "275353451" },
-  { value: "706601234", label: "706601234" },
-  { value: "792002287", label: "792002287" },
-  { value: "598213530", label: "598213530" },
-  { value: "850481180", label: "850481180" },
-  { value: "218588800", label: "218588800" },
-  { value: "501695523", label: "501695523" },
-  { value: "547853866", label: "547853866" },
-  { value: "576008595", label: "576008595" },
-  { value: "525185337", label: "525185337" },
-  { value: "975426211", label: "975426211" },
-  { value: "882841636", label: "882841636" },
-  { value: "766432167", label: "766432167" },
-  { value: "951324021", label: "951324021" },
-  { value: "217635274", label: "217635274" },
-  { value: "338741324", label: "338741324" },
-  { value: "860847473", label: "860847473" },
-  { value: "783183663", label: "783183663" },
-];
 
 interface CreateGroupFields {
   name: string;
@@ -67,107 +35,259 @@ interface CreateGroupFields {
   customer_id?: string;
 }
 
-const CreateAndEditGroupFieldGroupComponent = withFieldGroup<
-  CreateGroupFields,
-  CreateGroupFields
->({
-  render: function Render({ group }) {
-    return (
-      <>
-        <group.AppField
-          name="name"
-          validators={createDefaultFieldValidators(
-            createGroupSchema.shape.name
-          )}
-        >
-          {(field) => <field.TextField label="Name" placeholder="Group Name" />}
-        </group.AppField>
+function RenderFieldGroup({
+  group,
+  isEditMode,
+  groupId,
+  initialGroupMetersData,
+  removedMeterIds,
+  onRemoveMeter,
+}: {
+  group: {
+    form: {
+      getFieldValue: (name: string) => unknown;
+      setFieldValue: (name: string, value: unknown) => void;
+    };
+    AppField: React.ComponentType<{
+      name: string;
+      validators?: unknown;
+      children: (field: unknown) => React.ReactNode;
+    }>;
+  };
+  isEditMode: boolean;
+  groupId?: number;
+  initialGroupMetersData?: GetGroupMetersResponse;
+  removedMeterIds: Set<number>;
+  onRemoveMeter: (meterId: number) => void;
+}) {
+  const toast = useToastNotifications();
+  const initialMeterIds = isEditMode
+    ? (group.form.getFieldValue("meterId") as string[]) || []
+    : [];
 
-        <group.AppField
-          name="description"
-          validators={createDefaultFieldValidators(
-            createGroupSchema.shape.description
-          )}
-        >
-          {(field) => (
-            <field.TextareaField
+  const {
+    meterOptions,
+    metersLoading,
+    setFileUploadedMeterIds,
+    setDropdownSelectedMeterIds,
+    existingMeterIds,
+    displayedMeterIds,
+    uniqueMergedIds,
+    fileUploadedMeterIds,
+    dropdownSelectedMeterIds,
+    totalSelectedMeters,
+  } = useMeterSelection({ isEditMode, initialMeterIds });
+
+  useEffect(() => {
+    group.form.setFieldValue("meterId", uniqueMergedIds);
+  }, [uniqueMergedIds, group.form]);
+
+  const handleFileParse = useCallback(
+    (parsed: unknown) => {
+      handleMeterFileUpload(parsed as FileParseResult, existingMeterIds, {
+        onSuccess: (ids) => {
+          setFileUploadedMeterIds(new Set(ids));
+        },
+        onError: (msg) => {
+          toast.error(msg);
+        },
+        onWarning: (msg) => {
+          toast.warning(msg);
+        },
+      });
+    },
+    [existingMeterIds, setFileUploadedMeterIds, toast]
+  );
+
+  const removedMeterIdStrings = new Set(
+    Array.from(removedMeterIds).map(String)
+  );
+  const visibleExistingMeterCount = Array.from(existingMeterIds).filter(
+    (id) => !removedMeterIdStrings.has(id)
+  ).length;
+
+  return (
+    <>
+      <group.AppField
+        name="name"
+        validators={createDefaultFieldValidators(createGroupSchema.shape.name)}
+      >
+        {(field) => {
+          const typedField = field as {
+            TextField: React.ComponentType<{
+              label: string;
+              placeholder: string;
+            }>;
+          };
+          return <typedField.TextField label="Name" placeholder="Group Name" />;
+        }}
+      </group.AppField>
+
+      <group.AppField
+        name="description"
+        validators={createDefaultFieldValidators(
+          createGroupSchema.shape.description
+        )}
+      >
+        {(field) => {
+          const typedField = field as {
+            TextareaField: React.ComponentType<{
+              label: string;
+              placeholder: string;
+              rows: number;
+            }>;
+          };
+          return (
+            <typedField.TextareaField
               label="Description (optional)"
               placeholder="Write a short description for your group."
               rows={5}
             />
-          )}
-        </group.AppField>
+          );
+        }}
+      </group.AppField>
 
-        <group.AppField
-          name="file"
-          validators={createDefaultFieldValidators(
-            createGroupSchema.shape.file
-          )}
-        >
-          {(field) => (
+      {isEditMode && (
+        <ExistingMetersList
+          groupId={groupId!}
+          groupName={group.form.getFieldValue("name") as string}
+          groupDescription={group.form.getFieldValue("description") as string}
+          initialData={initialGroupMetersData}
+          removedMeterIds={removedMeterIds}
+          onRemoveMeter={onRemoveMeter}
+        />
+      )}
+
+      <group.AppField
+        name="file"
+        validators={createDefaultFieldValidators(createGroupSchema.shape.file)}
+      >
+        {(field) => {
+          const typedField = field as {
+            setValue: (value: File | undefined) => void;
+          };
+          return (
             <FileUpload
-              placeholder="Upload CSV / TXT (meter IDs)"
+              placeholder={
+                isEditMode
+                  ? "Upload CSV / TXT to add meters"
+                  : "Upload CSV / TXT (meter IDs)"
+              }
               accept=".csv,.txt,.xls,.xlsx"
               parseFile
-              onFileSelect={(f) => field.setValue(f as File | undefined)}
-              onFileRemove={() => field.setValue(undefined)}
-              onFileParse={(parsed) => {
-                if (
-                  !parsed?.data ||
-                  !Array.isArray(parsed.data) ||
-                  parsed.data.length === 0
-                )
-                  return;
-
-                type ParsedRow = {
-                  meter_id?: string | number | null;
-                };
-
-                const parsedIds = (parsed.data as ParsedRow[])
-                  .map((row) =>
-                    row.meter_id ? String(row.meter_id).trim() : ""
-                  )
-                  .filter(Boolean);
-
-                const currentSelected =
-                  (field.form.getFieldValue("meterId") as string[]) || [];
-                const merged = Array.from(
-                  new Set([...currentSelected, ...parsedIds])
-                );
-                field.form.setFieldValue("meterId", merged);
+              onFileSelect={(file: File | null) =>
+                typedField.setValue(file ?? undefined)
+              }
+              onFileRemove={() => {
+                typedField.setValue(undefined);
+                setFileUploadedMeterIds(new Set());
               }}
+              onFileParse={handleFileParse}
             />
-          )}
-        </group.AppField>
+          );
+        }}
+      </group.AppField>
 
-        <group.AppField
-          name="meterId"
-          validators={createDefaultFieldValidators(
-            createGroupSchema.shape.meterId
-          )}
-        >
-          {(field) => (
+      <MeterSelectionSummary
+        isEditMode={isEditMode}
+        totalSelectedMeters={totalSelectedMeters}
+        existingMeterCount={visibleExistingMeterCount}
+        fileUploadedMeterCount={fileUploadedMeterIds.size}
+        dropdownSelectedMeterCount={dropdownSelectedMeterIds.size}
+      />
+
+      <group.AppField
+        name="meterId"
+        validators={createDefaultFieldValidators(
+          createGroupSchema.shape.meterId
+        )}
+      >
+        {(field) => {
+          const typedField = field as {
+            SearchableSelectField: React.ComponentType<{
+              label: string;
+              placeholder: string;
+              options: { value: string; label: string }[];
+              isClearable: boolean;
+              isMulti: boolean;
+              isLoading: boolean;
+              value: { value: string; label: string }[];
+              onChange: (options: unknown) => void;
+            }>;
+          };
+
+          const handleChange = (options: unknown) => {
+            handleDropdownSelectionChange(options, setDropdownSelectedMeterIds);
+          };
+
+          return (
             <div style={{ marginTop: "var(--spacing-3xl)" }}>
-              <field.SearchableSelectField
+              <typedField.SearchableSelectField
                 label="Meter ID"
-                placeholder="Select a meter"
+                placeholder={
+                  metersLoading ? "Loading meters..." : "Select a meter"
+                }
                 options={meterOptions}
                 isClearable
                 isMulti
+                isLoading={metersLoading}
+                value={displayedMeterIds.map((id) => ({
+                  value: id,
+                  label: id,
+                }))}
+                onChange={handleChange}
               />
             </div>
-          )}
-        </group.AppField>
-      </>
-    );
-  },
-});
+          );
+        }}
+      </group.AppField>
+    </>
+  );
+}
 
-function CreateAndEditGroupFieldGroup({ form }: { form: unknown }) {
+function CreateAndEditGroupFieldGroup({
+  form,
+  groupId,
+  initialGroupMetersData,
+  removedMeterIds,
+  onRemoveMeter,
+}: {
+  form: unknown;
+  groupId?: number;
+  initialGroupMetersData?: GetGroupMetersResponse;
+  removedMeterIds?: Set<number>;
+  onRemoveMeter?: (meterId: number) => void;
+}) {
+  const isEditMode = !!groupId;
+
+  const FieldGroup = withFieldGroup<CreateGroupFields, CreateGroupFields>({
+    render: ({ group }) => (
+      <RenderFieldGroup
+        group={{
+          ...group,
+          AppField: group.AppField as React.ComponentType<{
+            name: string;
+            validators?: unknown;
+            children: (field: unknown) => React.ReactNode;
+          }>,
+        }}
+        isEditMode={isEditMode}
+        groupId={groupId}
+        initialGroupMetersData={initialGroupMetersData}
+        removedMeterIds={removedMeterIds || new Set()}
+        onRemoveMeter={
+          onRemoveMeter ||
+          (() => {
+            // no-op: fallback if onRemoveMeter not provided
+          })
+        }
+      />
+    ),
+  });
+
   return (
-    <CreateAndEditGroupFieldGroupComponent
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      form={form as any}
+    <FieldGroup
+      form={form as any} // eslint-disable-line @typescript-eslint/no-explicit-any
       fields={
         {
           name: "name",
@@ -176,8 +296,7 @@ function CreateAndEditGroupFieldGroup({ form }: { form: unknown }) {
           meterId: "meterId",
           file: "file",
           customer_id: "customer_id",
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        } as any
+        } as any // eslint-disable-line @typescript-eslint/no-explicit-any
       }
     />
   );
@@ -185,112 +304,282 @@ function CreateAndEditGroupFieldGroup({ form }: { form: unknown }) {
 
 export default dynamic(
   () =>
-    Promise.resolve(CreateAndEditGroupFieldGroup).catch((err) => {
-      throw err;
-    }),
+    Promise.resolve(CreateAndEditGroupFieldGroup).catch(
+      () => CreateAndEditGroupFieldGroup
+    ),
   { ssr: false }
 );
 
 
-// createInner.tsx
-"use client";
+//fileparser.ts
 
-import {
-  ButtonGroup,
-  Separator,
-  useAppForm,
-} from "@arqiva/react-component-lib";
-import {
-  createGroupSchema,
-  toCreateGroupApiBody,
-} from "@/lib/services/api/dashboard/Groups/models/createGroup";
-import CreateAndEditGroupFieldGroup from "../_components/CreateAndEditFieldGroup";
-import groupsService from "@/lib/services/api/dashboard/Groups/api";
-import CancelAlertDialog from "@/app/_components/CancelAlertDialog";
-import {
-  getFormattedFormValidationErrors,
-  isAPIResponseError,
-} from "@/lib/services/api/dashboard/shared";
-import { useRouter } from "next/navigation";
-import { useToastNotifications } from "@/hooks/useToastNotifications";
-import routes from "@/lib/routes";
-
-const CURRENT_USER_EMAIL_FALLBACK = "kavya.babu@arqiva.com";
-
-export default function CreateGroupInner() {
-  const router = useRouter();
-  const toast = useToastNotifications();
-
-  const form = useAppForm({
-    validators: {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      onSubmit: createGroupSchema as any,
-    },
-    defaultValues: {
-      name: "",
-      description: "",
-      file: undefined as File | undefined,
-      meterId: [] as string[],
-      created_by: CURRENT_USER_EMAIL_FALLBACK,
-      customer_id: undefined as string | undefined,
-    },
-    onSubmit: async ({ value, formApi }) => {
-      try {
-        const parsed = createGroupSchema.parse(value);
-        const payload = {
-          ...toCreateGroupApiBody(parsed),
-          created_by: parsed.created_by,
-          description: parsed.description,
-          customer_id: "TEST1",
-        };
-
-        await groupsService.create(payload);
-        router.push(routes.dashboard.groups.root);
-      } catch (err: unknown) {
-        const validationErrors = getFormattedFormValidationErrors(err);
-        if (validationErrors) {
-          formApi.setErrorMap(validationErrors);
-        }
-
-        if (isAPIResponseError(err)) {
-          const serverMessage =
-            (err as { cause?: { message?: string }; message?: string })?.cause
-              ?.message ||
-            (err as { message?: string })?.message ||
-            "Unknown API error";
-
-          toast.error(`Failed to create group: ${serverMessage}`);
-        }
-
-        return err;
-      }
-    },
-  });
-
-  return (
-    <form
-      onSubmit={(e) => {
-        e.preventDefault();
-        form.handleSubmit();
-      }}
-    >
-      <form.AppForm>
-        <form.ErrorMessage />
-
-        <CreateAndEditGroupFieldGroup form={form} />
-
-        <Separator />
-
-        <ButtonGroup justify="between">
-          <CancelAlertDialog />
-          <form.SubmitButton>Create Group</form.SubmitButton>
-        </ButtonGroup>
-      </form.AppForm>
-    </form>
-  );
+export interface ParsedMeterData {
+  id: number;
 }
 
-// editInner.tsx
+export interface FileParseResult {
+  success: boolean;
+  data: ParsedMeterData[];
+  duplicates: number[];
+  error?: string;
+}
+
+const VALID_HEADER_NAMES = ["meter_id", "meter id", "meterid", "id", "meter"];
+
+function findMeterIdColumn(headers: string[]): string | null {
+  const normalizedHeaders = headers.map((h) => h.toLowerCase().trim());
+
+  for (const validHeader of VALID_HEADER_NAMES) {
+    const index = normalizedHeaders.indexOf(validHeader);
+    if (index !== -1) {
+      return headers[index];
+    }
+  }
+
+  return null;
+}
+
+export function validateAndExtractMeterIds(
+  headers: string[],
+  data: Record<string, unknown>[],
+  existingMeterIds?: number[]
+): FileParseResult {
+  try {
+    const meterIdColumn = findMeterIdColumn(headers);
+
+    if (!meterIdColumn) {
+      return {
+        success: false,
+        data: [],
+        duplicates: [],
+        error: `Invalid file format. Header must contain one of: ${VALID_HEADER_NAMES.join(", ")}`,
+      };
+    }
+
+    const meterIds: ParsedMeterData[] = [];
+    const seenIds = new Set<number>();
+    const duplicateIds: number[] = [];
+    const existingSet = new Set(existingMeterIds || []);
+
+    for (const row of data) {
+      const rawValue = row[meterIdColumn];
+
+      if (rawValue === null || rawValue === undefined || rawValue === "") {
+        continue;
+      }
+
+      const meterId = Number(rawValue);
+
+      if (!Number.isFinite(meterId) || meterId <= 0) {
+        continue;
+      }
+
+      if (existingSet.has(meterId)) {
+        if (!duplicateIds.includes(meterId)) {
+          duplicateIds.push(meterId);
+        }
+        continue;
+      }
+
+      if (seenIds.has(meterId)) {
+        if (!duplicateIds.includes(meterId)) {
+          duplicateIds.push(meterId);
+        }
+      } else {
+        seenIds.add(meterId);
+        meterIds.push({ id: meterId });
+      }
+    }
+
+    if (meterIds.length === 0) {
+      return {
+        success: false,
+        data: [],
+        duplicates: duplicateIds.length > 0 ? duplicateIds : [],
+        error:
+          duplicateIds.length > 0
+            ? `All ${duplicateIds.length} meter IDs already exist in the group`
+            : "No valid meter IDs found in the file",
+      };
+    }
+
+    return {
+      success: true,
+      data: meterIds,
+      duplicates: duplicateIds,
+    };
+  } catch (error) {
+    return {
+      success: false,
+      data: [],
+      duplicates: [],
+      error: `Failed to process file data: ${(error as Error).message}`,
+    };
+  }
+}
+
+//usemeterselection.ts
+import { useState, useEffect } from "react";
+import { useListAllMeters } from "@/lib/services/api/dashboard/Meters/hooks/useListMeters";
+
+interface UseMeterSelectionProps {
+  isEditMode: boolean;
+  initialMeterIds?: string[];
+}
+
+export function useMeterSelection({
+  isEditMode,
+  initialMeterIds = [],
+}: UseMeterSelectionProps) {
+  const { data: allMeters, isLoading: metersLoading } = useListAllMeters();
+  const [meterOptions, setMeterOptions] = useState<
+    Array<{ value: string; label: string }>
+  >([]);
+  const [fileUploadedMeterIds, setFileUploadedMeterIds] = useState<Set<string>>(
+    new Set()
+  );
+  const [dropdownSelectedMeterIds, setDropdownSelectedMeterIds] = useState<
+    Set<string>
+  >(new Set());
+  const [existingMeterIds] = useState<Set<string>>(() => {
+    if (isEditMode) {
+      return new Set(initialMeterIds.map(String));
+    }
+    return new Set();
+  });
+
+  useEffect(() => {
+    if (!allMeters?.items) return;
+
+    const uploaded = fileUploadedMeterIds;
+    const selected = dropdownSelectedMeterIds;
+    const existing = existingMeterIds;
+
+    const availableMeters = allMeters.items.filter((m) => {
+      const id = String(m.id);
+      if (isEditMode) {
+        return !existing.has(id) && !uploaded.has(id) && !selected.has(id);
+      }
+      return !uploaded.has(id) && !selected.has(id);
+    });
+
+    setMeterOptions(
+      availableMeters.map((m) => ({ value: String(m.id), label: String(m.id) }))
+    );
+  }, [
+    allMeters,
+    existingMeterIds,
+    fileUploadedMeterIds,
+    dropdownSelectedMeterIds,
+    isEditMode,
+  ]);
+
+  const newAddedMeters = Array.from(
+    new Set([...fileUploadedMeterIds, ...dropdownSelectedMeterIds])
+  );
+  const totalSelectedMeters = isEditMode
+    ? existingMeterIds.size + newAddedMeters.length
+    : newAddedMeters.length;
+
+  const displayedMeterIds = Array.from(
+    new Set([...fileUploadedMeterIds, ...dropdownSelectedMeterIds])
+  );
+
+  const mergedMeterIds = isEditMode
+    ? [
+        ...Array.from(existingMeterIds),
+        ...Array.from(fileUploadedMeterIds),
+        ...Array.from(dropdownSelectedMeterIds),
+      ]
+    : [
+        ...Array.from(fileUploadedMeterIds),
+        ...Array.from(dropdownSelectedMeterIds),
+      ];
+
+  const uniqueMergedIds = Array.from(new Set(mergedMeterIds));
+
+  return {
+    meterOptions,
+    metersLoading,
+    fileUploadedMeterIds,
+    setFileUploadedMeterIds,
+    dropdownSelectedMeterIds,
+    setDropdownSelectedMeterIds,
+    existingMeterIds,
+    totalSelectedMeters,
+    displayedMeterIds,
+    uniqueMergedIds,
+  };
+}
+//meterfilehandler.ts
+import { validateAndExtractMeterIds } from "@/utils/common/fileParser";
+
+interface FileParseResult {
+  success: boolean;
+  data: Array<{ id: number }>;
+  duplicates: number[];
+  error?: string;
+}
+
+export function handleMeterFileUpload(
+  parsed: FileParseResult,
+  existingMeterIds: Set<string>,
+  callbacks: {
+    onSuccess: (ids: Set<string>) => void;
+    onError: (message: string) => void;
+    onWarning: (message: string) => void;
+  }
+) {
+  if (!parsed?.data?.length) return;
+
+  const existingIds = Array.from(existingMeterIds).map(Number);
+  const result: FileParseResult = validateAndExtractMeterIds(
+    Object.keys(parsed.data[0] || {}),
+    parsed.data,
+    existingIds
+  );
+
+  if (!result.success) {
+    let errorMsg = result.error || "Failed to parse file";
+    if (result.duplicates.length > 0) {
+      const duplicateCount = result.duplicates.length;
+      const plural = duplicateCount === 1 ? "" : "s";
+      errorMsg += ` - ${duplicateCount} duplicate meter${plural} found`;
+    }
+    callbacks.onError(errorMsg);
+    return;
+  }
+
+  if (result.duplicates.length > 0) {
+    const duplicateCount = result.duplicates.length;
+    const parsedCount = result.data.length;
+    const pluralDup = duplicateCount === 1 ? "" : "s";
+    const pluralParsed = parsedCount === 1 ? "" : "s";
+    const msg = `${duplicateCount} duplicate meter${pluralDup} found and removed. Parsed ${parsedCount} new meter${pluralParsed}.`;
+    callbacks.onWarning(msg);
+  }
+
+  const ids = new Set(result.data.map((m) => String(m.id)));
+  callbacks.onSuccess(ids);
+}
+
+export function handleDropdownSelectionChange(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  options: any,
+  setDropdownSelectedMeterIds: (ids: Set<string>) => void
+) {
+  if (!options) {
+    setDropdownSelectedMeterIds(new Set());
+    return;
+  }
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const ids = (Array.isArray(options) ? options : [options]).map((o: any) =>
+    String(o.value)
+  );
+  setDropdownSelectedMeterIds(new Set(ids));
+}
+
+// edit/inner.tsx
 
 "use client";
 
@@ -310,61 +599,75 @@ import {
 import { useRouter } from "next/navigation";
 import { useToastNotifications } from "@/hooks/useToastNotifications";
 import routes from "@/lib/routes";
+import type { GetGroupMetersResponse } from "@/lib/services/api/dashboard/Meters/models/getGroupMeters";
+import { useQueryClient } from "@tanstack/react-query";
+import { useState } from "react";
 
 interface GroupDetails {
-  description?: string;
-  created_by?: string;
-  list_of_meters?: string[];
+  description?: string | null;
+  created_by?: string | null;
+  list_of_meters?: number[];
 }
 
 interface EditGroupInnerProps {
   id: number;
   group: Awaited<ReturnType<typeof groupsService.getById>> & GroupDetails;
+  initialGroupMetersData?: GetGroupMetersResponse;
 }
 
-export default function EditGroupInner({ id, group }: EditGroupInnerProps) {
+export default function EditGroupInner({
+  id,
+  group,
+  initialGroupMetersData,
+}: EditGroupInnerProps) {
   const router = useRouter();
   const toast = useToastNotifications();
+  const queryClient = useQueryClient();
+  const [removedMeterIds, setRemovedMeterIds] = useState<Set<number>>(
+    new Set()
+  );
+
+  const existingMeterIds = group.list_of_meters?.map(String) ?? [];
 
   const form = useAppForm({
-    validators: {
-      onSubmit: createGroupSchema,
-    },
+    validators: { onSubmit: createGroupSchema },
     defaultValues: {
       name: group.name ?? "",
       description: group.description ?? "",
       created_by: group.created_by ?? "kavya.babu@arqiva.com",
-      meterId: group.list_of_meters?.map(String) ?? [],
+      meterId: existingMeterIds,
     },
     onSubmit: async ({ value, formApi }) => {
       try {
         const parsed = createGroupSchema.parse(value);
+        const selectedMeterIds = parsed.meterId?.map(String) ?? [];
 
-        const existingMeterIds = group.list_of_meters?.map(String) ?? [];
-        const updatedMeterIds = parsed.meterId?.map(String) ?? [];
+        const add_meter_ids = selectedMeterIds
+          .filter((id) => !existingMeterIds.includes(id))
+          .map(Number);
 
-        const add_meter_ids = updatedMeterIds.filter(
-          (id) => !existingMeterIds.includes(id)
-        );
-        const remove_meter_ids = existingMeterIds.filter(
-          (id) => !updatedMeterIds.includes(id)
-        );
+        const remove_meter_ids = Array.from(removedMeterIds);
 
         const payload = {
           group_id: id,
           name: parsed.name,
           description: parsed.description,
-          add_meter_ids: add_meter_ids.map(Number),
-          remove_meter_ids: remove_meter_ids.map(Number),
-        };
+          add_meter_ids: add_meter_ids.length > 0 ? add_meter_ids : null,
+          remove_meter_ids:
+            remove_meter_ids.length > 0 ? remove_meter_ids : null,
+        } as const;
 
         await groupsService.update(payload);
+
+        queryClient.removeQueries({
+          queryKey: ["groups", id, "meters"],
+        });
+
         router.push(routes.dashboard.groups.root);
+        router.refresh();
       } catch (err: unknown) {
         const validationErrors = getFormattedFormValidationErrors(err);
-        if (validationErrors) {
-          formApi.setErrorMap(validationErrors);
-        }
+        if (validationErrors) formApi.setErrorMap(validationErrors);
 
         if (isAPIResponseError(err)) {
           const serverMessage =
@@ -372,14 +675,16 @@ export default function EditGroupInner({ id, group }: EditGroupInnerProps) {
               ?.message ||
             (err as { message?: string })?.message ||
             "Unknown API error";
-
           toast.error(`Failed to update group: ${serverMessage}`);
         }
-
         return err;
       }
     },
   });
+
+  const handleRemoveMeter = (meterId: number) => {
+    setRemovedMeterIds((prev) => new Set([...prev, meterId]));
+  };
 
   return (
     <form
@@ -391,7 +696,13 @@ export default function EditGroupInner({ id, group }: EditGroupInnerProps) {
       <form.AppForm>
         <form.ErrorMessage />
 
-        <CreateAndEditGroupFieldGroup form={form} />
+        <CreateAndEditGroupFieldGroup
+          form={form}
+          groupId={id}
+          initialGroupMetersData={initialGroupMetersData}
+          removedMeterIds={removedMeterIds}
+          onRemoveMeter={handleRemoveMeter}
+        />
 
         <Separator />
 
@@ -404,3 +715,5 @@ export default function EditGroupInner({ id, group }: EditGroupInnerProps) {
   );
 }
 
+help me to fix bug
+In edit mode, If file upload contains duplicates + valid meters → it should still add valid meters still get inserted to FE state but if its warning or error gets ignored.
