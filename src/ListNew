@@ -71,8 +71,6 @@ const LineChartComponent = ({
 }: LineChartProps) => {
   const [hovered, setHovered] = useState<{ x: string | number; y: number } | null>(null);
 
-  const yMax = Math.max(...data.map((d) => Math.max(d.solid, d.dotted)));
-
   return (
     <div className={`${styles.container} ${className || ""}`}>
       {title && <h3 className={styles.title}>{title}</h3>}
@@ -131,24 +129,30 @@ const LineChartComponent = ({
               }}
             />
 
-            {/* Custom filled area between solid & dotted */}
+            {/* ✅ Custom filled band between solid and dotted */}
             <Customized
-              component={({ width, height }) => {
-                const upper = data.map((d, i) => ({
-                  x: (i / (data.length - 1)) * width,
-                  y: height - (d.solid / yMax) * height,
+              component={({ xAxisMap, yAxisMap }) => {
+                const xScale = xAxisMap[Object.keys(xAxisMap)[0]].scale;
+                const yScale = yAxisMap[Object.keys(yAxisMap)[0]].scale;
+
+                if (!xScale || !yScale) return null;
+
+                const upper = data.map((entry) => ({
+                  x: xScale(entry[xAxisKey]),
+                  y: yScale(entry.solid),
                 }));
-                const lower = data
-                  .map((d, i) => ({
-                    x: (i / (data.length - 1)) * width,
-                    y: height - (d.dotted / yMax) * height,
-                  }))
-                  .reverse();
+
+                const lower = [...data]
+                  .reverse()
+                  .map((entry) => ({
+                    x: xScale(entry[xAxisKey]),
+                    y: yScale(entry.dotted),
+                  }));
 
                 const path = `M ${upper[0].x},${upper[0].y} ` +
-                  upper.map(p => `L ${p.x},${p.y}`).join(" ") +
+                  upper.map((p) => `L ${p.x},${p.y}`).join(" ") +
                   " " +
-                  lower.map(p => `L ${p.x},${p.y}`).join(" ") +
+                  lower.map((p) => `L ${p.x},${p.y}`).join(" ") +
                   " Z";
 
                 return (
@@ -215,6 +219,7 @@ const LineChartComponent = ({
 };
 
 export default LineChartComponent;
+
 
 .container {
   width: 100%;
