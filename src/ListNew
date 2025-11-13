@@ -7,7 +7,7 @@ import {
   ResponsiveContainer,
   CartesianGrid,
   ReferenceDot,
-  Area,
+  Layer,
 } from "recharts";
 import { useState, useMemo } from "react";
 import styles from "./index.module.css";
@@ -76,23 +76,15 @@ const LineChartComponent = ({
 }: LineChartProps) => {
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
 
-  // Compute the filled band between lines
-  const bandData = useMemo(
-    () =>
-      data.map((d) => ({
-        ...d,
-        upper: Math.max(d.solid, d.dotted),
-        lower: Math.min(d.solid, d.dotted),
-      })),
-    [data]
-  );
-
   const handleMouseMove = (state: any) => {
     if (state?.activeTooltipIndex != null) {
       setHoveredIndex(state.activeTooltipIndex);
     }
   };
   const handleMouseLeave = () => setHoveredIndex(null);
+
+  const solidPoints = data.map((d) => d.solid);
+  const dottedPoints = data.map((d) => d.dotted);
 
   return (
     <div className={`${styles.container} ${className || ""}`}>
@@ -102,7 +94,7 @@ const LineChartComponent = ({
       <div className={styles.wrapper}>
         <ResponsiveContainer width="100%" height={height}>
           <LineChart
-            data={bandData}
+            data={data}
             margin={{ top: 20, right: 40, left: 40, bottom: 20 }}
             onMouseMove={handleMouseMove}
             onMouseLeave={handleMouseLeave}
@@ -147,26 +139,43 @@ const LineChartComponent = ({
               }}
             />
 
-            {/* Gradient band fill */}
-            <defs>
-              <linearGradient id="bandFill" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor={PRIMARY_MAIN} stopOpacity={0.08} />
-                <stop offset="100%" stopColor={PRIMARY_MAIN} stopOpacity={0.02} />
-              </linearGradient>
-            </defs>
-
-            <Area
-              dataKey="upper"
-              stroke="none"
-              fill="url(#bandFill)"
-              baseLine={bandData.map((d) => d.lower)}
-              isAnimationActive={false}
-            />
-
+            {/* Tooltip */}
             <Tooltip
               content={<CustomTooltip valueFormatter={valueFormatter} styles={styles} />}
               cursor={false}
             />
+
+            {/* Custom shaded band between solid & dotted */}
+            <Layer>
+              <path
+                d={(() => {
+                  // Construct an SVG area path between solid and dotted lines
+                  const points = data.map((d, i) => ({
+                    x: i,
+                    solid: d.solid,
+                    dotted: d.dotted,
+                  }));
+                  const stepX = 100 / (data.length - 1);
+                  let path = `M 0 ${100 - (points[0].solid / Math.max(...solidPoints)) * 100}`;
+                  points.forEach((p, i) => {
+                    path += ` L ${i * stepX} ${
+                      100 - (p.solid / Math.max(...solidPoints)) * 100
+                    }`;
+                  });
+                  for (let i = points.length - 1; i >= 0; i--) {
+                    const p = points[i];
+                    path += ` L ${i * stepX} ${
+                      100 - (p.dotted / Math.max(...solidPoints)) * 100
+                    }`;
+                  }
+                  path += " Z";
+                  return path;
+                })()}
+                fill={PRIMARY_MAIN}
+                fillOpacity={0.08}
+                stroke="none"
+              />
+            </Layer>
 
             {/* Solid line */}
             <Line
@@ -189,52 +198,50 @@ const LineChartComponent = ({
               isAnimationActive={false}
             />
 
-            {/* Hover indicator */}
+            {/* Hover line + dot */}
             {hoveredIndex != null && (
-              <>
+              <Layer>
                 {(() => {
-                  const d = data[hoveredIndex];
-                  if (!d) return null;
-                  const x = d[xAxisKey];
-                  const y = d.solid;
+                  const point = data[hoveredIndex];
+                  if (!point) return null;
+                  const yStart =
+                    ((Math.max(...solidPoints) - point.solid) /
+                      Math.max(...solidPoints)) *
+                    100;
                   return (
                     <>
-                      {/* Vertical line starting from solid line down to X-axis */}
+                      {/* Vertical line from solid line down to baseline */}
                       <line
-                        x1={hoveredIndex * (100 / (data.length - 1)) + "%"}
-                        x2={hoveredIndex * (100 / (data.length - 1)) + "%"}
-                        y1="0"
+                        x1={`${hoveredIndex * (100 / (data.length - 1))}%`}
+                        x2={`${hoveredIndex * (100 / (data.length - 1))}%`}
+                        y1={`${yStart}%`}
                         y2="100%"
                         stroke={PRIMARY_LIGHT}
                         strokeDasharray="3 6"
                         strokeWidth="1.5"
                         className={styles.hoverLine}
                       />
-                      {/* Hover dot + pulse */}
-                      <g className={styles.pulseGroup}>
+                      {/* Pulse dot */}
+                      <g transform={`translate(${hoveredIndex * (100 / (data.length - 1))}%, ${yStart}%)`}>
                         <circle
-                          cx="0"
-                          cy="0"
-                          r="8"
+                          r="6"
+                          fill={WHITE}
                           stroke={PRIMARY_LIGHT}
-                          strokeWidth="1.5"
+                          strokeWidth="2"
+                          className={styles.hoverDot}
+                        />
+                        <circle
+                          r="6"
+                          stroke={PRIMARY_LIGHT}
+                          strokeWidth="2"
                           fill="none"
                           className={styles.pulseCircle}
                         />
                       </g>
-                      <ReferenceDot
-                        x={x}
-                        y={y}
-                        r={6}
-                        fill={WHITE}
-                        stroke={PRIMARY_LIGHT}
-                        strokeWidth={2}
-                        className={styles.hoverDot}
-                      />
                     </>
                   );
                 })()}
-              </>
+              </Layer>
             )}
           </LineChart>
         </ResponsiveContainer>
@@ -244,6 +251,7 @@ const LineChartComponent = ({
 };
 
 export default LineChartComponent;
+
 
 .container {
   width: 100%;
@@ -290,21 +298,20 @@ export default LineChartComponent;
   margin-top: var(--spacing-xs);
 }
 
-/* Hover line + dot */
-.hoverLine,
+/* Hover elements */
+.hoverLine {
+  opacity: 0;
+  animation: fadeIn 0.15s ease-in forwards;
+}
+
 .hoverDot {
   opacity: 0;
   animation: fadeIn 0.15s ease-in forwards;
 }
 
 /* Pulse animation */
-.pulseGroup {
-  transform: translate(0, 0);
-  animation: fadeIn 0.2s ease-in forwards;
-}
-
 .pulseCircle {
-  opacity: 0.6;
+  opacity: 0.4;
   transform-origin: center;
   animation: pulse 1.5s ease-out infinite;
 }
@@ -312,15 +319,15 @@ export default LineChartComponent;
 @keyframes pulse {
   0% {
     r: 6;
-    opacity: 0.7;
+    opacity: 0.5;
   }
   50% {
-    r: 14;
-    opacity: 0.2;
+    r: 12;
+    opacity: 0.1;
   }
   100% {
     r: 6;
-    opacity: 0.7;
+    opacity: 0.5;
   }
 }
 
