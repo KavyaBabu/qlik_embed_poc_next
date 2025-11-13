@@ -8,9 +8,9 @@ import {
   CartesianGrid,
   ReferenceDot,
   ReferenceLine,
-  Area,
+  Layer,
 } from "recharts";
-import { useState, useMemo } from "react";
+import { useState } from "react";
 import styles from "./index.module.css";
 
 export interface LineChartDataPoint {
@@ -69,20 +69,24 @@ const LineChartComponent = ({
   title,
   subtitle,
 }: LineChartProps) => {
-  const [hovered, setHovered] = useState<{
-    x: string | number;
-    y: number;
-  } | null>(null);
+  const [hovered, setHovered] = useState<{ x: string | number; y: number } | null>(null);
 
-  const filledData = useMemo(
-    () =>
-      data.map((d) => ({
-        ...d,
-        upper: Math.max(d.solid, d.dotted),
-        lower: Math.min(d.solid, d.dotted),
-      })),
-    [data]
-  );
+  const yMax = Math.max(...data.map((d) => Math.max(d.solid, d.dotted)));
+
+  // Construct SVG path for shaded band
+  const bandPath = (() => {
+    const stepX = 100 / (data.length - 1);
+    let path = `M 0 ${100 - (data[0].solid / yMax) * 100}`;
+    data.forEach((d, i) => {
+      path += ` L ${i * stepX} ${100 - (d.solid / yMax) * 100}`;
+    });
+    for (let i = data.length - 1; i >= 0; i--) {
+      const d = data[i];
+      path += ` L ${i * stepX} ${100 - (d.dotted / yMax) * 100}`;
+    }
+    path += " Z";
+    return path;
+  })();
 
   return (
     <div className={`${styles.container} ${className || ""}`}>
@@ -92,7 +96,7 @@ const LineChartComponent = ({
       <div className={styles.wrapper}>
         <ResponsiveContainer width="100%" height={height}>
           <LineChart
-            data={filledData}
+            data={data}
             margin={{ top: 20, right: 40, left: 40, bottom: 20 }}
             onMouseMove={(e) => {
               if (e?.activeTooltipIndex != null) {
@@ -142,22 +146,17 @@ const LineChartComponent = ({
               }}
             />
 
-            <defs>
-              {/* gradient fill between solid and dotted */}
-              <linearGradient id="bandFill" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="rgb(var(--primary-500-base))" stopOpacity={0.08} />
-                <stop offset="100%" stopColor="rgb(var(--primary-500-base))" stopOpacity={0.03} />
-              </linearGradient>
-            </defs>
-
-            {/* area band fill */}
-            <Area
-              dataKey="upper"
-              stroke="none"
-              fill="url(#bandFill)"
-              baseLine={filledData.map((d) => d.lower)}
-              isAnimationActive={false}
-            />
+            {/* Custom filled band layer */}
+            <Layer>
+              <path
+                d={bandPath}
+                fill="rgb(var(--primary-500-base))"
+                fillOpacity="0.08"
+                stroke="none"
+                vectorEffect="non-scaling-stroke"
+                transform="scale(1,1)"
+              />
+            </Layer>
 
             <Tooltip
               content={<CustomTooltip valueFormatter={valueFormatter} styles={styles} />}
@@ -185,7 +184,7 @@ const LineChartComponent = ({
               isAnimationActive={false}
             />
 
-            {/* hover elements */}
+            {/* hover vertical line + dot */}
             {hovered && (
               <>
                 <ReferenceLine
@@ -215,61 +214,3 @@ const LineChartComponent = ({
 };
 
 export default LineChartComponent;
-
-
-.container {
-  width: 100%;
-}
-
-.title {
-  font-size: 16px;
-  font-weight: 600;
-  color: rgb(var(--grey-900-base));
-  margin-bottom: 4px;
-}
-
-.subtitle {
-  font-size: 14px;
-  color: rgb(var(--grey-600-base));
-  margin-bottom: 24px;
-}
-
-.wrapper {
-  width: 100%;
-  height: 100%;
-  position: relative;
-}
-
-/* Tooltip */
-.tooltip {
-  background-color: rgb(var(--grey-950-base));
-  color: var(--white);
-  border-radius: 8px;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
-  padding: 12px 16px;
-  opacity: 0;
-  animation: tooltipPop 0.15s ease-out forwards;
-}
-
-.tooltip__value {
-  font-size: 18px;
-  font-weight: 600;
-  margin: 0;
-}
-
-.tooltip__label {
-  font-size: 12px;
-  color: rgb(var(--grey-400-base));
-  margin-top: 4px;
-}
-
-@keyframes tooltipPop {
-  from {
-    opacity: 0;
-    transform: translateY(4px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
