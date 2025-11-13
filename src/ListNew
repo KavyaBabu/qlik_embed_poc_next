@@ -7,8 +7,8 @@ import {
   ResponsiveContainer,
   CartesianGrid,
   ReferenceDot,
-  ReferenceLine,
   Area,
+  Layer,
 } from "recharts";
 import { useState, useMemo } from "react";
 import styles from "./index.module.css";
@@ -34,9 +34,8 @@ export interface LineChartProps {
 
 const PRIMARY_MAIN = "rgb(var(--primary-600-base))";
 const PRIMARY_LIGHT = "rgb(var(--primary-400-base))";
-const GREY_400 = "rgb(var(--grey-400-base))";
 const GREY_500 = "rgb(var(--grey-500-base))";
-const GREY_950 = "rgb(var(--grey-950-base))";
+const GREY_200 = "rgb(var(--grey-200-base))";
 const WHITE = "rgb(var(--white))";
 
 const CustomTooltip = ({
@@ -76,12 +75,10 @@ const LineChartComponent = ({
   title,
   subtitle,
 }: LineChartProps) => {
-  const [hoveredDataPoint, setHoveredDataPoint] = useState<{
-    xValue: string | number;
-    yValue: number;
-  } | null>(null);
+  const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
 
-  const filledData = useMemo(
+  // Create filled band between lines
+  const bandData = useMemo(
     () =>
       data.map((d) => ({
         ...d,
@@ -93,18 +90,10 @@ const LineChartComponent = ({
 
   const handleMouseMove = (state: any) => {
     if (state?.activeTooltipIndex != null) {
-      const index = state.activeTooltipIndex;
-      const dataPoint = data[index];
-      if (dataPoint) {
-        setHoveredDataPoint({
-          xValue: dataPoint[xAxisKey],
-          yValue: dataPoint.solid,
-        });
-      }
+      setHoveredIndex(state.activeTooltipIndex);
     }
   };
-
-  const handleMouseLeave = () => setHoveredDataPoint(null);
+  const handleMouseLeave = () => setHoveredIndex(null);
 
   return (
     <div className={`${styles.container} ${className || ""}`}>
@@ -114,7 +103,7 @@ const LineChartComponent = ({
       <div className={styles.wrapper}>
         <ResponsiveContainer width="100%" height={height}>
           <LineChart
-            data={filledData}
+            data={bandData}
             margin={{ top: 20, right: 40, left: 40, bottom: 20 }}
             onMouseMove={handleMouseMove}
             onMouseLeave={handleMouseLeave}
@@ -122,8 +111,8 @@ const LineChartComponent = ({
             {showGrid && (
               <CartesianGrid
                 strokeDasharray="3 6"
-                stroke="rgb(var(--grey-200-base))"
-                horizontal={true}
+                stroke={GREY_200}
+                horizontal
                 vertical={false}
               />
             )}
@@ -159,15 +148,21 @@ const LineChartComponent = ({
               }}
             />
 
+            {/* Gradient fill between solid & dotted */}
             <defs>
-              <linearGradient id="fillBetween" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor={PRIMARY_MAIN} stopOpacity={0.1} />
+              <linearGradient id="bandFill" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor={PRIMARY_MAIN} stopOpacity={0.08} />
                 <stop offset="100%" stopColor={PRIMARY_MAIN} stopOpacity={0.02} />
               </linearGradient>
             </defs>
 
-            <Area type="monotone" dataKey="upper" stroke="none" fill="url(#fillBetween)" />
-            <Area type="monotone" dataKey="lower" stroke="none" fill={WHITE} />
+            <Area
+              dataKey="upper"
+              stroke="none"
+              fill="url(#bandFill)"
+              baseLine={bandData.map((d) => d.lower)}
+              isAnimationActive={false}
+            />
 
             <Tooltip
               content={<CustomTooltip valueFormatter={valueFormatter} styles={styles} />}
@@ -182,7 +177,6 @@ const LineChartComponent = ({
               dot={false}
               isAnimationActive={false}
             />
-
             <Line
               type="monotone"
               dataKey="dotted"
@@ -193,25 +187,39 @@ const LineChartComponent = ({
               isAnimationActive={false}
             />
 
-            {hoveredDataPoint && (
-              <>
-                <ReferenceLine
-                  x={hoveredDataPoint.xValue}
-                  stroke={PRIMARY_LIGHT}
-                  strokeDasharray="3 6"
-                  strokeWidth={1.5}
-                  className={styles.hoverLine}
-                />
-                <ReferenceDot
-                  x={hoveredDataPoint.xValue}
-                  y={hoveredDataPoint.yValue}
-                  r={6}
-                  fill={WHITE}
-                  stroke={PRIMARY_LIGHT}
-                  strokeWidth={2}
-                  className={styles.hoverDot}
-                />
-              </>
+            {/* Custom hover layer */}
+            {hoveredIndex != null && (
+              <Layer>
+                {(() => {
+                  const d = data[hoveredIndex];
+                  if (!d) return null;
+                  return (
+                    <>
+                      {/* partial vertical line */}
+                      <line
+                        x1={hoveredIndex * (100 / (data.length - 1)) + "%"}
+                        x2={hoveredIndex * (100 / (data.length - 1)) + "%"}
+                        y1="0"
+                        y2="100%"
+                        stroke={PRIMARY_LIGHT}
+                        strokeDasharray="3 6"
+                        strokeWidth="1.5"
+                        className={styles.hoverLine}
+                        vectorEffect="non-scaling-stroke"
+                      />
+                      <ReferenceDot
+                        x={d[xAxisKey]}
+                        y={d.solid}
+                        r={6}
+                        fill={WHITE}
+                        stroke={PRIMARY_LIGHT}
+                        strokeWidth={2}
+                        className={styles.hoverDot}
+                      />
+                    </>
+                  );
+                })()}
+              </Layer>
             )}
           </LineChart>
         </ResponsiveContainer>
@@ -268,12 +276,8 @@ export default LineChartComponent;
   margin-top: var(--spacing-xs);
 }
 
-/* Hover animation for vertical line + dot */
-.hoverLine {
-  opacity: 0;
-  animation: fadeIn 0.15s ease-in forwards;
-}
-
+/* Hover effects */
+.hoverLine,
 .hoverDot {
   opacity: 0;
   animation: fadeIn 0.15s ease-in forwards;
