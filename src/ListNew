@@ -17,6 +17,7 @@ export interface LineChartDataPoint {
   name: string;
   solid: number;
   dotted: number;
+  [key: string]: string | number;
 }
 
 export interface LineChartProps {
@@ -84,7 +85,7 @@ const LineChartComponent = ({
             onMouseMove={(e) => {
               if (e?.activeTooltipIndex != null) {
                 const d = data[e.activeTooltipIndex];
-                setHovered({ x: d[xAxisKey], y: d.solid });
+                setHovered({ x: d[xAxisKey as keyof LineChartDataPoint], y: d.solid });
               }
             }}
             onMouseLeave={() => setHovered(null)}
@@ -129,19 +130,31 @@ const LineChartComponent = ({
               }}
             />
 
-            {/* ✅ Custom filled band between solid and dotted */}
+            {/* ✅ Shaded band between solid and dotted */}
             <Customized
-              component={({ xAxisMap, yAxisMap }) => {
-                const xScale = xAxisMap[Object.keys(xAxisMap)[0]].scale;
-                const yScale = yAxisMap[Object.keys(yAxisMap)[0]].scale;
+              component={({
+                xAxisMap,
+                yAxisMap,
+                height,
+                width,
+              }: {
+                xAxisMap?: any;
+                yAxisMap?: any;
+                height?: number;
+                width?: number;
+              }) => {
+                if (!xAxisMap || !yAxisMap || !width || !height) return null;
 
+                const xAxisKeyName = Object.keys(xAxisMap)[0];
+                const yAxisKeyName = Object.keys(yAxisMap)[0];
+                const xScale = xAxisMap[xAxisKeyName]?.scale;
+                const yScale = yAxisMap[yAxisKeyName]?.scale;
                 if (!xScale || !yScale) return null;
 
                 const upper = data.map((entry) => ({
                   x: xScale(entry[xAxisKey]),
                   y: yScale(entry.solid),
                 }));
-
                 const lower = [...data]
                   .reverse()
                   .map((entry) => ({
@@ -220,96 +233,45 @@ const LineChartComponent = ({
 
 export default LineChartComponent;
 
+import type { Meta, StoryObj } from '@storybook/react';
+import LineChart from './index';
 
-.container {
-  width: 100%;
-}
+const meta: Meta<typeof LineChart> = {
+  component: LineChart,
+  title: 'Components/Charts/LineChart',
+  parameters: {
+    layout: 'fullscreen',
+  },
+};
 
-.title {
-  font-size: 16px;
-  font-weight: 600;
-  color: rgb(var(--grey-900-base));
-  margin-bottom: 4px;
-}
+export default meta;
+type Story = StoryObj<typeof LineChart>;
 
-.subtitle {
-  font-size: 14px;
-  color: rgb(var(--grey-600-base));
-  margin-bottom: 24px;
-}
+const sampleData = [
+  { name: 'Jan', solid: 400, dotted: 240 },
+  { name: 'Feb', solid: 520, dotted: 280 },
+  { name: 'Mar', solid: 480, dotted: 320 },
+  { name: 'Apr', solid: 600, dotted: 350 },
+  { name: 'May', solid: 720, dotted: 380 },
+  { name: 'Jun', solid: 700, dotted: 400 },
+  { name: 'Jul', solid: 740, dotted: 420 },
+  { name: 'Aug', solid: 760, dotted: 440 },
+  { name: 'Sep', solid: 800, dotted: 460 },
+  { name: 'Oct', solid: 820, dotted: 500 },
+  { name: 'Nov', solid: 920, dotted: 640 },
+  { name: 'Dec', solid: 960, dotted: 680 },
+];
 
-.wrapper {
-  width: 100%;
-  height: 100%;
-  position: relative;
-}
-
-.tooltip {
-  background-color: rgb(var(--grey-950-base));
-  color: var(--white);
-  border-radius: 8px;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
-  padding: 12px 16px;
-  opacity: 0;
-  animation: tooltipPop 0.15s ease-out forwards;
-}
-
-.tooltip__value {
-  font-size: 18px;
-  font-weight: 600;
-  margin: 0;
-}
-
-.tooltip__label {
-  font-size: 12px;
-  color: rgb(var(--grey-400-base));
-  margin-top: 4px;
-}
-
-@keyframes tooltipPop {
-  from {
-    opacity: 0;
-    transform: translateY(4px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
+export const Default: Story = {
+  args: {
+    data: sampleData,
+    xAxisKey: 'name',
+    xAxisLabel: 'Month',
+    yAxisLabel: 'Period Consumption',
+    height: 320,
+    showGrid: true,
+  },
+};
 
 
 
-Cannot convert undefined or null to object
-The component failed to render properly, likely due to a configuration issue in Storybook. Here are some common causes and how you can address them:
-
-Missing Context/Providers: You can use decorators to supply specific contexts or providers, which are sometimes necessary for components to render correctly. For detailed instructions on using decorators, please visit the Decorators documentation.
-Misconfigured Webpack or Vite: Verify that Storybook picks up all necessary settings for loaders, plugins, and other relevant parameters. You can find step-by-step guides for configuring Webpack or Vite with Storybook.
-Missing Environment Variables: Your Storybook may require specific environment variables to function as intended. You can set up custom environment variables as outlined in the Environment Variables documentation.
-TypeError: Cannot convert undefined or null to object
-    at Object.keys (<anonymous>)
-    at component (http://localhost:6006/src/components/charts/LineChart/index.tsx?t=1763074017626:170:48)
-    at react-stack-bottom-frame (http://localhost:6006/node_modules/.cache/storybook/1c3385a5d25e538d10b518b310c74d3ca2690b6aaffeadccd74da79736171f86/sb-vite/deps/chunk-65GDOOUR.js?v=101c6066:17424:20)
-    at renderWithHooks (http://localhost:6006/node_modules/.cache/storybook/1c3385a5d25e538d10b518b310c74d3ca2690b6aaffeadccd74da79736171f86/sb-vite/deps/chunk-65GDOOUR.js?v=101c6066:4206:24)
-    at updateFunctionComponent (http://localhost:6006/node_modules/.cache/storybook/1c3385a5d25e538d10b518b310c74d3ca2690b6aaffeadccd74da79736171f86/sb-vite/deps/chunk-65GDOOUR.js?v=101c6066:6619:21)
-    at beginWork (http://localhost:6006/node_modules/.cache/storybook/1c3385a5d25e538d10b518b310c74d3ca2690b6aaffeadccd74da79736171f86/sb-vite/deps/chunk-65GDOOUR.js?v=101c6066:7654:20)
-    at runWithFiberInDEV (http://localhost:6006/node_modules/.cache/storybook/1c3385a5d25e538d10b518b310c74d3ca2690b6aaffeadccd74da79736171f86/sb-vite/deps/chunk-65GDOOUR.js?v=101c6066:1485:72)
-    at performUnitOfWork (http://localhost:6006/node_modules/.cache/storybook/1c3385a5d25e538d10b518b310c74d3ca2690b6aaffeadccd74da79736171f86/sb-vite/deps/chunk-65GDOOUR.js?v=101c6066:10868:98)
-    at workLoopSync (http://localhost:6006/node_modules/.cache/storybook/1c3385a5d25e538d10b518b310c74d3ca2690b6aaffeadccd74da79736171f86/sb-vite/deps/chunk-65GDOOUR.js?v=101c6066:10728:43)
-    at renderRootSync (http://localhost:6006/node_modules/.cache/storybook/1c3385a5d25e538d10b518b310c74d3ca2690b6aaffeadccd74da79736171f86/sb-vite/deps/chunk-65GDOOUR.js?v=101c6066:10711:13)
-
-Element implicitly has an 'any' type because index expression is not of type 'number'.ts(7015)
-(property) activeTooltipIndex: string | number
-Index of the active tick in the current chart. Only works with number-indexed one-dimensional data charts, like Line, Area, Bar, Pie, etc.
-
-Doesn't work with two-dimensional data charts like Treemap, Sankey. But one day it will which is why the TooltipIndex type is here.
-
-Type '({ xAxisMap, yAxisMap }: { xAxisMap: any; yAxisMap: any; }) => Element | null' is not assignable to type 'Comp<unknown>'.
-  Type '({ xAxisMap, yAxisMap }: { xAxisMap: any; yAxisMap: any; }) => Element | null' is not assignable to type 'FunctionComponent<unknown>'.
-    Types of parameters '__0' and 'props' are incompatible.
-      Type 'unknown' is not assignable to type '{ xAxisMap: any; yAxisMap: any; }'.ts(2322)
-Customized.d.ts(8, 5): The expected type comes from property 'component' which is declared here on type 'IntrinsicAttributes & { component: Comp<unknown>; }'
-(property) component: Comp<unknown>
-
-Element implicitly has an 'any' type because expression of type 'string' can't be used to index type 'LineChartDataPoint'.
-  No index signature with a parameter of type 'string' was found on type 'LineChartDataPoint'.ts(7053)
-(parameter) xAxisKey: string
