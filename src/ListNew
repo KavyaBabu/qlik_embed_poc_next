@@ -1,155 +1,221 @@
 import {
-  AreaChart,
-  Area,
+  LineChart,
+  Line,
   XAxis,
   YAxis,
-  CartesianGrid,
   Tooltip,
   ResponsiveContainer,
-  ReferenceLine,
+  CartesianGrid,
   ReferenceDot,
+  ReferenceLine,
+  Area,
 } from "recharts";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import styles from "./index.module.css";
+
+export interface LineChartDataPoint {
+  name: string;
+  solid: number;
+  dotted: number;
+}
+
+export interface LineChartProps {
+  data: LineChartDataPoint[];
+  valueFormatter?: (value: number) => string;
+  xAxisKey?: string;
+  xAxisLabel?: string;
+  yAxisLabel?: string;
+  height?: number;
+  showGrid?: boolean;
+  className?: string;
+  title?: string;
+  subtitle?: string;
+}
+
+const PRIMARY_MAIN = "rgb(var(--primary-600-base))";
+const PRIMARY_LIGHT = "rgb(var(--primary-400-base))";
+const GREY_400 = "rgb(var(--grey-400-base))";
+const GREY_500 = "rgb(var(--grey-500-base))";
+const GREY_950 = "rgb(var(--grey-950-base))";
+const WHITE = "rgb(var(--white))";
+
+const CustomTooltip = ({
+  active,
+  payload,
+  valueFormatter,
+  styles: styleModule,
+}: {
+  active?: boolean;
+  payload?: Array<{ value: number; dataKey: string; payload: LineChartDataPoint }>;
+  valueFormatter?: (value: number) => string;
+  styles: typeof styles;
+}) => {
+  if (active && payload?.length) {
+    const data = payload[0];
+    return (
+      <div className={styleModule.tooltip}>
+        <p className={styleModule.tooltip__value}>
+          {valueFormatter ? valueFormatter(data.value) : data.value}
+        </p>
+        <p className={styleModule.tooltip__label}>{data.payload.name}</p>
+      </div>
+    );
+  }
+  return null;
+};
 
 const LineChartComponent = ({
   data,
-  valueFormatter = (v: number) => `${v.toFixed(0)} KL`,
+  valueFormatter = (v) => `${v.toFixed(0)} KL`,
   xAxisKey = "name",
   xAxisLabel = "Month",
   yAxisLabel = "Consumption (KL)",
   height = 400,
+  showGrid = true,
+  className,
   title,
   subtitle,
-}) => {
-  const [hover, setHover] = useState<{ x: string; y: number } | null>(null);
+}: LineChartProps) => {
+  const [hoveredDataPoint, setHoveredDataPoint] = useState<{
+    xValue: string | number;
+    yValue: number;
+  } | null>(null);
+
+  const filledData = useMemo(
+    () =>
+      data.map((d) => ({
+        ...d,
+        upper: Math.max(d.solid, d.dotted),
+        lower: Math.min(d.solid, d.dotted),
+      })),
+    [data]
+  );
+
+  const handleMouseMove = (state: any) => {
+    if (state?.activeTooltipIndex != null) {
+      const index = state.activeTooltipIndex;
+      const dataPoint = data[index];
+      if (dataPoint) {
+        setHoveredDataPoint({
+          xValue: dataPoint[xAxisKey],
+          yValue: dataPoint.solid,
+        });
+      }
+    }
+  };
+
+  const handleMouseLeave = () => setHoveredDataPoint(null);
 
   return (
-    <div className={styles.container}>
+    <div className={`${styles.container} ${className || ""}`}>
       {title && <h3 className={styles.title}>{title}</h3>}
       {subtitle && <p className={styles.subtitle}>{subtitle}</p>}
 
-      <ResponsiveContainer width="100%" height={height}>
-        <AreaChart
-          data={data}
-          margin={{ top: 20, right: 40, left: 40, bottom: 20 }}
-          onMouseMove={(st) => {
-            if (st?.activePayload?.[0]) {
-              setHover({
-                x: st.activePayload[0].payload[xAxisKey],
-                y: st.activePayload[0].payload.solid,
-              });
-            }
-          }}
-          onMouseLeave={() => setHover(null)}
-        >
-          {/* horizontal dotted grid */}
-          <CartesianGrid strokeDasharray="3 6" stroke="#D0D5DD" />
-
-          <XAxis
-            dataKey={xAxisKey}
-            tick={{ fill: "#667085", fontSize: 12 }}
-            axisLine={false}
-            tickLine={false}
-            label={{
-              value: xAxisLabel,
-              position: "insideBottom",
-              dy: 25,
-              fill: "#667085",
-              fontSize: 14,
-            }}
-          />
-          <YAxis
-            tick={{ fill: "#667085", fontSize: 12 }}
-            axisLine={false}
-            tickLine={false}
-            label={{
-              value: yAxisLabel,
-              angle: -90,
-              position: "insideLeft",
-              fill: "#667085",
-              fontSize: 14,
-            }}
-          />
-
-          {/* gradient for the band */}
-          <defs>
-            <linearGradient id="band" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="rgba(37,99,235,0.15)" />
-              <stop offset="100%" stopColor="rgba(37,99,235,0.05)" />
-            </linearGradient>
-          </defs>
-
-          {/* this draws the filled band */}
-          <Area
-            type="monotone"
-            dataKey={(d) => Math.max(d.solid, d.dotted)}
-            stroke="none"
-            fill="url(#band)"
-          />
-          <Area
-            type="monotone"
-            dataKey={(d) => Math.min(d.solid, d.dotted)}
-            stroke="none"
-            fill="#fff"
-          />
-
-          {/* solid line */}
-          <Area
-            type="monotone"
-            dataKey="solid"
-            stroke="#2563EB"
-            strokeWidth={2}
-            fill="none"
-          />
-          {/* dotted line */}
-          <Area
-            type="monotone"
-            dataKey="dotted"
-            stroke="#2563EB"
-            strokeWidth={2}
-            strokeDasharray="4 6"
-            fill="none"
-          />
-
-          {/* tooltip */}
-          <Tooltip
-            cursor={false}
-            content={({ active, payload }) =>
-              active && payload?.length ? (
-                <div className={styles.tooltip}>
-                  <p className={styles.tooltip__value}>
-                    {valueFormatter(payload[0].value as number)}
-                  </p>
-                  <p className={styles.tooltip__label}>
-                    {payload[0].payload[xAxisKey]}
-                  </p>
-                </div>
-              ) : null
-            }
-          />
-
-          {/* vertical dotted line + dot */}
-          {hover && (
-            <>
-              <ReferenceLine
-                x={hover.x}
-                stroke="#2563EB"
+      <div className={styles.wrapper}>
+        <ResponsiveContainer width="100%" height={height}>
+          <LineChart
+            data={filledData}
+            margin={{ top: 20, right: 40, left: 40, bottom: 20 }}
+            onMouseMove={handleMouseMove}
+            onMouseLeave={handleMouseLeave}
+          >
+            {showGrid && (
+              <CartesianGrid
                 strokeDasharray="3 6"
-                strokeWidth={2}
+                stroke="rgb(var(--grey-200-base))"
+                horizontal={true}
+                vertical={false}
               />
-              <ReferenceDot
-                x={hover.x}
-                y={hover.y}
-                r={5}
-                fill="#fff"
-                stroke="#2563EB"
-                strokeWidth={2}
-              />
-            </>
-          )}
-        </AreaChart>
-      </ResponsiveContainer>
+            )}
+
+            <XAxis
+              dataKey={xAxisKey}
+              tick={{ fill: GREY_500, fontSize: 12 }}
+              axisLine={false}
+              tickLine={false}
+              dy={8}
+              label={{
+                value: xAxisLabel,
+                position: "insideBottom",
+                dy: 25,
+                fill: GREY_500,
+                fontSize: 16,
+              }}
+            />
+
+            <YAxis
+              tick={{ fill: GREY_500, fontSize: 12 }}
+              axisLine={false}
+              tickLine={false}
+              dx={-8}
+              label={{
+                value: yAxisLabel,
+                angle: -90,
+                position: "insideLeft",
+                dy: height / 3.3,
+                dx: -20,
+                fill: GREY_500,
+                fontSize: 16,
+              }}
+            />
+
+            <defs>
+              <linearGradient id="fillBetween" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor={PRIMARY_MAIN} stopOpacity={0.1} />
+                <stop offset="100%" stopColor={PRIMARY_MAIN} stopOpacity={0.02} />
+              </linearGradient>
+            </defs>
+
+            <Area type="monotone" dataKey="upper" stroke="none" fill="url(#fillBetween)" />
+            <Area type="monotone" dataKey="lower" stroke="none" fill={WHITE} />
+
+            <Tooltip
+              content={<CustomTooltip valueFormatter={valueFormatter} styles={styles} />}
+              cursor={false}
+            />
+
+            <Line
+              type="monotone"
+              dataKey="solid"
+              stroke={PRIMARY_MAIN}
+              strokeWidth={2}
+              dot={false}
+              isAnimationActive={false}
+            />
+
+            <Line
+              type="monotone"
+              dataKey="dotted"
+              stroke={PRIMARY_LIGHT}
+              strokeWidth={2}
+              strokeDasharray="3 6"
+              dot={false}
+              isAnimationActive={false}
+            />
+
+            {hoveredDataPoint && (
+              <>
+                <ReferenceLine
+                  x={hoveredDataPoint.xValue}
+                  stroke={PRIMARY_LIGHT}
+                  strokeDasharray="3 6"
+                  strokeWidth={1.5}
+                  className={styles.hoverLine}
+                />
+                <ReferenceDot
+                  x={hoveredDataPoint.xValue}
+                  y={hoveredDataPoint.yValue}
+                  r={6}
+                  fill={WHITE}
+                  stroke={PRIMARY_LIGHT}
+                  strokeWidth={2}
+                  className={styles.hoverDot}
+                />
+              </>
+            )}
+          </LineChart>
+        </ResponsiveContainer>
+      </div>
     </div>
   );
 };
@@ -157,14 +223,6 @@ const LineChartComponent = ({
 export default LineChartComponent;
 
 
-
-
-:root {
-  --chart-line-primary: rgb(var(--primary-500-base));
-  --chart-line-fill: rgba(var(--primary-100-base), 0.3);
-}
-
-/* Container */
 .container {
   width: 100%;
 }
@@ -172,14 +230,14 @@ export default LineChartComponent;
 .title {
   font-size: 16px;
   font-weight: 600;
-  color: rgb(var(--grey-900-base));
-  margin-bottom: 4px;
+  color: var(--grey-900);
+  margin-bottom: var(--spacing-xs);
 }
 
 .subtitle {
   font-size: 14px;
-  color: rgb(var(--grey-600-base));
-  margin-bottom: 24px;
+  color: var(--grey-500);
+  margin-bottom: var(--spacing-3xl);
 }
 
 .wrapper {
@@ -190,29 +248,44 @@ export default LineChartComponent;
 
 /* Tooltip */
 .tooltip {
-  background-color: rgb(var(--grey-950-base));
+  background-color: var(--grey-950);
   color: var(--white);
-  border-radius: 8px;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
-  padding: 12px 16px;
+  border-radius: var(--spacing-lg);
+  box-shadow: var(--shadow-lg);
+  padding: var(--spacing-md) var(--spacing-lg);
+  opacity: 0;
+  animation: fadeIn 0.15s ease-in forwards;
 }
 
 .tooltip__value {
-  font-size: 18px;
-  font-weight: 600;
+  font: var(--text-lg-bold);
   margin: 0;
-  color: var(--white);
 }
 
 .tooltip__label {
-  font-size: 12px;
-  color: rgb(var(--grey-400-base));
-  margin-top: 4px;
+  font: var(--text-xs);
+  color: var(--grey-400);
+  margin-top: var(--spacing-xs);
 }
 
-Binding element 'data' implicitly has an 'any' type.ts(7031)
+/* Hover animation for vertical line + dot */
+.hoverLine {
+  opacity: 0;
+  animation: fadeIn 0.15s ease-in forwards;
+}
 
+.hoverDot {
+  opacity: 0;
+  animation: fadeIn 0.15s ease-in forwards;
+}
 
-Binding element 'title' implicitly has an 'any' type.ts(7031)
-Binding element 'subtitle' implicitly has an 'any' type.ts(7031)
-Property 'activePayload' does not exist on type 'MouseHandlerDataParam'.ts(2339)
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: scaleY(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scaleY(1);
+  }
+}
