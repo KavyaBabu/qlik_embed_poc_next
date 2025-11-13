@@ -1,0 +1,570 @@
+
+:root {
+  --white: #ffffff;
+
+  --grey-25-base: 252 252 253; /* #FCFCFD */
+  --grey-50-base: 249 250 251; /* #F9FAFB */
+  --grey-100-base: 242 244 247; /* #F2F4F7 */
+  --grey-200-base: 228 231 236; /* #E4E7EC */
+  --grey-300-base: 208 213 221; /* #D0D5DD */
+  --grey-400-base: 152 162 179; /* #98A2B3 */
+  --grey-500-base: 102 112 133; /* #667085 */
+  --grey-600-base: 71 84 103; /* #475467 */
+  --grey-700-base: 52 64 84; /* #344054 */
+  --grey-800-base: 24 34 48; /* #182230 */
+  --grey-900-base: 16 24 40; /* #101828 */
+  --grey-950-base: 12 17 29; /* #0C111D */
+
+  --grey-25: rgb(var(--grey-25-base));
+  --grey-50: rgb(var(--grey-50-base));
+  --grey-100: rgb(var(--grey-100-base));
+  --grey-200: rgb(var(--grey-200-base));
+  --grey-300: rgb(var(--grey-300-base));
+  --grey-400: rgb(var(--grey-400-base));
+  --grey-500: rgb(var(--grey-500-base));
+  --grey-600: rgb(var(--grey-600-base));
+  --grey-700: rgb(var(--grey-700-base));
+  --grey-800: rgb(var(--grey-800-base));
+  --grey-900: rgb(var(--grey-900-base));
+  --grey-950: rgb(var(--grey-950-base));
+
+  --primary-25-base: 247 252 253;
+  --primary-50-base: 238 245 246;
+  --primary-100-base: 228 238 241;
+  --primary-200-base: 206 223 228;
+  --primary-300-base: 150 201 214;
+  --primary-400-base: 64 152 173;
+  --primary-500-base: 37 124 145;
+  --primary-600-base: 8 100 123;
+  --primary-700-base: 9 74 99;
+  --primary-800-base: 16 58 84;
+  --primary-900-base: 8 40 73;
+  --primary-950-base: 2 31 62;
+
+  --primary-25: rgb(var(--primary-25-base));
+  --primary-50: rgb(var(--primary-50-base));
+  --primary-100: rgb(var(--primary-100-base));
+  --primary-200: rgb(var(--primary-200-base));
+  --primary-300: rgb(var(--primary-300-base));
+  --primary-400: rgb(var(--primary-400-base));
+  --primary-500: rgb(var(--primary-500-base));
+  --primary-600: rgb(var(--primary-600-base));
+  --primary-700: rgb(var(--primary-700-base));
+  --primary-800: rgb(var(--primary-800-base));
+  --primary-900: rgb(var(--primary-900-base));
+  --primary-950: rgb(var(--primary-950-base));
+
+  --secondary-25-base: 254 250 251;
+  --secondary-50-base: 252 242 245;
+  --secondary-100-base: 247 217 224;
+  --secondary-200-base: 244 204 214;
+  --secondary-300-base: 233 153 173;
+  --secondary-400-base: 212 13 63;
+  --secondary-500-base: 200 0 50;
+  --secondary-600-base: 187 1 47;
+  --secondary-700-base: 176 0 44;
+  --secondary-800-base: 161 0 40;
+  --secondary-900-base: 142 0 35;
+  --secondary-950-base: 117 8 35;
+
+  --secondary-25: rgb(var(--secondary-25-base));
+  --secondary-50: rgb(var(--secondary-50-base));
+  --secondary-100: rgb(var(--secondary-100-base));
+  --secondary-200: rgb(var(--secondary-200-base));
+  --secondary-300: rgb(var(--secondary-300-base));
+  --secondary-400: rgb(var(--secondary-400-base));
+  --secondary-500: rgb(var(--secondary-500-base));
+  --secondary-600: rgb(var(--secondary-600-base));
+  --secondary-700: rgb(var(--secondary-700-base));
+  --secondary-800: rgb(var(--secondary-800-base));
+  --secondary-900: rgb(var(--secondary-900-base));
+  --secondary-950: rgb(var(--secondary-950-base));
+
+  --error-25-base: 255 251 250;
+  --error-50-base: 255 242 241;
+  --error-100-base: 255 225 223;
+  --error-200-base: 255 200 196;
+  --error-300-base: 255 146 139;
+  --error-400-base: 255 103 94;
+  --error-500-base: 255 69 66;
+  --error-600-base: 232 62 60;
+  --error-700-base: 179 37 35;
+  --error-800-base: 151 33 31;
+  --error-900-base: 121 22 20;
+  --error-950-base: 85 15 14;
+
+  --error-25: rgb(var(--error-25-base));
+  --error-50: rgb(var(--error-50-base));
+  --error-100: rgb(var(--error-100-base));
+  --error-200: rgb(var(--error-200-base));
+  --error-300: rgb(var(--error-300-base));
+  --error-400: rgb(var(--error-400-base));
+  --error-500: rgb(var(--error-500-base));
+  --error-600: rgb(var(--error-600-base));
+  --error-700: rgb(var(--error-700-base));
+  --error-800: rgb(var(--error-800-base));
+  --error-900: rgb(var(--error-900-base));
+  --error-950: rgb(var(--error-950-base));
+
+  --success-25-base: 247 255 250;
+  --success-50-base: 235 254 241;
+  --success-100-base: 218 255 229;
+  --success-200-base: 192 247 209;
+  --success-300-base: 166 231 186;
+  --success-400-base: 122 206 148;
+  --success-500-base: 84 184 115;
+  --success-600-base: 62 159 92;
+  --success-700-base: 43 125 68;
+  --success-800-base: 30 101 51;
+  --success-900-base: 23 80 40;
+  --success-950-base: 14 60 28;
+
+  --success-25: rgb(var(--success-25-base));
+  --success-50: rgb(var(--success-50-base));
+  --success-100: rgb(var(--success-100-base));
+  --success-200: rgb(var(--success-200-base));
+  --success-300: rgb(var(--success-300-base));
+  --success-400: rgb(var(--success-400-base));
+  --success-500: rgb(var(--success-500-base));
+  --success-600: rgb(var(--success-600-base));
+  --success-700: rgb(var(--success-700-base));
+  --success-800: rgb(var(--success-800-base));
+  --success-900: rgb(var(--success-900-base));
+  --success-950: rgb(var(--success-950-base));
+
+  --warning-25-base: 255 252 245;
+  --warning-50-base: 255 249 236;
+  --warning-100-base: 255 236 199;
+  --warning-200-base: 255 210 122;
+  --warning-300-base: 255 195 78;
+  --warning-400-base: 252 175 23;
+  --warning-500-base: 252 151 23;
+  --warning-600-base: 205 114 0;
+  --warning-700-base: 167 88 1;
+  --warning-800-base: 136 71 1;
+  --warning-900-base: 104 54 1;
+  --warning-950-base: 84 37 0;
+
+  --warning-25: rgb(var(--warning-25-base));
+  --warning-50: rgb(var(--warning-50-base));
+  --warning-100: rgb(var(--warning-100-base));
+  --warning-200: rgb(var(--warning-200-base));
+  --warning-300: rgb(var(--warning-300-base));
+  --warning-400: rgb(var(--warning-400-base));
+  --warning-500: rgb(var(--warning-500-base));
+  --warning-600: rgb(var(--warning-600-base));
+  --warning-700: rgb(var(--warning-700-base));
+  --warning-800: rgb(var(--warning-800-base));
+  --warning-900: rgb(var(--warning-900-base));
+  --warning-950: rgb(var(--warning-950-base));
+}
+
+h1,
+h2 {
+  color: var(--primary-900);
+}
+
+body {
+  background-color: var(--grey-25);
+}
+
+  /* shadows.css */
+
+:root {
+    /* Shadows */
+    --shadow-xs: 0 1px 2px 0 rgba(var(--grey-900-base) / 0.05);
+    --shadow-sm: 0 1px 2px 0 rgba(var(--grey-900-base) / 0.06),
+      0 1px 3px 0 rgba(var(--grey-900-base) / 0.1);
+    --shadow-md: 0 2px 4px -2px rgba(var(--grey-900-base) / 0.06),
+      0 4px 8px -2px rgba(var(--grey-900-base) / 0.1);
+    --shadow-lg: 0 4px 6px -2px rgba(var(--grey-900-base) / 0.03),
+      0 12px 16px -4px rgba(var(--grey-900-base) / 0.08);
+    --shadow-xl: 0 8px 8px -4px rgba(var(--grey-900-base) / 0.03),
+      0 20px 24px -4px rgba(var(--grey-900-base) / 0.08);
+    --shadow-2xl: 0 24px 48px -12px rgba(var(--grey-900-base) / 0.18);
+    --shadow-3xl: 0 32px 64px -12px rgba(var(--grey-900-base) / 0.14);
+  
+    /* Rings */
+  
+    --focus-ring-width: 2px;
+    --focus-ring: 0 0 0 var(--focus-ring-width) var(--white),
+      0 0 0 calc(2px + var(--focus-ring-width))
+        var(--focus-ring-colour, var(--primary-500));
+  }
+  
+
+/* spacing.css */
+
+/* 
+Just like our colour scale, working from a defined spacing system allows us to work faster and more conistently. 
+Consistent and scalable spacing helps us eliminate guesswork whilst designing and developing because we are
+desinging with a limited set of options.
+*/
+
+:root {
+    --spacing-none: 0;
+    --spacing-xxs: 0.125rem;
+    --spacing-xs: 0.25rem;
+    --spacing-sm: 0.375rem;
+    --spacing-md: 0.5rem;
+    --spacing-lg: 0.75rem;
+    --spacing-xl: 1rem;
+    --spacing-2xl: 1.25rem;
+    --spacing-3xl: 1.5rem;
+    --spacing-4xl: 2rem;
+    --spacing-5xl: 2.5rem;
+    --spacing-6xl: 3rem;
+    --spacing-7xl: 4rem;
+    --spacing-8xl: 5rem;
+    --spacing-9xl: 6rem;
+    --spacing-10xl: 8rem;
+    --spacing-11xl: 10rem;
+  }
+  
+
+/* typography.css */
+
+@font-face {
+  font-family: Inter;
+  font-style: normal;
+  font-weight: 300;
+  src: url('../fonts/inter/Inter-Light.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: Inter;
+  font-style: normal;
+  font-weight: 400;
+  src: url('../fonts/inter/Inter-Regular.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: Inter;
+  font-style: normal;
+  font-weight: 500;
+  src: url('../fonts/inter/Inter-Medium.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: Inter;
+  font-style: normal;
+  font-weight: 600;
+  src: url('../fonts/inter/Inter-SemiBold.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: Inter;
+  font-style: normal;
+  font-weight: 700;
+  src: url('../fonts/inter/Inter-Bold.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'FS Albert';
+  font-style: normal;
+  font-weight: 400;
+  src: url('../fonts/fs-albert/fs-albert-web.woff') format('woff');
+}
+
+@font-face {
+  font-family: 'FS Albert';
+  font-style: normal;
+  font-weight: 700;
+  src: url('../fonts/fs-albert/fs-albert-web-bold.woff') format('woff');
+}
+
+:root {
+  /* Text for normal text */
+  --font-primary: 'FS Albert', sans-serif;
+  --font-secondary: 'Inter', sans-serif;
+
+  --text-xs-size: 0.75rem;
+  --text-xs-line-height: 1.125rem;
+  --text-xs-base: var(--text-xs-size) / var(--text-xs-line-height) var(--font-secondary);
+  --text-xs: 400 var(--text-xs-base);
+  --text-xs-md: 500 var(--text-xs-base);
+  --text-xs-semi: 600 var(--text-xs-base);
+  --text-xs-bold: 700 var(--text-xs-base);
+  --text-sm-size: 0.875rem;
+  --text-sm-line-height: 1.25rem;
+  --text-sm-base: var(--text-sm-size) / var(--text-sm-line-height) var(--font-secondary);
+  --text-sm: 400 var(--text-sm-base);
+  --text-sm-md: 500 var(--text-sm-base);
+  --text-sm-semi: 600 var(--text-sm-base);
+  --text-sm-bold: 700 var(--text-sm-base);
+  --text-md-size: 1rem;
+  --text-md-line-height: 1.5rem;
+  --text-md-base: var(--text-md-size) / var(--text-md-line-height) var(--font-secondary);
+  --text-md: 400 var(--text-md-base);
+  --text-md-md: 500 var(--text-md-base);
+  --text-md-semi: 600 var(--text-md-base);
+  --text-md-bold: 700 var(--text-md-base);
+  --text-lg-size: 1.125rem;
+  --text-lg-line-height: 1.75rem;
+  --text-lg-base: var(--text-lg-size) / var(--text-lg-line-height) var(--font-secondary);
+  --text-lg: 400 var(--text-lg-base);
+  --text-lg-md: 500 var(--text-lg-base);
+  --text-lg-semi: 600 var(--text-lg-base);
+  --text-lg-bold: 700 var(--text-lg-base);
+  --text-xl-size: 1.25rem;
+  --text-xl-line-height: 1.875rem;
+  --text-xl-base: var(--text-xl-size) / var(--text-xl-line-height) var(--font-secondary);
+  --text-xl: 400 var(--text-xl-base);
+  --text-xl-md: 500 var(--text-xl-base);
+  --text-xl-semi: 600 var(--text-xl-base);
+  --text-xl-bold: 700 var(--text-xl-base);
+
+  /* Display for titles */
+
+  --display-xs-size: 1.5rem;
+  --display-xs-line-height: 2rem;
+  --display-xs-base: var(--display-xs-size) / var(--display-xs-line-height) var(--font-primary);
+  --display-xs: 400 var(--display-xs-base);
+  --display-xs-md: 500 var(--display-xs-base);
+  --display-xs-semi: 600 var(--display-xs-base);
+  --display-xs-bold: 700 var(--display-xs-base);
+  --display-sm-size: 1.875rem;
+  --display-sm-line-height: 2.375rem;
+  --display-sm-base: var(--display-sm-size) / var(--display-sm-line-height) var(--font-primary);
+  --display-sm: 400 var(--display-sm-base);
+  --display-sm-md: 500 var(--display-sm-base);
+  --display-sm-semi: 600 var(--display-sm-base);
+  --display-sm-bold: 700 var(--display-sm-base);
+  --display-md-size: 2.25rem;
+  --display-md-line-height: 2.75rem;
+  --display-md-base: var(--display-md-size) / var(--display-md-line-height) var(--font-primary);
+  --display-md: 400 var(--display-md-base);
+  --display-md-md: 500 var(--display-md-base);
+  --display-md-semi: 600 var(--display-md-base);
+  --display-md-bold: 700 var(--display-md-base);
+  --display-lg-size: 3rem;
+  --display-lg-line-height: 3.75rem;
+  --display-lg-base: var(--display-lg-size) / var(--display-lg-line-height) var(--font-primary);
+  --display-lg: 400 var(--display-lg-base);
+  --display-lg-md: 500 var(--display-lg-base);
+  --display-lg-semi: 600 var(--display-lg-base);
+  --display-lg-bold: 700 var(--display-lg-base);
+  --display-xl-size: 3.75rem;
+  --display-xl-line-height: 4.5rem;
+  --display-xl-base: var(--display-xl-size) / var(--display-xl-line-height) var(--font-primary);
+  --display-xl: 400 var(--display-xl-base);
+  --display-xl-md: 500 var(--display-xl-base);
+  --display-xl-semi: 600 var(--display-xl-base);
+  --display-xl-bold: 700 var(--display-xl-base);
+  --display-2xl-size: 4.5rem;
+  --display-2xl-line-height: 5.625rem;
+  --display-2xl-base: var(--display-2xl-size) / var(--display-2xl-line-height) var(--font-primary);
+  --display-2xl: 400 var(--display-2xl-base);
+  --display-2xl-md: 500 var(--display-2xl-base);
+  --display-2xl-semi: 600 var(--display-2xl-base);
+  --display-2xl-bold: 700 var(--display-2xl-base);
+}
+
+body {
+  font-family: var(--font-secondary);
+  font-size: 1rem; /* 16px by default */
+}
+
+.text--xs {
+  font: var(--text-xs);
+}
+
+.text--xs-md {
+  font: var(--text-xs-md);
+}
+
+.text--xs-semi {
+  font: var(--text-xs-semi);
+}
+
+.text--xs-bold {
+  font: var(--text-xs-bold);
+}
+
+.text--sm {
+  font: var(--text-sm);
+}
+
+.text--sm-md {
+  font: var(--text-sm-md);
+}
+
+.text--sm-semi {
+  font: var(--text-sm-semi);
+}
+
+.text--sm-bold {
+  font: var(--text-sm-bold);
+}
+
+.text--md {
+  font: var(--text-md);
+}
+
+.text--md-md {
+  font: var(--text-md-md);
+}
+
+.text--md-semi {
+  font: var(--text-md-semi);
+}
+
+.text--md-bold {
+  font: var(--text-md-bold);
+}
+
+.text--lg {
+  font: var(--text-lg);
+}
+
+.text--lg-md {
+  font: var(--text-lg-md);
+}
+
+.text--lg-semi {
+  font: var(--text-lg-semi);
+}
+
+.text--lg-bold {
+  font: var(--text-lg-bold);
+}
+
+.text--xl {
+  font: var(--text-xl);
+}
+
+.text--xl-md {
+  font: var(--text-xl-md);
+}
+
+.text--xl-semi {
+  font: var(--text-xl-semi);
+}
+
+.text--xl-bold {
+  font: var(--text-xl-bold);
+}
+
+.display--xs {
+  font: var(--display-xs);
+}
+
+.display--xs-md {
+  font: var(--display-xs-md);
+}
+
+.display--xs-semi {
+  font: var(--display-xs-semi);
+}
+
+.display--xs-bold {
+  font: var(--display-xs-bold);
+}
+
+.display--sm {
+  font: var(--display-sm);
+}
+
+.display--sm-md {
+  font: var(--display-sm-md);
+}
+
+.display--sm-semi {
+  font: var(--display-sm-semi);
+}
+
+.display--sm-bold {
+  font: var(--display-sm-bold);
+}
+
+.display--md {
+  font: var(--display-md);
+}
+
+.display--md-md {
+  font: var(--display-md-md);
+}
+
+.display--md-semi {
+  font: var(--display-md-semi);
+}
+
+.display--md-bold {
+  font: var(--display-md-bold);
+}
+
+.display--lg {
+  font: var(--display-lg);
+}
+
+.display--lg-md {
+  font: var(--display-lg-md);
+}
+
+.display--lg-semi {
+  font: var(--display-lg-semi);
+}
+
+.display--lg-bold {
+  font: var(--display-lg-bold);
+}
+
+.display--xl {
+  font: var(--display-xl);
+}
+
+.display--xl-md {
+  font: var(--display-xl-md);
+}
+
+.display--xl-semi {
+  font: var(--display-xl-semi);
+}
+
+.display--xl-bold {
+  font: var(--display-xl-bold);
+}
+
+.display--2xl {
+  font: var(--display-2xl);
+}
+
+.display--2xl-md {
+  font: var(--display-2xl-md);
+}
+
+.display--2xl-semi {
+  font: var(--display-2xl-semi);
+}
+
+.display--2xl-bold {
+  font: var(--display-2xl-bold);
+}
+
+h1 {
+  font: var(--display-2xl);
+}
+
+h2 {
+  font: var(--display-xl);
+}
+
+h3 {
+  font: var(--display-lg);
+}
+
+h4 {
+  font: var(--display-md);
+}
+
+h5 {
+  font: var(--display-sm);
+}
+
+h6 {
+  font: var(--display-xs);
+}
+
+p {
+  font: var(--text-md);
+}
