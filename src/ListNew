@@ -8,9 +8,9 @@ import {
   CartesianGrid,
   ReferenceDot,
   ReferenceLine,
-  Area,
+  Customized,
 } from "recharts";
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import styles from "./index.module.css";
 
 export interface LineChartDataPoint {
@@ -71,16 +71,7 @@ const LineChartComponent = ({
 }: LineChartProps) => {
   const [hovered, setHovered] = useState<{ x: string | number; y: number } | null>(null);
 
-  // Precompute upper/lower bounds
-  const filledData = useMemo(
-    () =>
-      data.map((d) => ({
-        ...d,
-        upper: Math.max(d.solid, d.dotted),
-        lower: Math.min(d.solid, d.dotted),
-      })),
-    [data]
-  );
+  const yMax = Math.max(...data.map((d) => Math.max(d.solid, d.dotted)));
 
   return (
     <div className={`${styles.container} ${className || ""}`}>
@@ -90,7 +81,7 @@ const LineChartComponent = ({
       <div className={styles.wrapper}>
         <ResponsiveContainer width="100%" height={height}>
           <LineChart
-            data={filledData}
+            data={data}
             margin={{ top: 20, right: 40, left: 40, bottom: 20 }}
             onMouseMove={(e) => {
               if (e?.activeTooltipIndex != null) {
@@ -140,23 +131,35 @@ const LineChartComponent = ({
               }}
             />
 
-            {/* Gradient for filled band */}
-            <defs>
-              <linearGradient id="bandFillGradient" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="rgb(var(--primary-500-base))" stopOpacity={0.08} />
-                <stop offset="100%" stopColor="rgb(var(--primary-500-base))" stopOpacity={0.02} />
-              </linearGradient>
-            </defs>
+            {/* Custom filled area between solid & dotted */}
+            <Customized
+              component={({ width, height }) => {
+                const upper = data.map((d, i) => ({
+                  x: (i / (data.length - 1)) * width,
+                  y: height - (d.solid / yMax) * height,
+                }));
+                const lower = data
+                  .map((d, i) => ({
+                    x: (i / (data.length - 1)) * width,
+                    y: height - (d.dotted / yMax) * height,
+                  }))
+                  .reverse();
 
-            {/* Shaded band between lines */}
-            <Area
-              type="monotone"
-              dataKey="upper"
-              baseLine={filledData.map((d) => d.lower)}
-              data={filledData}
-              stroke="none"
-              fill="url(#bandFillGradient)"
-              isAnimationActive={false}
+                const path = `M ${upper[0].x},${upper[0].y} ` +
+                  upper.map(p => `L ${p.x},${p.y}`).join(" ") +
+                  " " +
+                  lower.map(p => `L ${p.x},${p.y}`).join(" ") +
+                  " Z";
+
+                return (
+                  <path
+                    d={path}
+                    fill="rgb(var(--primary-500-base))"
+                    fillOpacity="0.08"
+                    stroke="none"
+                  />
+                );
+              }}
             />
 
             <Tooltip
@@ -164,7 +167,6 @@ const LineChartComponent = ({
               cursor={false}
             />
 
-            {/* Solid line */}
             <Line
               type="monotone"
               dataKey="solid"
@@ -174,7 +176,6 @@ const LineChartComponent = ({
               isAnimationActive={false}
             />
 
-            {/* Dotted line */}
             <Line
               type="monotone"
               dataKey="dotted"
@@ -185,7 +186,6 @@ const LineChartComponent = ({
               isAnimationActive={false}
             />
 
-            {/* Hover line + dot */}
             {hovered && (
               <>
                 <ReferenceLine
@@ -215,3 +215,59 @@ const LineChartComponent = ({
 };
 
 export default LineChartComponent;
+
+.container {
+  width: 100%;
+}
+
+.title {
+  font-size: 16px;
+  font-weight: 600;
+  color: rgb(var(--grey-900-base));
+  margin-bottom: 4px;
+}
+
+.subtitle {
+  font-size: 14px;
+  color: rgb(var(--grey-600-base));
+  margin-bottom: 24px;
+}
+
+.wrapper {
+  width: 100%;
+  height: 100%;
+  position: relative;
+}
+
+.tooltip {
+  background-color: rgb(var(--grey-950-base));
+  color: var(--white);
+  border-radius: 8px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
+  padding: 12px 16px;
+  opacity: 0;
+  animation: tooltipPop 0.15s ease-out forwards;
+}
+
+.tooltip__value {
+  font-size: 18px;
+  font-weight: 600;
+  margin: 0;
+}
+
+.tooltip__label {
+  font-size: 12px;
+  color: rgb(var(--grey-400-base));
+  margin-top: 4px;
+}
+
+@keyframes tooltipPop {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
