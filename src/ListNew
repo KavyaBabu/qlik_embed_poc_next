@@ -276,3 +276,40 @@ export default LineChartComponent;
     transform: translateY(0);
   }
 }
+
+
+
+Cannot convert undefined or null to object
+The component failed to render properly, likely due to a configuration issue in Storybook. Here are some common causes and how you can address them:
+
+Missing Context/Providers: You can use decorators to supply specific contexts or providers, which are sometimes necessary for components to render correctly. For detailed instructions on using decorators, please visit the Decorators documentation.
+Misconfigured Webpack or Vite: Verify that Storybook picks up all necessary settings for loaders, plugins, and other relevant parameters. You can find step-by-step guides for configuring Webpack or Vite with Storybook.
+Missing Environment Variables: Your Storybook may require specific environment variables to function as intended. You can set up custom environment variables as outlined in the Environment Variables documentation.
+TypeError: Cannot convert undefined or null to object
+    at Object.keys (<anonymous>)
+    at component (http://localhost:6006/src/components/charts/LineChart/index.tsx?t=1763074017626:170:48)
+    at react-stack-bottom-frame (http://localhost:6006/node_modules/.cache/storybook/1c3385a5d25e538d10b518b310c74d3ca2690b6aaffeadccd74da79736171f86/sb-vite/deps/chunk-65GDOOUR.js?v=101c6066:17424:20)
+    at renderWithHooks (http://localhost:6006/node_modules/.cache/storybook/1c3385a5d25e538d10b518b310c74d3ca2690b6aaffeadccd74da79736171f86/sb-vite/deps/chunk-65GDOOUR.js?v=101c6066:4206:24)
+    at updateFunctionComponent (http://localhost:6006/node_modules/.cache/storybook/1c3385a5d25e538d10b518b310c74d3ca2690b6aaffeadccd74da79736171f86/sb-vite/deps/chunk-65GDOOUR.js?v=101c6066:6619:21)
+    at beginWork (http://localhost:6006/node_modules/.cache/storybook/1c3385a5d25e538d10b518b310c74d3ca2690b6aaffeadccd74da79736171f86/sb-vite/deps/chunk-65GDOOUR.js?v=101c6066:7654:20)
+    at runWithFiberInDEV (http://localhost:6006/node_modules/.cache/storybook/1c3385a5d25e538d10b518b310c74d3ca2690b6aaffeadccd74da79736171f86/sb-vite/deps/chunk-65GDOOUR.js?v=101c6066:1485:72)
+    at performUnitOfWork (http://localhost:6006/node_modules/.cache/storybook/1c3385a5d25e538d10b518b310c74d3ca2690b6aaffeadccd74da79736171f86/sb-vite/deps/chunk-65GDOOUR.js?v=101c6066:10868:98)
+    at workLoopSync (http://localhost:6006/node_modules/.cache/storybook/1c3385a5d25e538d10b518b310c74d3ca2690b6aaffeadccd74da79736171f86/sb-vite/deps/chunk-65GDOOUR.js?v=101c6066:10728:43)
+    at renderRootSync (http://localhost:6006/node_modules/.cache/storybook/1c3385a5d25e538d10b518b310c74d3ca2690b6aaffeadccd74da79736171f86/sb-vite/deps/chunk-65GDOOUR.js?v=101c6066:10711:13)
+
+Element implicitly has an 'any' type because index expression is not of type 'number'.ts(7015)
+(property) activeTooltipIndex: string | number
+Index of the active tick in the current chart. Only works with number-indexed one-dimensional data charts, like Line, Area, Bar, Pie, etc.
+
+Doesn't work with two-dimensional data charts like Treemap, Sankey. But one day it will which is why the TooltipIndex type is here.
+
+Type '({ xAxisMap, yAxisMap }: { xAxisMap: any; yAxisMap: any; }) => Element | null' is not assignable to type 'Comp<unknown>'.
+  Type '({ xAxisMap, yAxisMap }: { xAxisMap: any; yAxisMap: any; }) => Element | null' is not assignable to type 'FunctionComponent<unknown>'.
+    Types of parameters '__0' and 'props' are incompatible.
+      Type 'unknown' is not assignable to type '{ xAxisMap: any; yAxisMap: any; }'.ts(2322)
+Customized.d.ts(8, 5): The expected type comes from property 'component' which is declared here on type 'IntrinsicAttributes & { component: Comp<unknown>; }'
+(property) component: Comp<unknown>
+
+Element implicitly has an 'any' type because expression of type 'string' can't be used to index type 'LineChartDataPoint'.
+  No index signature with a parameter of type 'string' was found on type 'LineChartDataPoint'.ts(7053)
+(parameter) xAxisKey: string
