@@ -1,0 +1,130 @@
+import {
+  RadarChart,
+  PolarGrid,
+  PolarAngleAxis,
+  PolarRadiusAxis,
+  Radar,
+  ResponsiveContainer,
+  Tooltip,
+} from "recharts";
+import styles from "./index.module.css";
+
+export interface RadarChartDataPoint {
+  day: string;
+  median: number;
+  actual: number;
+}
+
+export interface RadarChartProps {
+  data: RadarChartDataPoint[];
+  title?: string;
+  maxValue?: number;
+  height?: number;
+}
+
+const RadarChartComponent = ({
+  data,
+  title = "Median vs this weeks consumption",
+  maxValue = 1000,
+  height = 320,
+}: RadarChartProps) => {
+  return (
+    <div className={styles.container}>
+      <h3 className={styles.title}>{title}</h3>
+      <div className={styles.chartWrapper}>
+        <ResponsiveContainer width="100%" height={height}>
+          <RadarChart data={data}>
+            <PolarGrid stroke="rgb(var(--grey-200-base))" />
+            <PolarAngleAxis
+              dataKey="day"
+              tick={{ fill: "rgb(var(--grey-600-base))", fontSize: 12 }}
+            />
+            <PolarRadiusAxis
+              angle={90}
+              domain={[0, maxValue]}
+              tick={{ fill: "rgb(var(--grey-400-base))", fontSize: 10 }}
+              tickCount={5}
+              axisLine={false}
+              tickLine={false}
+            />
+            <Radar
+              name="This Week"
+              dataKey="actual"
+              stroke="rgb(var(--primary-500-base))"
+              fill="rgb(var(--primary-500-base))"
+              fillOpacity={0.15}
+              strokeWidth={2}
+            />
+            <Radar
+              name="Median"
+              dataKey="median"
+              stroke="rgb(var(--secondary-500-base))"
+              fill="rgb(var(--secondary-500-base))"
+              fillOpacity={0.15}
+              strokeWidth={2}
+            />
+            <Tooltip
+              contentStyle={{ borderRadius: 8 }}
+              formatter={(value: number) => `${value} KL`}
+            />
+          </RadarChart>
+        </ResponsiveContainer>
+      </div>
+    </div>
+  );
+};
+
+export default RadarChartComponent;
+
+
+.container {
+  background: white;
+  border-radius: 16px;
+  padding: 16px;
+  width: 100%;
+  box-shadow: var(--shadow-sm);
+}
+
+.title {
+  font-size: 16px;
+  font-weight: 600;
+  color: rgb(var(--grey-900-base));
+  margin-bottom: 12px;
+  border-bottom: 1px solid rgb(var(--grey-100-base));
+  padding-bottom: 8px;
+}
+
+.chartWrapper {
+  width: 100%;
+  height: 100%;
+  position: relative;
+}
+
+import type { Meta, StoryObj } from '@storybook/react';
+import RadarChartComponent, { RadarChartDataPoint } from './index';
+
+const meta: Meta<typeof RadarChartComponent> = {
+  component: RadarChartComponent,
+  title: 'Components/Charts/RadarChart',
+};
+
+export default meta;
+type Story = StoryObj<typeof RadarChartComponent>;
+
+const radarData: RadarChartDataPoint[] = [
+  { day: 'Mon', median: 800, actual: 700 },
+  { day: 'Tue', median: 600, actual: 600 },
+  { day: 'Wed', median: 500, actual: 400 },
+  { day: 'Thu', median: 500, actual: 200 },
+  { day: 'Fri', median: 500, actual: 300 },
+  { day: 'Sat', median: 700, actual: 650 },
+  { day: 'Sun', median: 500, actual: 550 },
+];
+
+export const Default: Story = {
+  args: {
+    data: radarData,
+    height: 320,
+    maxValue: 1000,
+  },
+};
