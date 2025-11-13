@@ -74,7 +74,7 @@ const LineChartComponent = ({
     solidValue: number;
   } | null>(null);
 
-  // ✅ Compute upper and lower bounds to fill between dotted & solid
+  // ✅ Precompute area between dotted and solid lines
   const filledData = useMemo(
     () =>
       data.map((d) => ({
@@ -85,14 +85,9 @@ const LineChartComponent = ({
     [data]
   );
 
-  const handleMouseMove = (state: unknown) => {
-    if (
-      state &&
-      typeof state === "object" &&
-      "activeTooltipIndex" in state &&
-      typeof (state as Record<string, unknown>).activeTooltipIndex === "number"
-    ) {
-      const index = (state as Record<string, unknown>).activeTooltipIndex as number;
+  const handleMouseMove = (state: any) => {
+    if (state?.activeTooltipIndex != null) {
+      const index = state.activeTooltipIndex;
       const dataPoint = data[index];
       if (dataPoint) {
         setHoveredDataPoint({
@@ -104,9 +99,7 @@ const LineChartComponent = ({
     }
   };
 
-  const handleMouseLeave = () => {
-    setHoveredDataPoint(null);
-  };
+  const handleMouseLeave = () => setHoveredDataPoint(null);
 
   return (
     <div className={`${styles.container} ${className || ""}`}>
@@ -161,7 +154,7 @@ const LineChartComponent = ({
               }}
             />
 
-            {/* Gradient for fill */}
+            {/* ✅ Gradient for fill area */}
             <defs>
               <linearGradient id="fillBetween" x1="0" y1="0" x2="0" y2="1">
                 <stop offset="0%" stopColor="var(--chart-line-primary)" stopOpacity={0.15} />
@@ -169,13 +162,12 @@ const LineChartComponent = ({
               </linearGradient>
             </defs>
 
-            {/* ✅ Fill between solid & dotted */}
+            {/* ✅ Shaded area between solid & dotted lines */}
             <Area
               type="monotone"
               dataKey="upper"
               stroke="none"
               fill="url(#fillBetween)"
-              fillOpacity={1}
               activeDot={false}
             />
             <Area
@@ -188,12 +180,7 @@ const LineChartComponent = ({
             />
 
             <Tooltip
-              content={
-                <CustomTooltip
-                  valueFormatter={valueFormatter}
-                  styles={styles}
-                />
-              }
+              content={<CustomTooltip valueFormatter={valueFormatter} styles={styles} />}
               cursor={false}
             />
 
@@ -213,18 +200,21 @@ const LineChartComponent = ({
               dataKey="dotted"
               stroke="var(--chart-dotted-line)"
               strokeWidth={2}
-              strokeDasharray="2 6"
+              strokeDasharray="3 6"
               dot={false}
               isAnimationActive={false}
             />
 
-            {/* ✅ Hover vertical line and dot */}
+            {/* ✅ Hover: vertical dotted line + point */}
             {hoveredDataPoint && (
               <>
                 <ReferenceLine
-                  x={hoveredDataPoint.xValue}
+                  segment={[
+                    { x: hoveredDataPoint.xValue, y: hoveredDataPoint.solidValue },
+                    { x: hoveredDataPoint.xValue, y: 0 },
+                  ]}
                   stroke="rgb(var(--primary-500-base))"
-                  strokeDasharray="2 6"
+                  strokeDasharray="3 6"
                   strokeWidth={2}
                 />
                 <ReferenceDot
@@ -245,98 +235,3 @@ const LineChartComponent = ({
 };
 
 export default LineChartComponent;
-
-
-
-:root {
-  /* Chart theme colors */
-  --chart-line-primary: rgb(var(--primary-500-base));
-  --chart-dotted-line: rgba(var(--primary-500-base), 1);
-  --chart-line-fill: rgba(var(--primary-100-base), 0.3);
-  --chart-area-fill: rgba(var(--primary-500-base), 0.12);
-}
-
-/* Container */
-.container {
-  width: 100%;
-  display: flex;
-  flex-direction: column;
-  align-items: stretch;
-  justify-content: flex-start;
-  position: relative;
-}
-
-/* Title & subtitle */
-.title {
-  font-size: 16px;
-  font-weight: 600;
-  color: rgb(var(--grey-900-base));
-  margin: 0 0 4px 0;
-}
-
-.subtitle {
-  font-size: 14px;
-  color: rgb(var(--grey-600-base));
-  margin: 0 0 24px 0;
-}
-
-/* Chart wrapper */
-.wrapper {
-  width: 100%;
-  height: 100%;
-  position: relative;
-  background: transparent;
-  border-radius: 12px;
-  padding: 0;
-}
-
-/* Tooltip styling */
-.tooltip {
-  background-color: rgb(var(--grey-950-base));
-  color: var(--white);
-  border-radius: 8px;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
-  padding: 12px 16px;
-  pointer-events: none;
-  min-width: 100px;
-  text-align: left;
-  transition: opacity 0.15s ease-in-out;
-}
-
-.tooltip__value {
-  color: var(--white);
-  font-size: 18px;
-  font-weight: 600;
-  margin: 0;
-}
-
-.tooltip__label {
-  color: rgb(var(--grey-400-base));
-  font-size: 12px;
-  font-weight: 400;
-  margin-top: 4px;
-}
-
-/* Hover line and dot */
-.recharts-reference-line line {
-  stroke-dasharray: 2 6;
-}
-
-.recharts-reference-dot circle {
-  transition: transform 0.15s ease-in-out;
-}
-
-.recharts-reference-dot circle:hover {
-  transform: scale(1.2);
-}
-
-/* Optional smoother area fade */
-.recharts-area {
-  mix-blend-mode: multiply;
-}
-
-/* Optional transition for smoother redraws */
-.recharts-wrapper,
-.recharts-surface {
-  transition: all 0.25s ease-in-out;
-}
