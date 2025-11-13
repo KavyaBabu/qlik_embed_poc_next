@@ -8,14 +8,14 @@ import {
   CartesianGrid,
   ReferenceDot,
   ReferenceLine,
-  Area,
 } from "recharts";
-import { useState, useMemo } from "react";
+import { useState } from "react";
 import styles from "./index.module.css";
 
 export interface LineChartDataPoint {
   name: string;
-  [key: string]: string | number;
+  solid: number;
+  dotted?: number;
 }
 
 export interface LineChartProps {
@@ -38,7 +38,7 @@ const CustomTooltip = ({
   styles: styleModule,
 }: {
   active?: boolean;
-  payload?: Array<{ value: number; dataKey: string; payload: LineChartDataPoint }>;
+  payload?: Array<{ value: number; payload: LineChartDataPoint }>;
   valueFormatter?: (value: number) => string;
   styles: typeof styles;
 }) => {
@@ -58,42 +58,28 @@ const CustomTooltip = ({
 
 const LineChartComponent = ({
   data,
-  valueFormatter = (v) => v.toString(),
+  valueFormatter = (v) => `${v.toFixed(0)} KL`,
   xAxisKey = "name",
   xAxisLabel = "Month",
-  yAxisLabel = "Period consumption",
-  height = 300,
+  yAxisLabel = "Consumption (KL)",
+  height = 400,
   showGrid = true,
   className,
   title,
   subtitle,
 }: LineChartProps) => {
   const [hoveredDataPoint, setHoveredDataPoint] = useState<{
-    index: number;
     xValue: string | number;
-    solidValue: number;
+    yValue: number;
   } | null>(null);
-
-  // ✅ Precompute area between dotted and solid lines
-  const filledData = useMemo(
-    () =>
-      data.map((d) => ({
-        ...d,
-        upper: Math.max(Number(d.solid), Number(d.dotted)),
-        lower: Math.min(Number(d.solid), Number(d.dotted)),
-      })),
-    [data]
-  );
 
   const handleMouseMove = (state: any) => {
     if (state?.activeTooltipIndex != null) {
-      const index = state.activeTooltipIndex;
-      const dataPoint = data[index];
-      if (dataPoint) {
+      const point = data[state.activeTooltipIndex];
+      if (point) {
         setHoveredDataPoint({
-          index,
-          xValue: dataPoint[xAxisKey],
-          solidValue: Number(dataPoint["solid"]),
+          xValue: point[xAxisKey],
+          yValue: point.solid,
         });
       }
     }
@@ -109,7 +95,7 @@ const LineChartComponent = ({
       <div className={styles.wrapper}>
         <ResponsiveContainer width="100%" height={height}>
           <LineChart
-            data={filledData}
+            data={data}
             margin={{ top: 20, right: 40, left: 40, bottom: 20 }}
             onMouseMove={handleMouseMove}
             onMouseLeave={handleMouseLeave}
@@ -154,63 +140,32 @@ const LineChartComponent = ({
               }}
             />
 
-            {/* ✅ Gradient for fill area */}
-            <defs>
-              <linearGradient id="fillBetween" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="var(--chart-line-primary)" stopOpacity={0.15} />
-                <stop offset="100%" stopColor="var(--chart-line-primary)" stopOpacity={0.05} />
-              </linearGradient>
-            </defs>
-
-            {/* ✅ Shaded area between solid & dotted lines */}
-            <Area
-              type="monotone"
-              dataKey="upper"
-              stroke="none"
-              fill="url(#fillBetween)"
-              activeDot={false}
-            />
-            <Area
-              type="monotone"
-              dataKey="lower"
-              stroke="none"
-              fill="white"
-              fillOpacity={1}
-              activeDot={false}
-            />
-
             <Tooltip
-              content={<CustomTooltip valueFormatter={valueFormatter} styles={styles} />}
+              content={
+                <CustomTooltip
+                  valueFormatter={valueFormatter}
+                  styles={styles}
+                />
+              }
               cursor={false}
             />
 
-            {/* SOLID LINE */}
+            {/* Single solid line */}
             <Line
               type="monotone"
               dataKey="solid"
               stroke="var(--chart-line-primary)"
-              strokeWidth={2}
+              strokeWidth={2.5}
               dot={false}
               isAnimationActive={false}
             />
 
-            {/* DOTTED LINE */}
-            <Line
-              type="monotone"
-              dataKey="dotted"
-              stroke="var(--chart-dotted-line)"
-              strokeWidth={2}
-              strokeDasharray="3 6"
-              dot={false}
-              isAnimationActive={false}
-            />
-
-            {/* ✅ Hover: vertical dotted line + point */}
+            {/* Vertical dotted line + circle when hovered */}
             {hoveredDataPoint && (
               <>
                 <ReferenceLine
                   segment={[
-                    { x: hoveredDataPoint.xValue, y: hoveredDataPoint.solidValue },
+                    { x: hoveredDataPoint.xValue, y: hoveredDataPoint.yValue },
                     { x: hoveredDataPoint.xValue, y: 0 },
                   ]}
                   stroke="rgb(var(--primary-500-base))"
@@ -219,11 +174,11 @@ const LineChartComponent = ({
                 />
                 <ReferenceDot
                   x={hoveredDataPoint.xValue}
-                  y={hoveredDataPoint.solidValue}
-                  r={5}
+                  y={hoveredDataPoint.yValue}
+                  r={6}
                   fill="white"
                   stroke="var(--chart-line-primary)"
-                  strokeWidth={2}
+                  strokeWidth={2.5}
                 />
               </>
             )}
@@ -235,3 +190,55 @@ const LineChartComponent = ({
 };
 
 export default LineChartComponent;
+
+
+:root {
+  --chart-line-primary: rgb(var(--primary-500-base));
+  --chart-line-fill: rgba(var(--primary-100-base), 0.3);
+}
+
+/* Container */
+.container {
+  width: 100%;
+}
+
+.title {
+  font-size: 16px;
+  font-weight: 600;
+  color: rgb(var(--grey-900-base));
+  margin-bottom: 4px;
+}
+
+.subtitle {
+  font-size: 14px;
+  color: rgb(var(--grey-600-base));
+  margin-bottom: 24px;
+}
+
+.wrapper {
+  width: 100%;
+  height: 100%;
+  position: relative;
+}
+
+/* Tooltip */
+.tooltip {
+  background-color: rgb(var(--grey-950-base));
+  color: var(--white);
+  border-radius: 8px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
+  padding: 12px 16px;
+}
+
+.tooltip__value {
+  font-size: 18px;
+  font-weight: 600;
+  margin: 0;
+  color: var(--white);
+}
+
+.tooltip__label {
+  font-size: 12px;
+  color: rgb(var(--grey-400-base));
+  margin-top: 4px;
+}
