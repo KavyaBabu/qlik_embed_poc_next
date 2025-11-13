@@ -8,14 +8,15 @@ import {
   CartesianGrid,
   ReferenceDot,
   ReferenceLine,
+  Area,
 } from "recharts";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import styles from "./index.module.css";
 
 export interface LineChartDataPoint {
   name: string;
   solid: number;
-  dotted?: number;
+  dotted: number;
 }
 
 export interface LineChartProps {
@@ -38,7 +39,7 @@ const CustomTooltip = ({
   styles: styleModule,
 }: {
   active?: boolean;
-  payload?: Array<{ value: number; payload: LineChartDataPoint }>;
+  payload?: Array<{ value: number; dataKey: string; payload: LineChartDataPoint }>;
   valueFormatter?: (value: number) => string;
   styles: typeof styles;
 }) => {
@@ -73,6 +74,17 @@ const LineChartComponent = ({
     yValue: number;
   } | null>(null);
 
+  // ✅ Compute upper/lower bounds for fill area between lines
+  const filledData = useMemo(
+    () =>
+      data.map((d) => ({
+        ...d,
+        upper: Math.max(Number(d.solid), Number(d.dotted)),
+        lower: Math.min(Number(d.solid), Number(d.dotted)),
+      })),
+    [data]
+  );
+
   const handleMouseMove = (state: any) => {
     if (state?.activeTooltipIndex != null) {
       const point = data[state.activeTooltipIndex];
@@ -95,15 +107,16 @@ const LineChartComponent = ({
       <div className={styles.wrapper}>
         <ResponsiveContainer width="100%" height={height}>
           <LineChart
-            data={data}
+            data={filledData}
             margin={{ top: 20, right: 40, left: 40, bottom: 20 }}
             onMouseMove={handleMouseMove}
             onMouseLeave={handleMouseLeave}
           >
+            {/* ✅ Horizontal dotted grid lines */}
             {showGrid && (
               <CartesianGrid
-                strokeDasharray="0"
-                stroke="rgb(var(--grey-200-base))"
+                strokeDasharray="3 6"
+                stroke="rgb(var(--grey-300-base))"
                 horizontal
                 vertical={false}
               />
@@ -140,6 +153,32 @@ const LineChartComponent = ({
               }}
             />
 
+            {/* ✅ Gradient for area between lines */}
+            <defs>
+              <linearGradient id="fillBetween" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="var(--chart-line-primary)" stopOpacity={0.12} />
+                <stop offset="100%" stopColor="var(--chart-line-primary)" stopOpacity={0.04} />
+              </linearGradient>
+            </defs>
+
+            {/* ✅ Fill area between solid and dotted lines */}
+            <Area
+              type="monotone"
+              dataKey="upper"
+              stroke="none"
+              fill="url(#fillBetween)"
+              fillOpacity={1}
+              activeDot={false}
+            />
+            <Area
+              type="monotone"
+              dataKey="lower"
+              stroke="none"
+              fill="white"
+              fillOpacity={1}
+              activeDot={false}
+            />
+
             <Tooltip
               content={
                 <CustomTooltip
@@ -150,7 +189,7 @@ const LineChartComponent = ({
               cursor={false}
             />
 
-            {/* Single solid line */}
+            {/* SOLID LINE */}
             <Line
               type="monotone"
               dataKey="solid"
@@ -160,7 +199,18 @@ const LineChartComponent = ({
               isAnimationActive={false}
             />
 
-            {/* Vertical dotted line + circle when hovered */}
+            {/* DOTTED LINE */}
+            <Line
+              type="monotone"
+              dataKey="dotted"
+              stroke="var(--chart-dotted-line)"
+              strokeWidth={2}
+              strokeDasharray="4 6"
+              dot={false}
+              isAnimationActive={false}
+            />
+
+            {/* ✅ Hover: vertical dotted line + circle */}
             {hoveredDataPoint && (
               <>
                 <ReferenceLine
@@ -192,12 +242,12 @@ const LineChartComponent = ({
 export default LineChartComponent;
 
 
+
 :root {
   --chart-line-primary: rgb(var(--primary-500-base));
-  --chart-line-fill: rgba(var(--primary-100-base), 0.3);
+  --chart-dotted-line: rgba(var(--primary-500-base), 0.7);
 }
 
-/* Container */
 .container {
   width: 100%;
 }
