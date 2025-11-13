@@ -8,9 +8,9 @@ import {
   CartesianGrid,
   ReferenceDot,
   ReferenceLine,
-  Layer,
+  Area,
 } from "recharts";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import styles from "./index.module.css";
 
 export interface LineChartDataPoint {
@@ -71,22 +71,16 @@ const LineChartComponent = ({
 }: LineChartProps) => {
   const [hovered, setHovered] = useState<{ x: string | number; y: number } | null>(null);
 
-  const yMax = Math.max(...data.map((d) => Math.max(d.solid, d.dotted)));
-
-  // Construct SVG path for shaded band
-  const bandPath = (() => {
-    const stepX = 100 / (data.length - 1);
-    let path = `M 0 ${100 - (data[0].solid / yMax) * 100}`;
-    data.forEach((d, i) => {
-      path += ` L ${i * stepX} ${100 - (d.solid / yMax) * 100}`;
-    });
-    for (let i = data.length - 1; i >= 0; i--) {
-      const d = data[i];
-      path += ` L ${i * stepX} ${100 - (d.dotted / yMax) * 100}`;
-    }
-    path += " Z";
-    return path;
-  })();
+  // Precompute upper/lower bounds
+  const filledData = useMemo(
+    () =>
+      data.map((d) => ({
+        ...d,
+        upper: Math.max(d.solid, d.dotted),
+        lower: Math.min(d.solid, d.dotted),
+      })),
+    [data]
+  );
 
   return (
     <div className={`${styles.container} ${className || ""}`}>
@@ -96,7 +90,7 @@ const LineChartComponent = ({
       <div className={styles.wrapper}>
         <ResponsiveContainer width="100%" height={height}>
           <LineChart
-            data={data}
+            data={filledData}
             margin={{ top: 20, right: 40, left: 40, bottom: 20 }}
             onMouseMove={(e) => {
               if (e?.activeTooltipIndex != null) {
@@ -146,24 +140,31 @@ const LineChartComponent = ({
               }}
             />
 
-            {/* Custom filled band layer */}
-            <Layer>
-              <path
-                d={bandPath}
-                fill="rgb(var(--primary-500-base))"
-                fillOpacity="0.08"
-                stroke="none"
-                vectorEffect="non-scaling-stroke"
-                transform="scale(1,1)"
-              />
-            </Layer>
+            {/* Gradient for filled band */}
+            <defs>
+              <linearGradient id="bandFillGradient" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="rgb(var(--primary-500-base))" stopOpacity={0.08} />
+                <stop offset="100%" stopColor="rgb(var(--primary-500-base))" stopOpacity={0.02} />
+              </linearGradient>
+            </defs>
+
+            {/* Shaded band between lines */}
+            <Area
+              type="monotone"
+              dataKey="upper"
+              baseLine={filledData.map((d) => d.lower)}
+              data={filledData}
+              stroke="none"
+              fill="url(#bandFillGradient)"
+              isAnimationActive={false}
+            />
 
             <Tooltip
               content={<CustomTooltip valueFormatter={valueFormatter} styles={styles} />}
               cursor={false}
             />
 
-            {/* solid line */}
+            {/* Solid line */}
             <Line
               type="monotone"
               dataKey="solid"
@@ -173,7 +174,7 @@ const LineChartComponent = ({
               isAnimationActive={false}
             />
 
-            {/* dotted line */}
+            {/* Dotted line */}
             <Line
               type="monotone"
               dataKey="dotted"
@@ -184,7 +185,7 @@ const LineChartComponent = ({
               isAnimationActive={false}
             />
 
-            {/* hover vertical line + dot */}
+            {/* Hover line + dot */}
             {hovered && (
               <>
                 <ReferenceLine
@@ -214,134 +215,3 @@ const LineChartComponent = ({
 };
 
 export default LineChartComponent;
-
-
-
-.container {
-  width: 100%;
-}
-
-.title {
-  font-size: 16px;
-  font-weight: 600;
-  color: rgb(var(--grey-900-base));
-  margin-bottom: 4px;
-}
-
-.subtitle {
-  font-size: 14px;
-  color: rgb(var(--grey-600-base));
-  margin-bottom: 24px;
-}
-
-.wrapper {
-  width: 100%;
-  height: 100%;
-  position: relative;
-}
-
-/* Tooltip */
-.tooltip {
-  background-color: rgb(var(--grey-950-base));
-  color: var(--white);
-  border-radius: 8px;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
-  padding: 12px 16px;
-  opacity: 0;
-  animation: tooltipPop 0.15s ease-out forwards;
-}
-
-.tooltip__value {
-  font-size: 18px;
-  font-weight: 600;
-  margin: 0;
-}
-
-.tooltip__label {
-  font-size: 12px;
-  color: rgb(var(--grey-400-base));
-  margin-top: 4px;
-}
-
-@keyframes tooltipPop {
-  from {
-    opacity: 0;
-    transform: translateY(4px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-import type { Meta, StoryObj } from '@storybook/react-vite';
-import LineChart from '.';
-import Card from '../../Card';
-import Heading from '../../Heading';
-import React from 'react';
-
-const meta: Meta<typeof LineChart> = {
-  component: LineChart,
-};
-
-export default meta;
-type Story = StoryObj<typeof LineChart>;
-
-const periodConsumptionData = [
-  { name: 'Jan', solid: 400, dotted: 240 },
-  { name: 'Feb', solid: 520, dotted: 280 },
-  { name: 'Mar', solid: 480, dotted: 320 },
-  { name: 'Apr', solid: 600, dotted: 350 },
-  { name: 'May', solid: 720, dotted: 380 },
-  { name: 'Jun', solid: 700, dotted: 400 },
-  { name: 'Jul', solid: 740, dotted: 420 },
-  { name: 'Aug', solid: 760, dotted: 440 },
-  { name: 'Sep', solid: 800, dotted: 460 },
-  { name: 'Oct', solid: 820, dotted: 500 },
-  { name: 'Nov', solid: 920, dotted: 640 },
-  { name: 'Dec', solid: 960, dotted: 680 },
-];
-
-export const Default: Story = {
-  args: {
-    data: periodConsumptionData,
-    xAxisLabel: 'Month',
-    yAxisLabel: 'Period of consumption',
-    height: 300,
-    showGrid: true,
-  },
-};
-
-export const CustomFormatter: Story = {
-  args: {
-    data: periodConsumptionData,
-    valueFormatter: (value) => `${value.toFixed(0)} KL`,
-    xAxisLabel: 'Month',
-    yAxisLabel: 'Consumption (KL)',
-    height: 300,
-    showGrid: true,
-  },
-};
-
-export const InCard: Story = {
-  render: () => {
-    return (
-      <Card>
-        <Heading variant="text--md" level={3} style={{ marginBottom: '4px' }}>
-          Period consumption
-        </Heading>
-        <p style={{ color: 'rgb(var(--grey-600-base))', margin: '0 0 24px 0', fontSize: '14px' }}>
-          Meter consumption over last month
-        </p>
-        <LineChart
-          data={periodConsumptionData}
-          valueFormatter={(value) => `${value.toFixed(0)} KL`}
-          xAxisLabel="Month"
-          yAxisLabel="Consumption (KL)"
-          height={400}
-          showGrid={true}
-        />
-      </Card>
-    );
-  },
-};
