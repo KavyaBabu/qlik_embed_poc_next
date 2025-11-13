@@ -1,0 +1,236 @@
+import {
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  Tooltip,
+  ResponsiveContainer,
+  CartesianGrid,
+  ReferenceDot,
+  ReferenceLine,
+  Area,
+} from "recharts";
+import { useState } from "react";
+import styles from "./index.module.css";
+
+export interface LineChartDataPoint {
+  name: string;
+  [key: string]: string | number;
+}
+
+export interface LineChartProps {
+  data: LineChartDataPoint[];
+  valueFormatter?: (value: number) => string;
+  xAxisKey?: string;
+  xAxisLabel?: string;
+  yAxisLabel?: string;
+  height?: number;
+  showGrid?: boolean;
+  className?: string;
+  title?: string;
+  subtitle?: string;
+}
+
+const CustomTooltip = ({
+  active,
+  payload,
+  valueFormatter,
+  styles: styleModule,
+}: {
+  active?: boolean;
+  payload?: Array<{ value: number; dataKey: string; payload: LineChartDataPoint }>;
+  valueFormatter?: (value: number) => string;
+  styles: typeof styles;
+}) => {
+  if (active && payload?.length) {
+    const data = payload[0];
+    return (
+      <div className={styleModule.tooltip}>
+        <p className={styleModule.tooltip__value}>
+          {valueFormatter ? valueFormatter(data.value) : data.value}
+        </p>
+        <p className={styleModule.tooltip__label}>{data.payload.name}</p>
+      </div>
+    );
+  }
+  return null;
+};
+
+const LineChartComponent = ({
+  data,
+  valueFormatter = (v) => v.toString(),
+  xAxisKey = "name",
+  xAxisLabel = "Month",
+  yAxisLabel = "Period consumption",
+  height = 300,
+  showGrid = true,
+  className,
+  title,
+  subtitle,
+}: LineChartProps) => {
+  const [hoveredDataPoint, setHoveredDataPoint] = useState<{
+    index: number;
+    xValue: string | number;
+    solidValue: number;
+  } | null>(null);
+
+  const handleMouseMove = (state: unknown) => {
+    if (
+      state &&
+      typeof state === "object" &&
+      "activeTooltipIndex" in state &&
+      typeof (state as Record<string, unknown>).activeTooltipIndex === "number"
+    ) {
+      const index = (state as Record<string, unknown>).activeTooltipIndex as number;
+      const dataPoint = data[index];
+      if (dataPoint) {
+        setHoveredDataPoint({
+          index,
+          xValue: dataPoint[xAxisKey],
+          solidValue: dataPoint["solid"] as number,
+        });
+      }
+    }
+  };
+
+  const handleMouseLeave = () => {
+    setHoveredDataPoint(null);
+  };
+
+  return (
+    <div className={`${styles.container} ${className || ""}`}>
+      {title && <h3 className={styles.title}>{title}</h3>}
+      {subtitle && <p className={styles.subtitle}>{subtitle}</p>}
+
+      <div className={styles.wrapper}>
+        <ResponsiveContainer width="100%" height={height}>
+          <LineChart
+            data={data}
+            margin={{ top: 20, right: 40, left: 40, bottom: 20 }}
+            onMouseMove={handleMouseMove}
+            onMouseLeave={handleMouseLeave}
+          >
+            {showGrid && (
+              <CartesianGrid
+                strokeDasharray="0"
+                stroke="rgb(var(--grey-200-base))"
+                horizontal
+                vertical={false}
+              />
+            )}
+
+            <XAxis
+              dataKey={xAxisKey}
+              tick={{ fill: "rgb(var(--grey-600-base))", fontSize: 12 }}
+              axisLine={false}
+              tickLine={false}
+              dy={8}
+              label={{
+                value: xAxisLabel,
+                position: "insideBottom",
+                dy: 25,
+                fill: "rgb(var(--grey-600-base))",
+                fontSize: 16,
+              }}
+            />
+
+            <YAxis
+              tick={{ fill: "rgb(var(--grey-600-base))", fontSize: 12 }}
+              axisLine={false}
+              tickLine={false}
+              dx={-8}
+              label={{
+                value: yAxisLabel,
+                angle: -90,
+                position: "insideLeft",
+                dy: height / 3.3,
+                dx: -20,
+                fill: "rgb(var(--grey-600-base))",
+                fontSize: 16,
+              }}
+            />
+
+            {/* Gradient for area fill */}
+            <defs>
+              <linearGradient id="fillBetween" x1="0" y1="0" x2="0" y2="1">
+                <stop
+                  offset="0%"
+                  stopColor="var(--chart-line-primary)"
+                  stopOpacity={0.15}
+                />
+                <stop
+                  offset="100%"
+                  stopColor="var(--chart-line-primary)"
+                  stopOpacity={0.05}
+                />
+              </linearGradient>
+            </defs>
+
+            {/* Light fill between solid and dotted lines */}
+            <Area
+              type="monotone"
+              dataKey="solid"
+              stroke="none"
+              fill="url(#fillBetween)"
+              fillOpacity={1}
+            />
+
+            <Tooltip
+              content={
+                <CustomTooltip
+                  valueFormatter={valueFormatter}
+                  styles={styles}
+                />
+              }
+              cursor={false}
+            />
+
+            {/* SOLID LINE */}
+            <Line
+              type="monotone"
+              dataKey="solid"
+              stroke="var(--chart-line-primary)"
+              strokeWidth={2}
+              dot={false}
+              isAnimationActive={false}
+              fill="var(--chart-line-fill)"
+            />
+
+            {/* DOTTED LINE */}
+            <Line
+              type="monotone"
+              dataKey="dotted"
+              stroke="var(--chart-dotted-line)"
+              strokeWidth={2}
+              strokeDasharray="2 6"
+              dot={false}
+              isAnimationActive={false}
+            />
+
+            {/* HOVER STATE - vertical dotted line and dot */}
+            {hoveredDataPoint && (
+              <>
+                <ReferenceLine
+                  x={hoveredDataPoint.xValue}
+                  stroke="rgb(var(--primary-500-base))"
+                  strokeDasharray="2 6"
+                  strokeWidth={2}
+                />
+                <ReferenceDot
+                  x={hoveredDataPoint.xValue}
+                  y={hoveredDataPoint.solidValue}
+                  r={5}
+                  fill="white"
+                  stroke="var(--chart-line-primary)"
+                  strokeWidth={2}
+                />
+              </>
+            )}
+          </LineChart>
+        </ResponsiveContainer>
+      </div>
+    </div>
+  );
+};
+
+export default LineChartComponent;
