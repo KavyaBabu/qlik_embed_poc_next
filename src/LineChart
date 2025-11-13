@@ -1,0 +1,364 @@
+import {
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  Tooltip,
+  ResponsiveContainer,
+  CartesianGrid,
+  ReferenceDot,
+  ReferenceLine,
+} from "recharts";
+import { useState } from "react";
+import styles from "./index.module.css";
+
+export interface LineChartDataPoint {
+  name: string;
+  [key: string]: string | number;
+}
+
+export interface LineChartProps {
+  data: LineChartDataPoint[];
+  valueFormatter?: (value: number) => string;
+  xAxisKey?: string;
+  xAxisLabel?: string;
+  yAxisLabel?: string;
+  height?: number;
+  showGrid?: boolean;
+  className?: string;
+  title?: string;
+  subtitle?: string;
+}
+
+const CustomTooltip = ({
+  active,
+  payload,
+  valueFormatter,
+  styles: styleModule,
+}: {
+  active?: boolean;
+  payload?: Array<{ value: number; dataKey: string; payload: LineChartDataPoint }>;
+  valueFormatter?: (value: number) => string;
+  styles: typeof styles;
+}) => {
+  if (active && payload?.length) {
+    const data = payload[0];
+    return (
+      <div className={styleModule.tooltip}>
+        <p className={styleModule.tooltip__value}>
+          {valueFormatter ? valueFormatter(data.value) : data.value}
+        </p>
+        <p className={styleModule.tooltip__label}>{data.payload.name}</p>
+      </div>
+    );
+  }
+  return null;
+};
+
+const LineChartComponent = ({
+  data,
+  valueFormatter = (v) => v.toString(),
+  xAxisKey = "name",
+  xAxisLabel = "Month",
+  yAxisLabel = "Period consumption",
+  height = 300,
+  showGrid = true,
+  className,
+  title,
+  subtitle,
+}: LineChartProps) => {
+  const [hoveredDataPoint, setHoveredDataPoint] = useState<{
+    index: number;
+    xValue: string | number;
+    solidValue: number;
+  } | null>(null);
+
+  const handleMouseMove = (state: unknown) => {
+    if (
+      state &&
+      typeof state === "object" &&
+      "activeTooltipIndex" in state &&
+      typeof (state as Record<string, unknown>).activeTooltipIndex === "number"
+    ) {
+      const index = (state as Record<string, unknown>).activeTooltipIndex as number;
+      const dataPoint = data[index];
+      if (dataPoint) {
+        setHoveredDataPoint({
+          index,
+          xValue: dataPoint[xAxisKey],
+          solidValue: dataPoint["solid"] as number,
+        });
+      }
+    }
+  };
+
+  const handleMouseLeave = () => {
+    setHoveredDataPoint(null);
+  };
+
+  return (
+    <div className={`${styles.container} ${className || ""}`}>
+      {title && <h3 className={styles.title}>{title}</h3>}
+      {subtitle && <p className={styles.subtitle}>{subtitle}</p>}
+
+      <div className={styles.wrapper}>
+        <ResponsiveContainer width="100%" height={height}>
+          <LineChart
+            data={data}
+            margin={{ top: 20, right: 40, left: 40, bottom: 20 }}
+            onMouseMove={handleMouseMove}
+            onMouseLeave={handleMouseLeave}
+          >
+            {showGrid && (
+              <CartesianGrid
+                strokeDasharray="0"
+                stroke="rgb(var(--grey-200-base))"
+                horizontal
+                vertical={false}
+              />
+            )}
+
+            <XAxis
+              dataKey={xAxisKey}
+              tick={{ fill: "rgb(var(--grey-600-base))", fontSize: 12 }}
+              axisLine={false}
+              tickLine={false}
+              dy={8}
+              label={{
+                value: xAxisLabel,
+                position: "insideBottom",
+                dy: 25,
+                fill: "rgb(var(--grey-600-base))",
+                fontSize: 16,
+              }}
+            />
+
+            <YAxis
+              tick={{ fill: "rgb(var(--grey-600-base))", fontSize: 12 }}
+              axisLine={false}
+              tickLine={false}
+              dx={-8}
+              label={{
+                value: yAxisLabel,
+                angle: -90,
+                position: "insideLeft",
+                dy: height / 3.3,
+                dx: -20,
+                fill: "rgb(var(--grey-600-base))",
+                fontSize: 16,
+              }}
+            />
+
+            <Tooltip
+              content={
+                <CustomTooltip
+                  valueFormatter={valueFormatter}
+                  styles={styles}
+                />
+              }
+              cursor={false}
+            />
+
+            {/* SOLID LINE */}
+            <Line
+              type="monotone"
+              dataKey="solid"
+              stroke="var(--chart-line-primary)"
+              strokeWidth={2}
+              dot={false}
+              isAnimationActive={false}
+              fill="var(--chart-line-fill)"
+            />
+
+            {/* DOTTED LINE */}
+            <Line
+              type="monotone"
+              dataKey="dotted"
+              stroke="var(--chart-dotted-line)"
+              strokeWidth={2}
+              strokeDasharray="2 6"
+              dot={false}
+              isAnimationActive={false}
+            />
+
+            {/* HOVER STATE - Show vertical line and dot on hover */}
+            {hoveredDataPoint && (
+              <>
+                <ReferenceLine
+                  segment={[
+                    { x: hoveredDataPoint.xValue, y: hoveredDataPoint.solidValue },
+                    { x: hoveredDataPoint.xValue, y: 0 },
+                  ]}
+                  stroke="rgb(var(--primary-500-base))"
+                  strokeDasharray="2 6"
+                  strokeWidth={2}
+                />
+                <ReferenceDot
+                  x={hoveredDataPoint.xValue}
+                  y={hoveredDataPoint.solidValue}
+                  r={5}
+                  fill="white"
+                  stroke="var(--chart-line-primary)"
+                  strokeWidth={2}
+                />
+              </>
+            )}
+          </LineChart>
+        </ResponsiveContainer>
+
+      </div>
+    </div>
+  );
+};
+
+export default LineChartComponent;
+
+import type { Meta, StoryObj } from '@storybook/react-vite';
+import LineChart from '.';
+import Card from '../../Card';
+import Heading from '../../Heading';
+import React from 'react';
+
+const meta: Meta<typeof LineChart> = {
+  component: LineChart,
+};
+
+export default meta;
+type Story = StoryObj<typeof LineChart>;
+
+const periodConsumptionData = [
+  { name: 'Jan', solid: 400, dotted: 240 },
+  { name: 'Feb', solid: 520, dotted: 280 },
+  { name: 'Mar', solid: 480, dotted: 320 },
+  { name: 'Apr', solid: 600, dotted: 350 },
+  { name: 'May', solid: 720, dotted: 380 },
+  { name: 'Jun', solid: 700, dotted: 400 },
+  { name: 'Jul', solid: 740, dotted: 420 },
+  { name: 'Aug', solid: 760, dotted: 440 },
+  { name: 'Sep', solid: 800, dotted: 460 },
+  { name: 'Oct', solid: 820, dotted: 500 },
+  { name: 'Nov', solid: 920, dotted: 640 },
+  { name: 'Dec', solid: 960, dotted: 680 },
+];
+
+export const Default: Story = {
+  args: {
+    data: periodConsumptionData,
+    xAxisLabel: 'Month',
+    yAxisLabel: 'Period of consumption',
+    height: 300,
+    showGrid: true,
+  },
+};
+
+export const CustomFormatter: Story = {
+  args: {
+    data: periodConsumptionData,
+    valueFormatter: (value) => `${value.toFixed(0)} KL`,
+    xAxisLabel: 'Month',
+    yAxisLabel: 'Consumption (KL)',
+    height: 300,
+    showGrid: true,
+  },
+};
+
+export const InCard: Story = {
+  render: () => {
+    return (
+      <Card>
+        <Heading variant="text--md" level={3} style={{ marginBottom: '4px' }}>
+          Period consumption
+        </Heading>
+        <p style={{ color: 'rgb(var(--grey-600-base))', margin: '0 0 24px 0', fontSize: '14px' }}>
+          Meter consumption over last month
+        </p>
+        <LineChart
+          data={periodConsumptionData}
+          valueFormatter={(value) => `${value.toFixed(0)} KL`}
+          xAxisLabel="Month"
+          yAxisLabel="Consumption (KL)"
+          height={400}
+          showGrid={true}
+        />
+      </Card>
+    );
+  },
+};
+
+:root {
+  --chart-line-primary: rgb(var(--primary-500-base));
+  --chart-line-secondary: rgb(var(--primary-500-base));
+  --chart-line-fill: rgba(var(--primary-100-base), 0.3);
+  --chart-dotted-line: rgb(var(--primary-500-base));
+}
+
+.line-chart-container {
+  width: 100%;
+  position: relative;
+}
+
+.title {
+  font-size: 16px;
+  font-weight: 600;
+  color: rgb(var(--grey-900-base));
+  margin: 0 0 var(--spacing-xs) 0;
+}
+
+.subtitle {
+  font-size: 14px;
+  color: rgb(var(--grey-600-base));
+  margin: 0 0 var(--spacing-lg) 0;
+}
+
+.chart-wrapper {
+  position: relative;
+}
+
+.tooltip {
+  background-color: rgb(var(--grey-950-base));
+  color: var(--white);
+  border: none;
+  border-radius: 6px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  padding: 12px 16px;
+  z-index: 1000;
+}
+
+.tooltip__label {
+  color: rgb(var(--grey-400-base));
+  font-size: 12px;
+  font-weight: 400;
+  margin: 4px 0 0 0;
+}
+
+.tooltip__value {
+  color: var(--white);
+  font-size: 18px;
+  font-weight: 600;
+  margin: 0;
+}
+
+.active-tooltip {
+  position: absolute;
+  top: 20px;
+  right: 40px;
+  background-color: rgb(var(--grey-950-base));
+  color: var(--white);
+  padding: 12px 16px;
+  border-radius: 6px;
+  z-index: 100;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.active-tooltip__value {
+  font-size: 18px;
+  font-weight: 600;
+  margin-bottom: 4px;
+  color: var(--white);
+}
+
+.active-tooltip__label {
+  font-size: 12px;
+  color: rgb(var(--grey-400-base));
+}
+
