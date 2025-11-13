@@ -27,104 +27,119 @@ const RadarChartComponent = ({
   title = "Median vs this weeks consumption",
   maxValue = 1000,
   height = 320,
-}: RadarChartProps) => {
-  return (
-    <div className={styles.container}>
+}: RadarChartProps) => (
+  <div className={styles.container}>
+    <div className={styles.header}>
       <h3 className={styles.title}>{title}</h3>
-      <div className={styles.chartWrapper}>
-        <ResponsiveContainer width="100%" height={height}>
-          <RadarChart data={data}>
-            <PolarGrid stroke="rgb(var(--grey-200-base))" />
-            <PolarAngleAxis
-              dataKey="day"
-              tick={{ fill: "rgb(var(--grey-600-base))", fontSize: 12 }}
-            />
-            <PolarRadiusAxis
-              angle={90}
-              domain={[0, maxValue]}
-              tick={{ fill: "rgb(var(--grey-400-base))", fontSize: 10 }}
-              tickCount={5}
-              axisLine={false}
-              tickLine={false}
-            />
-            <Radar
-              name="This Week"
-              dataKey="actual"
-              stroke="rgb(var(--primary-500-base))"
-              fill="rgb(var(--primary-500-base))"
-              fillOpacity={0.15}
-              strokeWidth={2}
-            />
-            <Radar
-              name="Median"
-              dataKey="median"
-              stroke="rgb(var(--secondary-500-base))"
-              fill="rgb(var(--secondary-500-base))"
-              fillOpacity={0.15}
-              strokeWidth={2}
-            />
-            <Tooltip
-              contentStyle={{ borderRadius: 8 }}
-              formatter={(value: number) => `${value} KL`}
-            />
-          </RadarChart>
-        </ResponsiveContainer>
-      </div>
+      {/* ... (You can put an options/menu button here if needed) */}
     </div>
-  );
-};
+    <div className={styles.divider} />
+    <div className={styles.chartWrapper}>
+      <ResponsiveContainer width="100%" height={height}>
+        <RadarChart data={data}>
+          <PolarGrid
+            stroke="rgb(var(--grey-100-base))"
+            radialLines={false}
+          />
+          <PolarAngleAxis
+            dataKey="day"
+            tick={{ fill: "rgb(var(--grey-600-base))", fontSize: 13, fontWeight: 500 }}
+            tickLine={false}
+            axisLine={false}
+          />
+          <PolarRadiusAxis
+            angle={90}
+            domain={[0, maxValue]}
+            tick={{ fill: "rgb(var(--grey-400-base))", fontSize: 11, fontWeight: 500 }}
+            tickCount={5}
+            axisLine={false}
+            tickLine={false}
+            stroke="rgb(var(--grey-100-base))"
+          />
+          <Radar
+            dataKey="median"
+            fill="rgba(122, 89, 255, 0.18)"     // Purple, soft, translucent
+            stroke="rgba(122, 89, 255, 0.00)"   // No border!
+            fillOpacity={1}
+          />
+          <Radar
+            dataKey="actual"
+            fill="rgba(57, 180, 255, 0.18)"     // Sky blue, soft, translucent
+            stroke="rgba(57, 180, 255, 0.00)"   // No border!
+            fillOpacity={1}
+          />
+          <Tooltip
+            contentStyle={{
+              borderRadius: 10,
+              background: "rgba(20, 30, 50, 0.92)",
+              border: "none",
+              fontSize: 13,
+              fontWeight: 500,
+              color: "#fff",
+              boxShadow: "0 4px 16px rgba(0,0,0,0.12)",
+              padding: "12px 16px",
+            }}
+            labelStyle={{
+              fontWeight: 400,
+              color: "rgba(200,200,220,0.9)",
+              fontSize: 12,
+              marginBottom: 2,
+            }}
+            itemStyle={{
+              color: "#fff",
+              fontWeight: 500,
+              fontSize: 13,
+            }}
+            cursor={false}
+            separator=": "
+            formatter={(v: number) => `${v} KL`}
+          />
+        </RadarChart>
+      </ResponsiveContainer>
+    </div>
+  </div>
+);
 
 export default RadarChartComponent;
 
 
 .container {
-  background: white;
-  border-radius: 16px;
-  padding: 16px;
+  background: #fff;
+  border-radius: 18px;
+  box-shadow: var(--shadow-sm, 0 2px 6px 0 rgba(16,24,40,0.08));
   width: 100%;
-  box-shadow: var(--shadow-sm);
+  padding: 16px 16px 10px 16px;
+  display: flex;
+  flex-direction: column;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
 }
 
 .title {
   font-size: 16px;
   font-weight: 600;
   color: rgb(var(--grey-900-base));
-  margin-bottom: 12px;
-  border-bottom: 1px solid rgb(var(--grey-100-base));
-  padding-bottom: 8px;
+  margin-bottom: 0;
+  letter-spacing: -0.01em;
+}
+
+.divider {
+  width: 100%;
+  height: 1.5px;
+  background: rgb(var(--grey-100-base));
+  margin: 10px 0 10px 0;
+  border-radius: 1px;
 }
 
 .chartWrapper {
   width: 100%;
-  height: 100%;
-  position: relative;
+  height: 280px;
+  min-height: 200px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
-
-import type { Meta, StoryObj } from '@storybook/react';
-import RadarChartComponent, { RadarChartDataPoint } from './index';
-
-const meta: Meta<typeof RadarChartComponent> = {
-  component: RadarChartComponent,
-  title: 'Components/Charts/RadarChart',
-};
-
-export default meta;
-type Story = StoryObj<typeof RadarChartComponent>;
-
-const radarData: RadarChartDataPoint[] = [
-  { day: 'Mon', median: 800, actual: 700 },
-  { day: 'Tue', median: 600, actual: 600 },
-  { day: 'Wed', median: 500, actual: 400 },
-  { day: 'Thu', median: 500, actual: 200 },
-  { day: 'Fri', median: 500, actual: 300 },
-  { day: 'Sat', median: 700, actual: 650 },
-  { day: 'Sun', median: 500, actual: 550 },
-];
-
-export const Default: Story = {
-  args: {
-    data: radarData,
-    height: 320,
-    maxValue: 1000,
-  },
-};
