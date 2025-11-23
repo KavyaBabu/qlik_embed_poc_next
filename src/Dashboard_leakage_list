@@ -262,3 +262,119 @@ export const groupFilterOverride = {
     valueTransform: String,
   },
 };
+
+
+import clx from 'classnames';
+import React from 'react';
+import { ButtonGroup } from '../Button';
+import Heading from '../Heading';
+import Spinner from '../Spinner';
+import styles from './index.module.css';
+
+const Root = ({ children, className }: React.HTMLAttributes<HTMLDivElement>) => {
+  return <main className={clx(styles.page, className)}>{children}</main>;
+};
+
+const Head = ({ children, className }: React.HTMLAttributes<HTMLDivElement>) => {
+  return <div className={clx(styles.page__head, className)}>{children}</div>;
+};
+
+const Title = ({ children, className }: React.HTMLAttributes<HTMLHeadingElement>) => {
+  return (
+    <Heading level={1} variant="display--md" className={clx(styles.page__title, className)}>
+      {children}
+    </Heading>
+  );
+};
+
+interface TitleWrapperProps extends React.HTMLAttributes<HTMLDivElement> {
+  align?: 'left' | 'right';
+}
+
+const TitleWrapper = ({ children, className, align = 'right' }: TitleWrapperProps) => {
+  return (
+    <div
+      className={clx(
+        styles.page__title__wrapper,
+        styles[`page__title__wrapper--${align}`],
+        className,
+      )}
+    >
+      {children}
+    </div>
+  );
+};
+
+const Description = ({ children, className }: React.HTMLAttributes<HTMLParagraphElement>) => {
+  return <p className={clx(styles.page__description, className)}>{children}</p>;
+};
+
+const Actions = ({ children, className }: React.ComponentProps<typeof ButtonGroup>) => {
+  return <ButtonGroup className={clx(styles.page__actions, className)}>{children}</ButtonGroup>;
+};
+
+const TitleActions = ({ children, className }: React.ComponentProps<typeof ButtonGroup>) => {
+  return (
+    <ButtonGroup className={clx(styles.page__title__actions, className)}>{children}</ButtonGroup>
+  );
+};
+
+const Loader = ({ className }: React.ComponentProps<typeof Spinner>) => {
+  return <Spinner size="sm" className={clx(styles.page__loader, className)} />;
+};
+
+const Page = {
+  Root,
+  Head,
+  Title,
+  TitleWrapper,
+  Description,
+  Actions,
+  TitleActions,
+  Loader,
+};
+
+export default Page;
+
+.page {
+  padding: var(--spacing-4xl);
+  width: 100%;
+}
+
+.page__title {
+  align-items: center;
+  display: flex;
+  gap: var(--spacing-xl);
+}
+
+.page__description {
+  color: var(--grey-600);
+  font: var(--text-md);
+}
+
+.page__title__wrapper {
+  align-items: center;
+  display: flex;
+  gap: var(--spacing-2xl);
+}
+
+.page__title__wrapper--right {
+  justify-content: space-between;
+}
+
+.page__head {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+  margin-bottom: var(--spacing-2xl);
+
+  &:has(~ div > div[role='tablist']) {
+    margin-bottom: var(--spacing-5xl);
+  }
+
+  /* Shifting breadcrumbs to be ~24px above the page title */
+  [data-slot='breadcrumb'] {
+    margin-bottom: var(--spacing-2xl);
+  }
+}
+
