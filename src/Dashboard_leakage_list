@@ -1,3 +1,11 @@
+ GET /favicon.ico?favicon.0b3bf435.ico 200 in 464ms
+ ⨯ [TypeError: Cannot read properties of null (reading 'registered')] {
+  digest: '623655995'
+}
+
+Switched to client rendering because the server rendering errored:
+
+
 "use client";
 
 import { QueryParams } from "@arqiva/react-component-lib";
