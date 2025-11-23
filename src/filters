@@ -207,3 +207,11 @@ export const searchQueryFilterOverride = {
 };
 
 export default SearchQueryFilter;
+
+
+there's issue both dashboard page queryparams and leakagelist params are using same root since leakagelist api change for group, start and end date consumption values are change based on dashboard filters but i would like to display selectedvalues very specifically functionally its okay just on showing
+
+dashboard part shows -> group, start end date, time, consumption
+leakagelist shows -> just search within list selected one
+
+help me to isolate the query params between dashboard and leakagelist
