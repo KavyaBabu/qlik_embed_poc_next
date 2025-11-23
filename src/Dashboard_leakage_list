@@ -1,290 +1,197 @@
-import styles from "./page.module.css";
-import { Button, ButtonGroup, Heading } from "@arqiva/react-component-lib";
-import Link from "next/link";
-import Logout from "./_components/Logout";
-import { LogOut } from "lucide-react";
-
-export default function Home() {
-  return (
-    <main className={styles.home}>
-      <Heading level={1} variant="display--lg" className={styles.home__title}>
-        CSLD
-      </Heading>
-      <p className={styles.home__welcome}>
-        Welcome back <span> Kavya</span>!
-      </p>
-      <ButtonGroup>
-        <Logout variant="text">
-          <LogOut />
-          Log out
-        </Logout>
-        <Button asChild>
-          <Link href="/dashboard">Dashboard</Link>
-        </Button>
-      </ButtonGroup>
-    </main>
-  );
-}
-.home {
-  align-items: center;
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-2xl);
-  height: 100vh;
-  justify-content: center;
-}
-
-.home__title{
-  font-size: var(--font-size-2xl);
-}
+Recoverable Error
 
 
-import { env } from "@/env.mjs";
-import { fsAlbert } from "@/fonts";
-import "@arqiva/react-component-lib/styles/global.css";
-import { GoogleAnalytics } from "@next/third-parties/google";
-import clx from "classnames";
-import type { Metadata } from "next";
-import { Inter } from "next/font/google";
-import QueryClientProvider from "./_components/QueryClientProvider";
-import AuthProvider from "./_components/AuthProvider";
-import ToastProvider from "./_components/Toast/ToastProvider";
+Switched to client rendering because the server rendering errored:
 
-const inter = Inter({
-  subsets: ["latin"],
-  display: "swap",
-  variable: "--font-secondary",
-});
-
-export const metadata: Metadata = {
-  title: "Customer Side Leakage Detection (CSLD)",
-  description:
-    "Customer side leakage detection is a data analysis product that helps water companies identify and tackle leakage on the customer side (i.e. in homes) ",
-};
-
-export default function RootLayout({
-  children,
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
-  return (
-    <html
-      lang="en"
-      className={clx(inter.variable, inter.className, fsAlbert.variable)}
-    >
-      <body>
-        <AuthProvider>
-          <QueryClientProvider>
-            <ToastProvider>{children}</ToastProvider>
-          </QueryClientProvider>
-        </AuthProvider>
-      </body>
-      <GoogleAnalytics gaId={env.NEXT_PUBLIC_GA_MEASUREMENT_ID} />
-    </html>
-  );
-}
-globals.css
-
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
-html,
-body {
-  max-width: 100vw;
-  overflow-x: hidden;
-}
-
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-}
-
-* {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
-}
-
-a {
-  color: inherit;
-  text-decoration: none;
-}
-
-@media (prefers-color-scheme: dark) {
-  html {
-    color-scheme: dark;
-  }
-}
-//dashboard layout
-import { LogOut } from "lucide-react";
-import type { Metadata } from "next";
-import GAConfig from "@/lib/services/GA/components/GAConfig";
-import Logout from "../_components/Logout";
-import Navigation from "./_components/Navigation";
-import SessionExpiredAlertDialog from "./_components/SessionExpiredAlertDialog";
-
-export const metadata: Metadata = {
-  title: "Dashboard",
-  description: "Dashboard for Authenticated users",
-};
-
-export default function Layout({
-  children,
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
-  return (
-    <>
-      <GAConfig />
-      <Navigation
-        logout={
-          <Logout variant="text">
-            <LogOut />
-            Log out
-          </Logout>
-        }
-      >
-        {children}
-      </Navigation>
-      <SessionExpiredAlertDialog />
-    </>
-  );
-}
-import { cookies } from "next/headers";
-import NavigationInner from "./Inner";
-
-const NAVIGATION_COOKIE_STATE = "main_nav:state";
-
-const Navigation = async ({
-  children,
-  logout,
-}: Pick<
-  React.ComponentProps<typeof NavigationInner>,
-  "children" | "logout"
->) => {
-  const cookieStore = await cookies();
-  const sidebarState =
-    cookieStore.get(NAVIGATION_COOKIE_STATE)?.value === "true";
-
-  return (
-    <NavigationInner
-      logout={logout}
-      defaultOpen={sidebarState}
-      stateCookieName={NAVIGATION_COOKIE_STATE}
-    >
-      {children}
-    </NavigationInner>
-  );
-};
-
-export default Navigation;
+Cannot read properties of null (reading 'registered')
 
 "use client";
 
-import { Sidebar, SidebarTemplates } from "@arqiva/react-component-lib";
-import { House, CircleQuestionMark, Gauge } from "lucide-react";
-import Link from "next/link";
-import { usePathname } from "next/navigation";
-import routes from "@/lib/routes";
-import Logo from "./Logo";
+import { Page } from "@arqiva/react-component-lib";
+import QueryParamsUrlProvider from "@/app/_components/QueryParamsUrlProvider";
+import DashboardInner, { DashboardFilters } from "./Inner";
+import LeakageListPage from "./widgets/leakageList/page";
+import { useState } from "react";
+import styles from "./index.module.css";
 
-interface NavigationInnerProps
-  extends React.ComponentProps<typeof Sidebar.Provider> {
-  logout?: React.ReactNode;
-  children?: React.ReactNode;
-  defaultOpen?: boolean;
-  stateCookieName?: string;
-}
-
-const NavigationInner = ({
-  children,
-  defaultOpen,
-  stateCookieName,
-}: NavigationInnerProps) => {
-  const pathname = usePathname();
-
-  const getDashboardCurrentPath = () => {
-    if (
-      pathname === routes.dashboard.root ||
-      pathname.startsWith(routes.dashboard.groups.root)
-    ) {
-      return routes.dashboard.root;
-    }
-    return;
-  };
+const DashboardPage = () => {
+  const [dashboardFilters, setDashboardFilters] = useState<DashboardFilters>({});
 
   return (
-    <Sidebar.Provider
-      stateCookieName={stateCookieName}
-      defaultOpen={defaultOpen}
-    >
-      <Sidebar.Root collapsible="icon">
-        <Sidebar.Header>
-          <Logo />
-        </Sidebar.Header>
-        <Sidebar.Content>
-          <Sidebar.Group.Root>
-            <Sidebar.Group.Content>
-              <Sidebar.Menu.Root>
-                <SidebarTemplates.CollapsibleMenuItem.Root
-                  linkComponent={Link}
-                  currentPath={getDashboardCurrentPath()}
-                  title="Dashboard"
-                  url={routes.dashboard.root}
-                  icon={<House />}
-                >
-                  <SidebarTemplates.CollapsibleMenuItem.SubItem
-                    linkComponent={Link}
-                    currentPath={pathname}
-                    url={routes.dashboard.groups.root}
-                  >
-                    Groups
-                  </SidebarTemplates.CollapsibleMenuItem.SubItem>
-                </SidebarTemplates.CollapsibleMenuItem.Root>
+    <Page.Root>
+      <QueryParamsUrlProvider initialParams={{}}>
+        <Page.Head>
+          <div className="page__head" />
+          <Page.Title>Dashboard</Page.Title>
+          <DashboardInner.FiltersBar onFiltersChange={setDashboardFilters} />
+      
+        </Page.Head>
 
-                <SidebarTemplates.SimpleMenuItem
-                  linkComponent={Link}
-                  currentPath={pathname}
-                  title="Meters"
-                  url={routes.dashboard.meters}
-                  icon={<Gauge />}
-                />
-              </Sidebar.Menu.Root>
-            </Sidebar.Group.Content>
-          </Sidebar.Group.Root>
-        </Sidebar.Content>
-        <Sidebar.Footer>
-          <Sidebar.Menu.Root>
-            <SidebarTemplates.SimpleMenuItem
-              linkComponent={Link}
-              currentPath={pathname}
-              title="Support"
-              url={routes.dashboard.support}
-              icon={<CircleQuestionMark />}
-            />
-          </Sidebar.Menu.Root>
-        </Sidebar.Footer>
-      </Sidebar.Root>
-      <Sidebar.Inset>
-        <Sidebar.Trigger />
-        {children}
-      </Sidebar.Inset>
-    </Sidebar.Provider>
+        <DashboardInner.Content />
+        
+        <div className={styles["dashboard--full-width"]} style={{ marginTop: "2rem" }}>
+          <h2 className={styles["dashboard__section-heading"]}>Leakage List</h2>
+          <LeakageListPage dashboardFilters={dashboardFilters} />
+        </div>
+      </QueryParamsUrlProvider>
+    </Page.Root>
   );
 };
 
-export default NavigationInner;
+export default DashboardPage;
 
+"use client";
 
+import { useEffect } from "react";
+import { QueryParams, useQueryParams } from "@arqiva/react-component-lib";
+import {
+  GroupFilter,
+  groupFilterOverride,
+} from "@/lib/services/api/dashboard/Kpis/filters/GroupFilter";
+import {
+  DateRangeFilter,
+  dateRangeFilterOverride,
+} from "@/lib/services/api/dashboard/Kpis/filters/DateRangeFilter";
+import {
+  TimeFilter,
+  timeFilterOverride,
+} from "@/lib/services/api/dashboard/Kpis/filters/TimeFilter";
+import {
+  ConsumptionFilter,
+  consumptionFilterOverride,
+} from "@/lib/services/api/dashboard/Kpis/filters/ConsumptionFilter";
+import MeterConsumptionPage from "./widgets/meterConsumption/page";
+import LeakagePage from "./widgets/leakgaeInfo/page";
+import Top10MeterPage from "./widgets/top10Meters/page";
+import FlowValuesInner from "./widgets/flowValues/Inner";
+import styles from "./index.module.css";
+
+export interface DashboardFilters {
+  group_id?: string;
+  dateRange?: string;
+  timeRange?: string;
+  consumption_range?: string;
+}
+
+interface FiltersBarProps {
+  onFiltersChange: (filters: DashboardFilters) => void;
+}
+
+const FiltersBar = ({ onFiltersChange }: FiltersBarProps) => {
+  const { queryParams } = useQueryParams();
+
+  useEffect(() => {
+    onFiltersChange({
+      group_id: queryParams.group_id ? String(queryParams.group_id) : undefined,
+      dateRange: queryParams.dateRange ? String(queryParams.dateRange) : undefined,
+      timeRange: queryParams.timeRange ? String(queryParams.timeRange) : undefined,
+      consumption_range: queryParams.consumption_range ? String(queryParams.consumption_range) : undefined,
+    });
+  }, [
+    queryParams.group_id,
+    queryParams.dateRange,
+    queryParams.timeRange,
+    queryParams.consumption_range,
+    onFiltersChange,
+  ]);
+
+  return (
+    <div className={styles.dashboard__filters}>
+      <QueryParams.Params.Filters>
+        <GroupFilter />
+        <DateRangeFilter />
+        <TimeFilter />
+        <ConsumptionFilter />
+      </QueryParams.Params.Filters>
+      <QueryParams.Params.SelectedValues
+        resultsLoading={false}
+        resultsCount={0}
+        filterOverrides={{
+          ...groupFilterOverride,
+          ...dateRangeFilterOverride,
+          ...timeFilterOverride,
+          ...consumptionFilterOverride,
+        }}
+        filterIgnoreList={["q"]}
+      />
+    </div>
+  );
+};
+
+const Content = () => (
+  <section className={styles.dashboard}>
+    <div className={styles["dashboard--full-width"]}>
+      <h2 className={styles["dashboard__section-heading"]}>Meter Consumption</h2>
+      <MeterConsumptionPage />
+    </div>
+    <div className={styles["dashboard--full-width"]}>
+      <h2 className={styles["dashboard__section-heading"]}>Leakage</h2>
+      <LeakagePage />
+    </div>
+    <div className={styles["dashboard__split-row"]}>
+      <div className={styles["dashboard__main-column"]}>
+        <h2 className={styles["dashboard__section-heading"]}>Top 10 Meters</h2>
+        <Top10MeterPage />
+      </div>
+      <div className={styles["dashboard__side-column"]}>
+        <h2 className={styles["dashboard__section-heading"]}>Flow Values</h2>
+        <FlowValuesInner />
+      </div>
+    </div>
+  </section>
+);
+
+const DashboardInner = { FiltersBar, Content };
+export default DashboardInner;
+
+"use client";
+
+import {
+  handleSingleSearchableSelectChange,
+  SearchableSelect,
+  useQueryParams,
+} from "@arqiva/react-component-lib";
+import { memo, useMemo } from "react";
+import { useListGroups } from "@/lib/services/api/dashboard/Groups/hooks/useListGroups";
+
+export const GroupFilter = memo(() => {
+  const { queryParams, setParam } = useQueryParams();
+
+  const { data, isLoading } = useListGroups({});
+
+  const options = useMemo(() => {
+    const items = data?.items ?? [];
+    return items
+      .filter((g) => g.id && g.name)
+      .map((g) => ({
+        value: String(g.id),
+        label: g.name as string,
+      }));
+  }, [data]);
+
+  if (!queryParams || !setParam) {
+    return null;
+  }
+
+  return (
+    <SearchableSelect
+      clearable
+      options={options}
+      isLoading={isLoading}
+      value={options.find((o) => o.value === queryParams.group_id) || null}
+      onChange={handleSingleSearchableSelectChange((value) => {
+        setParam("group_id", value || undefined);
+      })}
+      placeholder="Group"
+    />
+  );
+});
+
+GroupFilter.displayName = "GroupFilter";
+
+export const groupFilterOverride = {
+  group_id: {
+    label: "Group",
+    valueTransform: String,
+  },
+};
