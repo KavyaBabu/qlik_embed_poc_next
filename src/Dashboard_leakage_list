@@ -5,43 +5,20 @@
 
 Switched to client rendering because the server rendering errored:
 
-"use client";
 
-import { Page } from "@arqiva/react-component-lib";
-import QueryParamsUrlProvider from "@/app/_components/QueryParamsUrlProvider";
-import DashboardInner, { DashboardFilters } from "./Inner";
-import LeakageListPage from "./widgets/leakageList/page";
-import { useState } from "react";
-import styles from "./index.module.css";
+.page__head {
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+  background: #fff;
+  width: 100%;
+  /* Ensure shadow and spacing */
+  padding-bottom: 0.75rem;
+  box-shadow: 0 4px 24px -8px rgba(0,0,0,0.06);
+}
 
-const DashboardPage = () => {
-  const [dashboardFilters, setDashboardFilters] = useState<DashboardFilters>({});
-
-  return (
-    <Page.Root>
-      <Page.Head>
-        <Page.Title>Dashboard</Page.Title>
-      </Page.Head>
-
-      <QueryParamsUrlProvider initialParams={{}}>
-        <DashboardInner onFiltersChange={setDashboardFilters} />
-      </QueryParamsUrlProvider>
-
-      <div className={styles["dashboard--full-width"]} style={{ marginTop: "2rem" }}>
-            <h2 className={styles["dashboard__section-heading"]}>Leakage List</h2>
-      <LeakageListPage dashboardFilters={dashboardFilters} />
-      </div>
-    </Page.Root>
-  );
-};
-
-export default DashboardPage;
-
-.dashboard {
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-2xl, 2rem);
-  margin-top: var(--spacing-xl, 1.5rem);
+.dashboard__filters {
+  padding-top: 1.25rem;
 }
 
 .dashboard__section-heading {
@@ -63,11 +40,7 @@ export default DashboardPage;
   width: 100%;
 }
 
-.dashboard__main-column {
-  min-width: 0;
-}
-
-.dashboard__side-column {
+.dashboard__main-column, .dashboard__side-column {
   min-width: 0;
 }
 
@@ -93,15 +66,6 @@ export default DashboardPage;
   }
 }
 
-.dashboard__filters {
-  position: sticky;
-  top: 0 ;
-  z-index: 1000 ;
-  background-color: var(--white, #ffffff);
-  padding-top: var(--spacing-md, 1rem);
-  margin-bottom: var(--spacing-lg, 1rem);
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
-}
 
 "use client";
 
@@ -136,11 +100,11 @@ export interface DashboardFilters {
   consumption_range?: string;
 }
 
-interface DashboardInnerProps {
+interface FiltersBarProps {
   onFiltersChange: (filters: DashboardFilters) => void;
 }
 
-export const DashboardInner = ({ onFiltersChange }: DashboardInnerProps) => {
+const FiltersBar = ({ onFiltersChange }: FiltersBarProps) => {
   const { queryParams } = useQueryParams();
 
   useEffect(() => {
@@ -159,15 +123,13 @@ export const DashboardInner = ({ onFiltersChange }: DashboardInnerProps) => {
   ]);
 
   return (
-    <QueryParams.Params.Root>
-      <div className={styles.dashboard__filters}>
+    <div className={styles.dashboard__filters}>
       <QueryParams.Params.Filters>
         <GroupFilter />
         <DateRangeFilter />
         <TimeFilter />
         <ConsumptionFilter />
       </QueryParams.Params.Filters>
-
       <QueryParams.Params.SelectedValues
         resultsLoading={false}
         resultsCount={0}
@@ -179,202 +141,67 @@ export const DashboardInner = ({ onFiltersChange }: DashboardInnerProps) => {
         }}
         filterIgnoreList={["q"]}
       />
-        </div>
-     
-
-      <section className={styles.dashboard}>
-        <div className={styles["dashboard--full-width"]}>
-          <h2 className={styles["dashboard__section-heading"]}>Meter Consumption</h2>
-          <MeterConsumptionPage />
-        </div>
-
-        <div className={styles["dashboard--full-width"]}>
-          <h2 className={styles["dashboard__section-heading"]}>Leakage</h2>
-          <LeakagePage />
-        </div>
-
-        <div className={styles["dashboard__split-row"]}>
-          <div className={styles["dashboard__main-column"]}>
-            <h2 className={styles["dashboard__section-heading"]}>Top 10 Meters</h2>
-            <Top10MeterPage />
-          </div>
-
-          <div className={styles["dashboard__side-column"]}>
-            <h2 className={styles["dashboard__section-heading"]}>Flow Values</h2>
-            <FlowValuesInner />
-          </div>
-        </div>
-      </section>
-    </QueryParams.Params.Root>
-  );
-};
-
-export default DashboardInner;
-
-"use client";
-
-import {
-  handleSingleSearchableSelectChange,
-  SearchableSelect,
-  useQueryParams,
-} from "@arqiva/react-component-lib";
-import { memo, useMemo } from "react";
-import { useListGroups } from "@/lib/services/api/dashboard/Groups/hooks/useListGroups";
-
-export const GroupFilter = memo(() => {
-  const { queryParams, setParam } = useQueryParams();
-
-  const { data, isLoading } = useListGroups({});
-
-  const options = useMemo(() => {
-    const items = data?.items ?? [];
-    return items
-      .filter((g) => g.id && g.name)
-      .map((g) => ({
-        value: String(g.id),
-        label: g.name as string,
-      }));
-  }, [data]);
-
-  if (!queryParams || !setParam) {
-    return null;
-  }
-
-  return (
-    <SearchableSelect
-      clearable
-      options={options}
-      isLoading={isLoading}
-      value={options.find((o) => o.value === queryParams.group_id) || null}
-      onChange={handleSingleSearchableSelectChange((value) => {
-        setParam("group_id", value || undefined);
-      })}
-      placeholder="Group"
-    />
-  );
-});
-
-GroupFilter.displayName = "GroupFilter";
-
-export const groupFilterOverride = {
-  group_id: {
-    label: "Group",
-    valueTransform: String,
-  },
-};
-
-
-import clx from 'classnames';
-import React from 'react';
-import { ButtonGroup } from '../Button';
-import Heading from '../Heading';
-import Spinner from '../Spinner';
-import styles from './index.module.css';
-
-const Root = ({ children, className }: React.HTMLAttributes<HTMLDivElement>) => {
-  return <main className={clx(styles.page, className)}>{children}</main>;
-};
-
-const Head = ({ children, className }: React.HTMLAttributes<HTMLDivElement>) => {
-  return <div className={clx(styles.page__head, className)}>{children}</div>;
-};
-
-const Title = ({ children, className }: React.HTMLAttributes<HTMLHeadingElement>) => {
-  return (
-    <Heading level={1} variant="display--md" className={clx(styles.page__title, className)}>
-      {children}
-    </Heading>
-  );
-};
-
-interface TitleWrapperProps extends React.HTMLAttributes<HTMLDivElement> {
-  align?: 'left' | 'right';
-}
-
-const TitleWrapper = ({ children, className, align = 'right' }: TitleWrapperProps) => {
-  return (
-    <div
-      className={clx(
-        styles.page__title__wrapper,
-        styles[`page__title__wrapper--${align}`],
-        className,
-      )}
-    >
-      {children}
     </div>
   );
 };
 
-const Description = ({ children, className }: React.HTMLAttributes<HTMLParagraphElement>) => {
-  return <p className={clx(styles.page__description, className)}>{children}</p>;
-};
+const Content = () => (
+  <section className={styles.dashboard}>
+    <div className={styles["dashboard--full-width"]}>
+      <h2 className={styles["dashboard__section-heading"]}>Meter Consumption</h2>
+      <MeterConsumptionPage />
+    </div>
+    <div className={styles["dashboard--full-width"]}>
+      <h2 className={styles["dashboard__section-heading"]}>Leakage</h2>
+      <LeakagePage />
+    </div>
+    <div className={styles["dashboard__split-row"]}>
+      <div className={styles["dashboard__main-column"]}>
+        <h2 className={styles["dashboard__section-heading"]}>Top 10 Meters</h2>
+        <Top10MeterPage />
+      </div>
+      <div className={styles["dashboard__side-column"]}>
+        <h2 className={styles["dashboard__section-heading"]}>Flow Values</h2>
+        <FlowValuesInner />
+      </div>
+    </div>
+  </section>
+);
 
-const Actions = ({ children, className }: React.ComponentProps<typeof ButtonGroup>) => {
-  return <ButtonGroup className={clx(styles.page__actions, className)}>{children}</ButtonGroup>;
-};
+const DashboardInner = { FiltersBar, Content };
+export default DashboardInner;
 
-const TitleActions = ({ children, className }: React.ComponentProps<typeof ButtonGroup>) => {
+"use client";
+
+import { Page } from "@arqiva/react-component-lib";
+import QueryParamsUrlProvider from "@/app/_components/QueryParamsUrlProvider";
+import DashboardInner, { DashboardFilters } from "./Inner";
+import LeakageListPage from "./widgets/leakageList/page";
+import { useState } from "react";
+import styles from "./index.module.css";
+
+const DashboardPage = () => {
+  const [dashboardFilters, setDashboardFilters] = useState<DashboardFilters>({});
+
   return (
-    <ButtonGroup className={clx(styles.page__title__actions, className)}>{children}</ButtonGroup>
+    <Page.Root>
+      <QueryParamsUrlProvider initialParams={{}}>
+        <Page.Head>
+          <Page.Title>Dashboard</Page.Title>
+          {/* Filters and selected values are now here */}
+          <DashboardInner.FiltersBar onFiltersChange={setDashboardFilters} />
+        </Page.Head>
+
+        {/* Main dashboard content (without filters) */}
+        <DashboardInner.Content />
+        
+        <div className={styles["dashboard--full-width"]} style={{ marginTop: "2rem" }}>
+          <h2 className={styles["dashboard__section-heading"]}>Leakage List</h2>
+          <LeakageListPage dashboardFilters={dashboardFilters} />
+        </div>
+      </QueryParamsUrlProvider>
+    </Page.Root>
   );
 };
 
-const Loader = ({ className }: React.ComponentProps<typeof Spinner>) => {
-  return <Spinner size="sm" className={clx(styles.page__loader, className)} />;
-};
-
-const Page = {
-  Root,
-  Head,
-  Title,
-  TitleWrapper,
-  Description,
-  Actions,
-  TitleActions,
-  Loader,
-};
-
-export default Page;
-
-.page {
-  padding: var(--spacing-4xl);
-  width: 100%;
-}
-
-.page__title {
-  align-items: center;
-  display: flex;
-  gap: var(--spacing-xl);
-}
-
-.page__description {
-  color: var(--grey-600);
-  font: var(--text-md);
-}
-
-.page__title__wrapper {
-  align-items: center;
-  display: flex;
-  gap: var(--spacing-2xl);
-}
-
-.page__title__wrapper--right {
-  justify-content: space-between;
-}
-
-.page__head {
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-xs);
-  margin-bottom: var(--spacing-2xl);
-
-  &:has(~ div > div[role='tablist']) {
-    margin-bottom: var(--spacing-5xl);
-  }
-
-  /* Shifting breadcrumbs to be ~24px above the page title */
-  [data-slot='breadcrumb'] {
-    margin-bottom: var(--spacing-2xl);
-  }
-}
-
+export default DashboardPage;
