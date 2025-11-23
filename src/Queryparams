@@ -1,0 +1,123 @@
+'use client';
+
+import { ComponentProps, useMemo } from 'react';
+import clsx from 'classnames';
+import styles from './index.module.css';
+import { FilterOverride } from '../types';
+import { processFilterData } from './utils';
+import FilterBadge from './FilterBadge';
+import Button from '../../Button';
+import Heading from '../../Heading';
+import Spinner from '../../Spinner';
+import { useQueryParams } from '../Root';
+
+const Root = ({ className, children, ...props }: ComponentProps<'div'>) => {
+  return (
+    <div className={clsx([styles['query-params'], className])} {...props}>
+      {children}
+    </div>
+  );
+};
+
+const Filters = ({ className, children, ...props }: ComponentProps<'div'>) => {
+  return (
+    <div className={clsx(styles['query-params__header'], className)} {...props}>
+      <Heading
+        className={styles['query-params__header__title']}
+        variant="text--sm"
+        weight="md"
+        level={4}
+      >
+        Filter by:
+      </Heading>
+      <div className={styles['query-params__filters']}>{children}</div>
+    </div>
+  );
+};
+
+export interface SelectedValuesProps extends ComponentProps<'div'> {
+  resultsCount?: number;
+  resultsLoading?: boolean;
+  filterOverrides?: Record<string, FilterOverride>;
+  filterIgnoreList?: string[];
+}
+
+const SelectedValues = ({
+  className,
+  resultsCount,
+  resultsLoading,
+  filterOverrides,
+  filterIgnoreList,
+}: SelectedValuesProps) => {
+  const { queryParams, clearParam, clearAllParams } = useQueryParams();
+
+  const filterData = useMemo(
+    () => processFilterData(queryParams, filterIgnoreList),
+    [queryParams, filterIgnoreList],
+  );
+
+  return (
+    <div className={clsx(styles['query-params__body'], className)}>
+      {resultsCount !== undefined && (
+        <Heading
+          variant="text--sm"
+          weight="md"
+          level={5}
+          className={styles['query-params__body__count']}
+        >
+          {resultsLoading ? (
+            <Spinner className={styles['query-params__body__count__loading']} size="xs" />
+          ) : (
+            resultsCount
+          )}{' '}
+          result{resultsCount !== 1 && 's'} {filterData.length > 0 && 'for'}
+        </Heading>
+      )}
+      <div className={styles['query-params__body__content']}>
+        {filterData.length > 0 &&
+          filterData.map((filter, index) => {
+            const filterOverride = filterOverrides ? filterOverrides[filter.key] : undefined;
+            const label = filterOverride?.label ?? String(filter.key);
+            const valueTransform = filterOverride?.valueTransform;
+
+            return (
+              <FilterBadge
+                key={`${label}-${index}`}
+                label={label}
+                value={valueTransform ? valueTransform(filter.value) : String(filter.value)}
+                onRemove={() => {
+                  clearParam(filter.key, filter.value);
+                }}
+              />
+            );
+          })}
+        {filterData.length > 0 && (
+          <Button
+            variant="text"
+            size="sm"
+            className={styles['query-params__clear']}
+            onClick={() => {
+              clearAllParams();
+            }}
+          >
+            Clear All
+          </Button>
+        )}
+      </div>
+    </div>
+  );
+};
+
+export interface QueryParamsParamsType {
+  Root: typeof Root;
+  Filters: typeof Filters;
+  SelectedValues: typeof SelectedValues;
+}
+
+const Params: QueryParamsParamsType = {
+  Root,
+  Filters,
+  SelectedValues,
+};
+
+export default Params;
