@@ -1,197 +1,149 @@
-Recoverable Error
-
-
-Switched to client rendering because the server rendering errored:
-
-Cannot read properties of null (reading 'registered')
-
-"use client";
-
-import { Page } from "@arqiva/react-component-lib";
-import QueryParamsUrlProvider from "@/app/_components/QueryParamsUrlProvider";
-import DashboardInner, { DashboardFilters } from "./Inner";
-import LeakageListPage from "./widgets/leakageList/page";
-import { useState } from "react";
-import styles from "./index.module.css";
-
-const DashboardPage = () => {
-  const [dashboardFilters, setDashboardFilters] = useState<DashboardFilters>({});
-
-  return (
-    <Page.Root>
-      <QueryParamsUrlProvider initialParams={{}}>
-        <Page.Head>
-          <div className="page__head" />
-          <Page.Title>Dashboard</Page.Title>
-          <DashboardInner.FiltersBar onFiltersChange={setDashboardFilters} />
-      
-        </Page.Head>
-
-        <DashboardInner.Content />
-        
-        <div className={styles["dashboard--full-width"]} style={{ marginTop: "2rem" }}>
-          <h2 className={styles["dashboard__section-heading"]}>Leakage List</h2>
-          <LeakageListPage dashboardFilters={dashboardFilters} />
-        </div>
-      </QueryParamsUrlProvider>
-    </Page.Root>
-  );
-};
-
-export default DashboardPage;
-
-"use client";
-
-import { useEffect } from "react";
-import { QueryParams, useQueryParams } from "@arqiva/react-component-lib";
-import {
-  GroupFilter,
-  groupFilterOverride,
-} from "@/lib/services/api/dashboard/Kpis/filters/GroupFilter";
-import {
-  DateRangeFilter,
-  dateRangeFilterOverride,
-} from "@/lib/services/api/dashboard/Kpis/filters/DateRangeFilter";
-import {
-  TimeFilter,
-  timeFilterOverride,
-} from "@/lib/services/api/dashboard/Kpis/filters/TimeFilter";
-import {
-  ConsumptionFilter,
-  consumptionFilterOverride,
-} from "@/lib/services/api/dashboard/Kpis/filters/ConsumptionFilter";
-import MeterConsumptionPage from "./widgets/meterConsumption/page";
-import LeakagePage from "./widgets/leakgaeInfo/page";
-import Top10MeterPage from "./widgets/top10Meters/page";
-import FlowValuesInner from "./widgets/flowValues/Inner";
-import styles from "./index.module.css";
-
-export interface DashboardFilters {
-  group_id?: string;
-  dateRange?: string;
-  timeRange?: string;
-  consumption_range?: string;
+.top-ten-table {
+  --cell-padding-y: var(--spacing-md);
+  --cell-padding-x: var(--spacing-lg);
 }
 
-interface FiltersBarProps {
-  onFiltersChange: (filters: DashboardFilters) => void;
+.top-ten-table :global(td) {
+  height: 3.5rem !important;
+  min-height: auto !important;
+  padding: var(--cell-padding-y) var(--cell-padding-x) !important;
+  vertical-align: middle;
 }
 
-const FiltersBar = ({ onFiltersChange }: FiltersBarProps) => {
-  const { queryParams } = useQueryParams();
+.top-ten-table :global(th) {
+  height: 3rem !important;
+  padding: var(--cell-padding-y) var(--cell-padding-x) !important;
+  vertical-align: middle;
+}
 
-  useEffect(() => {
-    onFiltersChange({
-      group_id: queryParams.group_id ? String(queryParams.group_id) : undefined,
-      dateRange: queryParams.dateRange ? String(queryParams.dateRange) : undefined,
-      timeRange: queryParams.timeRange ? String(queryParams.timeRange) : undefined,
-      consumption_range: queryParams.consumption_range ? String(queryParams.consumption_range) : undefined,
-    });
-  }, [
-    queryParams.group_id,
-    queryParams.dateRange,
-    queryParams.timeRange,
-    queryParams.consumption_range,
-    onFiltersChange,
-  ]);
+.top-ten-table__cell {
+  align-items: center;
+  display: flex;
+  height: auto;
+  min-height: 0;
+}
 
-  return (
-    <div className={styles.dashboard__filters}>
-      <QueryParams.Params.Filters>
-        <GroupFilter />
-        <DateRangeFilter />
-        <TimeFilter />
-        <ConsumptionFilter />
-      </QueryParams.Params.Filters>
-      <QueryParams.Params.SelectedValues
-        resultsLoading={false}
-        resultsCount={0}
-        filterOverrides={{
-          ...groupFilterOverride,
-          ...dateRangeFilterOverride,
-          ...timeFilterOverride,
-          ...consumptionFilterOverride,
-        }}
-        filterIgnoreList={["q"]}
-      />
-    </div>
-  );
-};
+.top-ten-table__meter {
+  align-items: center;
+  display: flex;
+  flex: 0 0 auto;
+  height: auto;
+  width: 100%;
+}
 
-const Content = () => (
-  <section className={styles.dashboard}>
-    <div className={styles["dashboard--full-width"]}>
-      <h2 className={styles["dashboard__section-heading"]}>Meter Consumption</h2>
-      <MeterConsumptionPage />
-    </div>
-    <div className={styles["dashboard--full-width"]}>
-      <h2 className={styles["dashboard__section-heading"]}>Leakage</h2>
-      <LeakagePage />
-    </div>
-    <div className={styles["dashboard__split-row"]}>
-      <div className={styles["dashboard__main-column"]}>
-        <h2 className={styles["dashboard__section-heading"]}>Top 10 Meters</h2>
-        <Top10MeterPage />
-      </div>
-      <div className={styles["dashboard__side-column"]}>
-        <h2 className={styles["dashboard__section-heading"]}>Flow Values</h2>
-        <FlowValuesInner />
-      </div>
-    </div>
-  </section>
-);
+.top-ten-table__button {
+  height: auto !important;
+  line-height: 1;
+  overflow: hidden;
+  padding: 0 !important;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 
-const DashboardInner = { FiltersBar, Content };
-export default DashboardInner;
+.top-ten-table__amount {
+  align-items: center;
+  display: flex;
+  gap: var(--spacing-sm);
+  height: auto;
+  width: 100%;
+}
+
+.top-ten-table__bar {
+  flex: 1;
+  min-width: 100px;
+}
+
+.top-ten-table__value {
+  color: var(--grey-900);
+  flex-shrink: 0;
+  font-weight: 500;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.top-ten-table :global(th:nth-child(1)),
+.top-ten-table :global(td:nth-child(1)) {
+  width: 100px !important;
+}
+
+.top-ten-table :global(th:nth-child(2)),
+.top-ten-table :global(td:nth-child(2)) {
+  width: auto !important;
+}
+
+.top-ten-table :global(tbody tr:last-child td) {
+  padding-bottom: calc(var(--spacing-2xl) + 10px) !important;
+}
+
 
 "use client";
 
+import { ColumnDef } from "@tanstack/react-table";
+import type { Top10MeterEntry } from "../../../models/getTop10Meters";
 import {
-  handleSingleSearchableSelectChange,
-  SearchableSelect,
-  useQueryParams,
+  Button,
+  HorizontalBar,
+  Table,
+  TruncatedText,
 } from "@arqiva/react-component-lib";
-import { memo, useMemo } from "react";
-import { useListGroups } from "@/lib/services/api/dashboard/Groups/hooks/useListGroups";
+import Link from "next/link";
+import styles from "./index.module.css";
 
-export const GroupFilter = memo(() => {
-  const { queryParams, setParam } = useQueryParams();
-
-  const { data, isLoading } = useListGroups({});
-
-  const options = useMemo(() => {
-    const items = data?.items ?? [];
-    return items
-      .filter((g) => g.id && g.name)
-      .map((g) => ({
-        value: String(g.id),
-        label: g.name as string,
-      }));
-  }, [data]);
-
-  if (!queryParams || !setParam) {
-    return null;
-  }
-
-  return (
-    <SearchableSelect
-      clearable
-      options={options}
-      isLoading={isLoading}
-      value={options.find((o) => o.value === queryParams.group_id) || null}
-      onChange={handleSingleSearchableSelectChange((value) => {
-        setParam("group_id", value || undefined);
-      })}
-      placeholder="Group"
-    />
-  );
-});
-
-GroupFilter.displayName = "GroupFilter";
-
-export const groupFilterOverride = {
-  group_id: {
-    label: "Group",
-    valueTransform: String,
+export const top10Columns: ColumnDef<Top10MeterEntry>[] = [
+  {
+    id: "label",
+    header: "Meter ID",
+    accessorKey: "label",
+    enableSorting: false,
+    size: 70,
+    cell: ({ row }) => {
+      return (
+        <div className={styles["top-ten-table__cell"]}>
+          <Table.Block.Lead className={styles["top-ten-table__meter"]}>
+            <Button
+              variant="text"
+              asChild
+              disabled
+              className={styles["top-ten-table__button"]}
+            >
+              <Link href="#">
+                <TruncatedText text={String(row.original.label)} />
+              </Link>
+            </Button>
+          </Table.Block.Lead>
+        </div>
+      );
+    },
   },
-};
+  {
+    id: "amount",
+    header: "Amount",
+    accessorKey: "x",
+    enableSorting: false,
+    cell: ({ row, table }) => {
+      const data = [
+        {
+          id: String(row.original.label),
+          value: row.original.x,
+        },
+      ];
+
+      const allRows = table.getRowModel().rows;
+      const maxValue = Math.max(...allRows.map((r) => r.original.x));
+
+      return (
+        <div className={styles["top-ten-table__cell"]}>
+          <div className={styles["top-ten-table__amount"]}>
+            <HorizontalBar
+              data={data}
+              valueFormatter={(value) => `${value.toFixed(2)} KL`}
+              height={28}
+              maxValue={maxValue}
+              className={styles["top-ten-table__bar"]}
+            />
+          </div>
+        </div>
+      );
+    },
+  },
+];
