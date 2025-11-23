@@ -1,15 +1,12 @@
 import { Page } from "@arqiva/react-component-lib";
 import logger from "@/lib/services/logger";
 import QueryParamsUrlProvider from "@/app/_components/QueryParamsUrlProvider";
-import { DashboardInner } from "./Inner";
+import DashboardInner, { DashboardFilters } from "./Inner";
+import LeakageListPage from "./widgets/leakageList/page";
+import { useState } from "react";
 
 const DashboardPage = () => {
-  try {
-    // TODO: fetch dashboard data
-  } catch (error) {
-    logger.error(error as Error);
-    throw new Error("Failed to fetch dashboard data");
-  }
+  const [dashboardFilters, setDashboardFilters] = useState<DashboardFilters>({});
 
   return (
     <Page.Root>
@@ -17,9 +14,13 @@ const DashboardPage = () => {
         <Page.Title>Dashboard</Page.Title>
       </Page.Head>
 
+      {/* Dashboard gets its own QueryParams root */}
       <QueryParamsUrlProvider initialParams={{}}>
-        <DashboardInner />
+        <DashboardInner onFiltersChange={setDashboardFilters} />
       </QueryParamsUrlProvider>
+
+      {/* LeakageList has a SEPARATE QueryParams root */}
+      <LeakageListPage dashboardFilters={dashboardFilters} />
     </Page.Root>
   );
 };
@@ -29,37 +30,49 @@ export default DashboardPage;
 
 "use client";
 
-import { QueryParams } from "@arqiva/react-component-lib";
-
+import { useEffect } from "react";
+import { QueryParams, useQueryParams } from "@arqiva/react-component-lib";
 import {
-  GroupFilter,
-  groupFilterOverride,
-} from "@/lib/services/api/dashboard/Kpis/filters/GroupFilter";
-import {
-  DateRangeFilter,
-  dateRangeFilterOverride,
-} from "@/lib/services/api/dashboard/Kpis/filters/DateRangeFilter";
-import {
-  TimeFilter,
-  timeFilterOverride,
-} from "@/lib/services/api/dashboard/Kpis/filters/TimeFilter";
-import {
-  ConsumptionFilter,
-  consumptionFilterOverride,
-} from "@/lib/services/api/dashboard/Kpis/filters/ConsumptionFilter";
-
+  GroupFilter, groupFilterOverride,
+  DateRangeFilter, dateRangeFilterOverride,
+  TimeFilter, timeFilterOverride,
+  ConsumptionFilter, consumptionFilterOverride
+} from "@/lib/services/api/dashboard/Kpis/filters";
 import MeterConsumptionPage from "./widgets/meterConsumption/page";
 import LeakagePage from "./widgets/leakgaeInfo/page";
 import Top10MeterPage from "./widgets/top10Meters/page";
 import FlowValuesInner from "./widgets/flowValues/Inner";
 import styles from "./index.module.css";
-import LeakageListPage from "./widgets/leakageList/page";
 
-interface DashboardInnerProps {
-  initialData?: unknown;
+export interface DashboardFilters {
+  group_id?: string;
+  dateRange?: string;
+  timeRange?: string;
+  consumption_range?: string;
 }
 
-export const DashboardInner = (_props: DashboardInnerProps) => {
+interface DashboardInnerProps {
+  onFiltersChange: (filters: DashboardFilters) => void;
+}
+
+export const DashboardInner = ({ onFiltersChange }: DashboardInnerProps) => {
+  const { queryParams } = useQueryParams();
+
+  useEffect(() => {
+    onFiltersChange({
+      group_id: queryParams.group_id,
+      dateRange: queryParams.dateRange,
+      timeRange: queryParams.timeRange,
+      consumption_range: queryParams.consumption_range,
+    });
+  }, [
+    queryParams.group_id,
+    queryParams.dateRange,
+    queryParams.timeRange,
+    queryParams.consumption_range,
+    onFiltersChange,
+  ]);
+
   return (
     <QueryParams.Params.Root>
       <QueryParams.Params.Filters>
@@ -68,51 +81,40 @@ export const DashboardInner = (_props: DashboardInnerProps) => {
         <TimeFilter />
         <ConsumptionFilter />
       </QueryParams.Params.Filters>
-      {Object.keys(QueryParams ?? {}).length > 0 && (
-        <QueryParams.Params.SelectedValues
-          resultsLoading={false}
-          resultsCount={0}
-          filterOverrides={{
-            ...groupFilterOverride,
-            ...dateRangeFilterOverride,
-            ...timeFilterOverride,
-            ...consumptionFilterOverride,
-          }}
-          filterIgnoreList={['q']}
-        />
-      )}
+
+      <QueryParams.Params.SelectedValues
+        resultsLoading={false}
+        resultsCount={0}
+        filterOverrides={{
+          ...groupFilterOverride,
+          ...dateRangeFilterOverride,
+          ...timeFilterOverride,
+          ...consumptionFilterOverride,
+        }}
+        filterIgnoreList={["q"]}
+      />
+
       <section className={styles.dashboard}>
         <div className={styles["dashboard--full-width"]}>
-          <h2 className={styles["dashboard__section-heading"]}>
-            Meter Consumption
-          </h2>
+          <h2>Meter Consumption</h2>
           <MeterConsumptionPage />
         </div>
 
         <div className={styles["dashboard--full-width"]}>
-          <h2 className={styles["dashboard__section-heading"]}>Leakage</h2>
+          <h2>Leakage</h2>
           <LeakagePage />
         </div>
 
         <div className={styles["dashboard__split-row"]}>
           <div className={styles["dashboard__main-column"]}>
-            <h2 className={styles["dashboard__section-heading"]}>
-              Top 10 Meters
-            </h2>
+            <h2>Top 10 Meters</h2>
             <Top10MeterPage />
           </div>
 
           <div className={styles["dashboard__side-column"]}>
-            <h2 className={styles["dashboard__section-heading"]}>
-              Flow Values
-            </h2>
+            <h2>Flow Values</h2>
             <FlowValuesInner />
           </div>
-        </div>
-
-        <div className={styles["dashboard--full-width"]}>
-          <h2 className={styles["dashboard__section-heading"]}>Leakage List</h2>
-          <LeakageListPage />
         </div>
       </section>
     </QueryParams.Params.Root>
@@ -121,15 +123,18 @@ export const DashboardInner = (_props: DashboardInnerProps) => {
 
 export default DashboardInner;
 
-
 "use client";
 
 import LeakageListInner from "./Inner";
+import { DashboardFilters } from "@/app/dashboard/Inner";
 
-export default function LeakageListPage() {
-  return <LeakageListInner />;
+interface Props {
+  dashboardFilters: DashboardFilters;
 }
 
+export default function LeakageListPage({ dashboardFilters }: Props) {
+  return <LeakageListInner dashboardFilters={dashboardFilters} />;
+}
 
 "use client";
 
@@ -144,10 +149,25 @@ import {
   buildLeakageApiRequest,
 } from "@/lib/services/api/dashboard/Kpis/utils/queryParamMapper";
 import { LeakageListRequest } from "@/lib/services/api/dashboard/Kpis/models/getLeakageList";
+import { DashboardFilters } from "@/app/dashboard/Inner";
 
-export default function LeakageListInner() {
+interface LeakageProps {
+  dashboardFilters: DashboardFilters;
+}
+
+export default function LeakageListInner({ dashboardFilters }: LeakageProps) {
+  const filtersKey = JSON.stringify(dashboardFilters);
+
+  return (
+    <QueryParams.Params.Root initialParams={dashboardFilters} key={filtersKey}>
+      <LeakageListScoped />
+    </QueryParams.Params.Root>
+  );
+}
+
+function LeakageListScoped() {
   const { queryParams } = useQueryParams<LeakageListRequest>();
-  
+
   const queryParameters = useMemo(() => {
     const mapped = mapKpiQueryParams(queryParams, "leakage");
     return buildLeakageApiRequest(mapped);
@@ -156,15 +176,21 @@ export default function LeakageListInner() {
   return (
     <LeakageList queryParameters={queryParameters}>
       {({ resultsLoading, resultsCount }) => (
-        <QueryParams.Params.Root>
+        <>
           <SearchQueryFilter placeholder="Search" />
+
           <QueryParams.Params.SelectedValues
             resultsLoading={resultsLoading}
             resultsCount={resultsCount}
             filterOverrides={searchQueryFilterOverride}
-            filterIgnoreList={['group_id', 'dateRange', 'timeRange', 'consumption_range']}
+            filterIgnoreList={[
+              "group_id",
+              "dateRange",
+              "timeRange",
+              "consumption_range",
+            ]}
           />
-        </QueryParams.Params.Root>
+        </>
       )}
     </LeakageList>
   );
