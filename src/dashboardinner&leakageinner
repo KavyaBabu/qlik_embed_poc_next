@@ -195,3 +195,9 @@ function LeakageListScoped() {
     </LeakageList>
   );
 }
+
+
+Type 'DashboardFilters' is not assignable to type 'QueryParamsRecord'.
+  Index signature for type 'string' is missing in type 'DashboardFilters'.ts(2322)
+index.d.ts(12, 5): The expected type comes from property 'initialParams' which is declared here on type 'IntrinsicAttributes & QueryParamsRootProps<QueryParamsRecord>'
+(property) QueryParamsRootProps<QueryParamsRecord>.initialParams?: QueryParamsRecord | undefined
