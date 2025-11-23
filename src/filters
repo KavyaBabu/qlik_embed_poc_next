@@ -1,0 +1,209 @@
+"use client";
+
+import {
+  handleSingleSearchableSelectChange,
+  SearchableSelect,
+  useQueryParams,
+} from "@arqiva/react-component-lib";
+import { memo, useMemo } from "react";
+import { useListGroups } from "@/lib/services/api/dashboard/Groups/hooks/useListGroups";
+
+export const GroupFilter = memo(() => {
+  const { queryParams, setParam } = useQueryParams();
+
+  const { data, isLoading } = useListGroups({});
+
+  const options = useMemo(() => {
+    const items = data?.items ?? [];
+    return items
+      .filter((g) => g.id && g.name)
+      .map((g) => ({
+        value: String(g.id),
+        label: g.name as string,
+      }));
+  }, [data]);
+
+  if (!queryParams || !setParam) {
+    return null;
+  }
+
+  return (
+    <SearchableSelect
+      clearable
+      options={options}
+      isLoading={isLoading}
+      value={options.find((o) => o.value === queryParams.group_id) || null}
+      onChange={handleSingleSearchableSelectChange((value) => {
+        setParam("group_id", value || undefined);
+      })}
+      placeholder="Group"
+    />
+  );
+});
+
+GroupFilter.displayName = "GroupFilter";
+
+export const groupFilterOverride = {
+  group_id: {
+    label: "Group",
+    valueTransform: String,
+  },
+};
+
+
+"use client";
+
+import { DateRangePicker, useQueryParams } from "@arqiva/react-component-lib";
+import { memo, useMemo, useCallback } from "react";
+import { displayDate } from "@/utils/dateTime";
+
+export const DateRangeFilter = memo(() => {
+  const { queryParams, setParam } = useQueryParams<{ dateRange?: string }>();
+
+  const initialRange = useMemo(() => {
+    if (!queryParams.dateRange) return;
+    const [fromStr, toStr] = queryParams.dateRange.split("_to_");
+    const from = fromStr ? new Date(fromStr) : undefined;
+    const to = toStr ? new Date(toStr) : undefined;
+
+    return {
+      from: from && !Number.isNaN(from.getTime()) ? from : undefined,
+      to: to && !Number.isNaN(to.getTime()) ? to : undefined,
+    };
+  }, [queryParams.dateRange]);
+
+  const handleSelect = useCallback(
+    (range?: { from?: Date; to?: Date }) => {
+      if (range?.from && range.to) {
+        setParam(
+          "dateRange",
+          `${range.from.toISOString()}_to_${range.to.toISOString()}`
+        );
+      } else if (range?.from) {
+        setParam("dateRange", `${range.from.toISOString()}_to_`);
+      } else {
+        setParam("dateRange", undefined);
+      }
+    },
+    [setParam]
+  );
+
+  return (
+    <DateRangePicker
+      initialRange={initialRange}
+      clearable
+      placeholder="Pick a date range"
+      onSelect={handleSelect}
+    />
+  );
+});
+
+DateRangeFilter.displayName = "DateRangeFilter";
+
+export const dateRangeFilterOverride = {
+  dateRange: {
+    label: "Date Range",
+    valueTransform: (value: string | number) => {
+      if (!value || typeof value !== "string") return String(value);
+      const [from, to] = value.split("_to_");
+      return from && to
+        ? `${displayDate(from)} - ${displayDate(to)}`
+        : from
+          ? `${displayDate(from)} - ...`
+          : "Pick a date range";
+    },
+  },
+};
+
+export default DateRangeFilter;
+
+"use client";
+
+import { memo, useMemo, useCallback } from "react";
+import { TimeRangePicker, useQueryParams } from "@arqiva/react-component-lib";
+import { formatTimeHM } from "@/utils/dateTime";
+
+export const TimeFilter = memo(() => {
+  const { queryParams, setParam } = useQueryParams<{ timeRange?: string }>();
+
+  const initialRange = useMemo(() => {
+    if (!queryParams.timeRange) return;
+    const [start, end] = queryParams.timeRange.split("_to_");
+    return {
+      start: start || undefined,
+      end: end || undefined,
+    };
+  }, [queryParams.timeRange]);
+
+  const handleSelect = useCallback(
+    (range?: { start?: string; end?: string }) => {
+      if (range?.start && range.end) {
+        setParam("timeRange", `${range.start}_to_${range.end}`);
+      } else if (range?.start) {
+        setParam("timeRange", `${range.start}_to_`);
+      } else {
+        setParam("timeRange", undefined);
+      }
+    },
+    [setParam]
+  );
+
+  return (
+    <TimeRangePicker
+      initialRange={initialRange}
+      clearable
+      placeholder="Pick a time range"
+      onSelect={handleSelect}
+    />
+  );
+});
+
+TimeFilter.displayName = "TimeFilter";
+
+export const timeFilterOverride = {
+  timeRange: {
+    label: "Time Range",
+    valueTransform: (value: string | number) => {
+      if (!value || typeof value !== "string") return String(value);
+      const [start, end] = value.split("_to_");
+      return start && end
+        ? `${formatTimeHM(start, true)} - ${formatTimeHM(end, true)}`
+        : start
+          ? `${formatTimeHM(start, true)} - ...`
+          : "Pick a time range";
+    },
+  },
+};
+
+export default TimeFilter;
+
+import { SearchInput, useQueryParams } from "@arqiva/react-component-lib";
+import { memo } from "react";
+import styles from "./index.module.css";
+
+interface SearchQueryFilterProps {
+  placeholder: string;
+}
+
+const SearchQueryFilter = memo(({ placeholder }: SearchQueryFilterProps) => {
+  const { queryParams, setParam } = useQueryParams<{ q: string }>();
+
+  return (
+    <SearchInput
+      className={styles.search}
+      placeholder={placeholder}
+      value={queryParams.q ?? ""}
+      onChange={(value: string) => setParam("q", value)}
+    />
+  );
+});
+
+SearchQueryFilter.displayName = "SearchQueryFilter";
+
+export const searchQueryFilterOverride = {
+  q: {
+    label: "search",
+  },
+};
+
+export default SearchQueryFilter;
