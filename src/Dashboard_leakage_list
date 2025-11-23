@@ -1,6 +1,7 @@
 .top-ten-table {
   --cell-padding-y: var(--spacing-md);
   --cell-padding-x: var(--spacing-lg);
+  padding-bottom: var(--spacing-lg);
 }
 
 .top-ten-table :global(td) {
@@ -69,10 +70,6 @@
 .top-ten-table :global(th:nth-child(2)),
 .top-ten-table :global(td:nth-child(2)) {
   width: auto !important;
-}
-
-.top-ten-table :global(tbody tr:last-child td) {
-  padding-bottom: calc(var(--spacing-2xl) + 10px) !important;
 }
 
 
@@ -147,3 +144,66 @@ export const top10Columns: ColumnDef<Top10MeterEntry>[] = [
     },
   },
 ];
+
+
+"use client";
+
+import { Table, DataTable } from "@arqiva/react-component-lib";
+import { top10Columns } from "./columns";
+import type {
+  Top10MetersResponse,
+  Top10MetersRequest,
+} from "../../../models/getTop10Meters";
+import { useTop10Meters } from "../../../hooks/useTop10Meters";
+import { isQueryLoading } from "@/utils/query/isQueryLoading";
+import Error from "@/lib/services/api/_components/Error";
+import styles from "./index.module.css";
+
+interface ListProps {
+  queryParameters: Top10MetersRequest;
+  initialData?: Top10MetersResponse;
+  children?: ({
+    resultsLoading,
+    resultsCount,
+  }: {
+    resultsLoading: boolean;
+    resultsCount: number;
+  }) => React.ReactNode;
+}
+
+export const ListTop10Meters = ({
+  queryParameters,
+  initialData,
+  children,
+}: ListProps) => {
+  const query = useTop10Meters({
+    queryParameters,
+    initialData,
+  });
+
+  if (query.error) {
+    return (
+      <Error error={query.error as Error} refetchOptions={query.refetch} />
+    );
+  }
+
+  const isLoading = isQueryLoading(query);
+
+  return (
+    <div className={styles["top-ten-table"]}>
+      <Table.Wrapper>
+        {children?.({
+          resultsLoading: isLoading,
+          resultsCount: query.data?.items?.length ?? 0,
+        })}
+
+        <DataTable
+          columns={top10Columns}
+          data={query.data?.items ?? []}
+          isLoading={isLoading}
+          loader={{ pageLength: 10, widths: ["lg", "md"] }}
+        />
+      </Table.Wrapper>
+    </div>
+  );
+};
