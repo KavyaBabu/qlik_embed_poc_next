@@ -5,11 +5,108 @@
 
 Switched to client rendering because the server rendering errored:
 
+"use client";
+
+import { Page } from "@arqiva/react-component-lib";
+import QueryParamsUrlProvider from "@/app/_components/QueryParamsUrlProvider";
+import DashboardInner, { DashboardFilters } from "./Inner";
+import LeakageListPage from "./widgets/leakageList/page";
+import { useState } from "react";
+import styles from "./index.module.css";
+
+const DashboardPage = () => {
+  const [dashboardFilters, setDashboardFilters] = useState<DashboardFilters>({});
+
+  return (
+    <Page.Root>
+      <Page.Head>
+        <Page.Title>Dashboard</Page.Title>
+      </Page.Head>
+
+      <QueryParamsUrlProvider initialParams={{}}>
+        <DashboardInner onFiltersChange={setDashboardFilters} />
+      </QueryParamsUrlProvider>
+
+      <div className={styles["dashboard--full-width"]} style={{ marginTop: "2rem" }}>
+            <h2 className={styles["dashboard__section-heading"]}>Leakage List</h2>
+      <LeakageListPage dashboardFilters={dashboardFilters} />
+      </div>
+    </Page.Root>
+  );
+};
+
+export default DashboardPage;
+
+.dashboard {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-2xl, 2rem);
+  margin-top: var(--spacing-xl, 1.5rem);
+}
+
+.dashboard__section-heading {
+  color: var(--grey-900, #111827);
+  font-size: var(--text-xl, 1.25rem);
+  font-weight: var(--font-semibold, 600);
+  line-height: 1.5;
+  margin-bottom: var(--spacing-lg, 1rem);
+}
+
+.dashboard--full-width {
+  width: 100%;
+}
+
+.dashboard__split-row {
+  display: grid;
+  gap: var(--spacing-xl, 1.5rem);
+  grid-template-columns: 60% 40%;
+  width: 100%;
+}
+
+.dashboard__main-column {
+  min-width: 0;
+}
+
+.dashboard__side-column {
+  min-width: 0;
+}
+
+@media (width <= 1024px) {
+  .dashboard__split-row {
+    gap: var(--spacing-lg, 1rem);
+    grid-template-columns: 65% 35%;
+  }
+}
+
+@media (width <= 768px) {
+  .dashboard__split-row {
+    gap: var(--spacing-xl, 1.5rem);
+    grid-template-columns: 1fr;
+  }
+
+  .dashboard {
+    gap: var(--spacing-xl, 1.5rem);
+  }
+
+  .dashboard__section-heading {
+    font-size: var(--text-lg, 1.125rem);
+  }
+}
+
+.dashboard__filters {
+  position: sticky;
+  top: 0 ;
+  z-index: 1000 ;
+  background-color: var(--white, #ffffff);
+  padding-top: var(--spacing-md, 1rem);
+  margin-bottom: var(--spacing-lg, 1rem);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
 
 "use client";
 
-import { QueryParams } from "@arqiva/react-component-lib";
-
+import { useEffect } from "react";
+import { QueryParams, useQueryParams } from "@arqiva/react-component-lib";
 import {
   GroupFilter,
   groupFilterOverride,
@@ -26,44 +123,68 @@ import {
   ConsumptionFilter,
   consumptionFilterOverride,
 } from "@/lib/services/api/dashboard/Kpis/filters/ConsumptionFilter";
-
 import MeterConsumptionPage from "./widgets/meterConsumption/page";
 import LeakagePage from "./widgets/leakgaeInfo/page";
 import Top10MeterPage from "./widgets/top10Meters/page";
 import FlowValuesInner from "./widgets/flowValues/Inner";
 import styles from "./index.module.css";
-import LeakageListPage from "./widgets/leakageList/page";
 
-interface DashboardInnerProps {
-  initialData?: unknown;
+export interface DashboardFilters {
+  group_id?: string;
+  dateRange?: string;
+  timeRange?: string;
+  consumption_range?: string;
 }
 
-export const DashboardInner = (_props: DashboardInnerProps) => {
+interface DashboardInnerProps {
+  onFiltersChange: (filters: DashboardFilters) => void;
+}
+
+export const DashboardInner = ({ onFiltersChange }: DashboardInnerProps) => {
+  const { queryParams } = useQueryParams();
+
+  useEffect(() => {
+    onFiltersChange({
+      group_id: queryParams.group_id ? String(queryParams.group_id) : undefined,
+      dateRange: queryParams.dateRange ? String(queryParams.dateRange) : undefined,
+      timeRange: queryParams.timeRange ? String(queryParams.timeRange) : undefined,
+      consumption_range: queryParams.consumption_range ? String(queryParams.consumption_range) : undefined,
+    });
+  }, [
+    queryParams.group_id,
+    queryParams.dateRange,
+    queryParams.timeRange,
+    queryParams.consumption_range,
+    onFiltersChange,
+  ]);
+
   return (
     <QueryParams.Params.Root>
+      <div className={styles.dashboard__filters}>
       <QueryParams.Params.Filters>
         <GroupFilter />
         <DateRangeFilter />
         <TimeFilter />
         <ConsumptionFilter />
       </QueryParams.Params.Filters>
-      {Object.keys(QueryParams ?? {}).length > 0 && (
-        <QueryParams.Params.SelectedValues
-          resultsLoading={false}
-          resultsCount={0}
-          filterOverrides={{
-            ...groupFilterOverride,
-            ...dateRangeFilterOverride,
-            ...timeFilterOverride,
-            ...consumptionFilterOverride,
-          }}
-        />
-      )}
+
+      <QueryParams.Params.SelectedValues
+        resultsLoading={false}
+        resultsCount={0}
+        filterOverrides={{
+          ...groupFilterOverride,
+          ...dateRangeFilterOverride,
+          ...timeFilterOverride,
+          ...consumptionFilterOverride,
+        }}
+        filterIgnoreList={["q"]}
+      />
+        </div>
+     
+
       <section className={styles.dashboard}>
         <div className={styles["dashboard--full-width"]}>
-          <h2 className={styles["dashboard__section-heading"]}>
-            Meter Consumption
-          </h2>
+          <h2 className={styles["dashboard__section-heading"]}>Meter Consumption</h2>
           <MeterConsumptionPage />
         </div>
 
@@ -74,23 +195,14 @@ export const DashboardInner = (_props: DashboardInnerProps) => {
 
         <div className={styles["dashboard__split-row"]}>
           <div className={styles["dashboard__main-column"]}>
-            <h2 className={styles["dashboard__section-heading"]}>
-              Top 10 Meters
-            </h2>
+            <h2 className={styles["dashboard__section-heading"]}>Top 10 Meters</h2>
             <Top10MeterPage />
           </div>
 
           <div className={styles["dashboard__side-column"]}>
-            <h2 className={styles["dashboard__section-heading"]}>
-              Flow Values
-            </h2>
+            <h2 className={styles["dashboard__section-heading"]}>Flow Values</h2>
             <FlowValuesInner />
           </div>
-        </div>
-
-        <div className={styles["dashboard--full-width"]}>
-          <h2 className={styles["dashboard__section-heading"]}>Leakage List</h2>
-          <LeakageListPage />
         </div>
       </section>
     </QueryParams.Params.Root>
@@ -101,678 +213,52 @@ export default DashboardInner;
 
 "use client";
 
-import LeakageListInner from "./Inner";
-
-export default function LeakageListPage() {
-  return <LeakageListInner />;
-}
-
-
-"use client";
-
-import { useMemo } from "react";
-import { QueryParams, useQueryParams } from "@arqiva/react-component-lib";
-import SearchQueryFilter, {
-  searchQueryFilterOverride,
-} from "@/lib/services/common/SearchQueryFilter";
-import { LeakageList } from "@/lib/services/api/dashboard/Kpis/components/Leakage/List";
 import {
-  mapKpiQueryParams,
-  buildLeakageApiRequest,
-} from "@/lib/services/api/dashboard/Kpis/utils/queryParamMapper";
-import { LeakageListRequest } from "@/lib/services/api/dashboard/Kpis/models/getLeakageList";
-
-export default function LeakageListInner() {
-  const { queryParams } = useQueryParams<LeakageListRequest>();
-
-  const queryParameters = useMemo(() => {
-    const mapped = mapKpiQueryParams(queryParams, "leakage");
-    return buildLeakageApiRequest(mapped);
-  }, [queryParams]);
-
-  return (
-    <LeakageList queryParameters={queryParameters}>
-      {({ resultsLoading, resultsCount }) => (
-        <QueryParams.Params.Root>
-          <SearchQueryFilter placeholder="Search" />
-          <QueryParams.Params.SelectedValues
-            resultsLoading={resultsLoading}
-            resultsCount={resultsCount}
-            filterOverrides={searchQueryFilterOverride}
-          />
-        </QueryParams.Params.Root>
-      )}
-    </LeakageList>
-  );
-}
-
-
-export * from "./List";
-export * from "./columns";
-export * from "./searchParams";
-export * from "./queryParameters";
-
-
-"use client";
-
-import {
-  Table,
-  DataTable,
-  QueryParams,
-  getPaginationPropsFromQuery,
+  handleSingleSearchableSelectChange,
+  SearchableSelect,
+  useQueryParams,
 } from "@arqiva/react-component-lib";
-import { leakageColumns } from "./columns";
-import type {
-  LeakageListResponse,
-  LeakageListRequest,
-} from "../../../models/getLeakageList";
-import { useLeakageList } from "../../../hooks/useLeakageList";
-import { isQueryLoading } from "@/utils/query/isQueryLoading";
-import Error from "@/lib/services/api/_components/Error";
+import { memo, useMemo } from "react";
+import { useListGroups } from "@/lib/services/api/dashboard/Groups/hooks/useListGroups";
 
-interface ListProps {
-  queryParameters: LeakageListRequest;
-  initialData?: LeakageListResponse;
-  children?: ({
-    resultsLoading,
-    resultsCount,
-  }: {
-    resultsLoading: boolean;
-    resultsCount: number;
-  }) => React.ReactNode;
-}
+export const GroupFilter = memo(() => {
+  const { queryParams, setParam } = useQueryParams();
 
-export const LeakageList = ({
-  queryParameters,
-  initialData,
-  children,
-}: ListProps) => {
-  const query = useLeakageList({
-    queryParameters,
-    initialData,
-  });
+  const { data, isLoading } = useListGroups({});
 
-  if (query.error) {
-    return (
-      <Error error={query.error as Error} refetchOptions={query.refetch} />
-    );
+  const options = useMemo(() => {
+    const items = data?.items ?? [];
+    return items
+      .filter((g) => g.id && g.name)
+      .map((g) => ({
+        value: String(g.id),
+        label: g.name as string,
+      }));
+  }, [data]);
+
+  if (!queryParams || !setParam) {
+    return null;
   }
 
-  const isLoading = isQueryLoading(query);
-
   return (
-    <Table.Wrapper>
-      {children?.({
-        resultsLoading: isLoading,
-        resultsCount: query.data?.totalItems ?? 0,
+    <SearchableSelect
+      clearable
+      options={options}
+      isLoading={isLoading}
+      value={options.find((o) => o.value === queryParams.group_id) || null}
+      onChange={handleSingleSearchableSelectChange((value) => {
+        setParam("group_id", value || undefined);
       })}
-
-      <DataTable
-        columns={leakageColumns}
-        data={query.data?.data ?? []}
-        isLoading={isLoading}
-        loader={{
-          pageLength: queryParameters.perPage,
-          widths: ["md", "lg"],
-        }}
-        sortByComponent={(column) => <QueryParams.Table.Sort column={column} />}
-        paginationComponent={
-          <QueryParams.Table.Pagination
-            {...getPaginationPropsFromQuery(
-              query,
-              queryParameters?.perPage ?? 10
-            )}
-          />
-        }
-      />
-    </Table.Wrapper>
+      placeholder="Group"
+    />
   );
-};
-
-export default LeakageList;
-
-import { UseQueryOptions } from "@tanstack/react-query";
-import { useInitialCachedQuery } from "@/hooks/useInitialCachedQuery";
-import KpiService from "../api";
-
-import {
-  LeakageListRequest,
-  LeakageListResponse,
-} from "../models/getLeakageList";
-
-interface UseLeakageListProps
-  extends Omit<UseQueryOptions<LeakageListResponse>, "queryKey" | "queryFn"> {
-  queryParameters?: LeakageListRequest;
-}
-
-export const useLeakageList = (props: UseLeakageListProps = {}) => {
-  const { queryParameters, initialData, ...restProps } = props;
-
-  const query = useInitialCachedQuery({
-    initialData,
-    queryParameters,
-    queryKey: ["leakageList", queryParameters],
-    queryFn: () => KpiService.leakageList(queryParameters!),
-    ...restProps,
-  });
-
-  return query;
-};
-
-
-import { apiClient } from "../setup";
-import { withErrorHandling } from "../shared";
-import {
-  kpiConsumptionQuerySchema,
-  kpiConsumptionResponseSchema,
-  type KpiConsumptionQuery,
-  type KpiConsumptionResponse,
-} from "../Kpis/models/getKpiConsumption";
-
-import {
-  kpiLeakageQuerySchema,
-  kpiLeakageResponseSchema,
-  type KpiLeakageQuery,
-  type KpiLeakageResponse,
-} from "../Kpis/models/getKpiLeakage";
-
-import {
-  top10MetersRequestSchema,
-  top10MetersResponseSchema,
-  type Top10MetersRequest,
-  type Top10MetersResponse,
-} from "../Kpis/models/getTop10Meters";
-
-import {
-  flowValuesRequestSchema,
-  flowValuesResponseSchema,
-  type FlowValuesRequest,
-  type FlowValuesResponse,
-} from "../Kpis/models/getFlowValues";
-
-import {
-  leakageListRequestSchema,
-  leakageListResponseSchema,
-  type LeakageListRequest,
-  type LeakageListResponse,
-} from "../Kpis/models/getLeakageList";
-
-const KpiService = {
-  async consumption(
-    query: KpiConsumptionQuery
-  ): Promise<KpiConsumptionResponse> {
-    kpiConsumptionQuerySchema.parse(query);
-
-    const response = await withErrorHandling(
-      () =>
-        apiClient.GET("/kpis", {
-          params: { query },
-        }),
-      {
-        endpoint: "/kpis",
-        operation: "getKpiConsumption",
-      }
-    );
-
-    return kpiConsumptionResponseSchema.parse(response);
-  },
-
-  async leakage(query: KpiLeakageQuery): Promise<KpiLeakageResponse> {
-    kpiLeakageQuerySchema.parse(query);
-
-    const response = await withErrorHandling(
-      () =>
-        apiClient.GET("/kpis/leakage", {
-          params: { query },
-        }),
-      {
-        endpoint: "/kpis/leakage",
-        operation: "getKpiLeakage",
-      }
-    );
-
-    return kpiLeakageResponseSchema.parse(response);
-  },
-  async listTop10(body: Top10MetersRequest): Promise<Top10MetersResponse> {
-    top10MetersRequestSchema.parse(body);
-
-    const response = await withErrorHandling(
-      () => apiClient.POST("/top10_meters", { body }),
-      {
-        endpoint: "/top10_meters",
-        operation: "listTop10Meters",
-      }
-    );
-
-    return top10MetersResponseSchema.parse(response);
-  },
-  async flowValues(body: FlowValuesRequest): Promise<FlowValuesResponse> {
-    flowValuesRequestSchema.parse(body);
-
-    const response = await withErrorHandling(
-      () => apiClient.POST("/flow_values", { body }),
-      {
-        endpoint: "/flow_values",
-        operation: "listFlowValues",
-      }
-    );
-
-    return flowValuesResponseSchema.parse(response);
-  },
-
-  async leakageList(body: LeakageListRequest): Promise<LeakageListResponse> {
-    leakageListRequestSchema.parse(body);
-
-    const response = await withErrorHandling(
-      () =>
-        apiClient.POST("/kpis/table", {
-          body,
-        }),
-      {
-        endpoint: "/kpis/table",
-        operation: "listLeakageList",
-      }
-    );
-
-    return leakageListResponseSchema.parse(response);
-  },
-};
-
-export default KpiService;
-
-"use client";
-
-import { ColumnDef } from "@tanstack/react-table";
-import type { LeakageListEntry } from "../../../models/getLeakageList";
-import {
-  Table,
-  TruncatedText,
-  Button,
-  Badge,
-} from "@arqiva/react-component-lib";
-import Link from "next/link";
-
-export const leakageColumns: ColumnDef<LeakageListEntry>[] = [
-  {
-    id: "meter_id",
-    header: "Meter",
-    accessorKey: "meter_id",
-    enableSorting: true,
-    cell: ({ row }) => {
-      return (
-        <Table.Block.Lead>
-          <Button variant="text" asChild>
-            <Link href={`/dashboard/leakage/${row.original.meter_id}`}>
-              <TruncatedText text={String(row.original.meter_id)} />
-            </Link>
-          </Button>
-        </Table.Block.Lead>
-      );
-    },
-  },
-  {
-    id: "usage",
-    header: "Usage",
-    accessorKey: "usage",
-    enableSorting: true,
-    cell: ({ row }) => {
-      const val = String(row.original.usage).toLowerCase();
-
-      const variant =
-        val === "high" ? "error" : val === "medium" ? "warning" : "success";
-
-      return <Badge variant={variant}>{row.original.usage}</Badge>;
-    },
-  },
-  {
-    id: "daily_avg_consumption",
-    header: "Daily Avg Consumption",
-    accessorKey: "daily_avg_consumption",
-    enableSorting: true,
-  },
-  {
-    id: "hourly_avg_consumption",
-    header: "Hourly Avg Consumption",
-    accessorKey: "hourly_avg_consumption",
-    enableSorting: true,
-  },
-  {
-    id: "total_consumption",
-    header: "Reading Amount",
-    accessorKey: "total_consumption",
-    enableSorting: true,
-    cell: ({ row }) => {
-      return <Badge variant="warning">{row.original.total_consumption}</Badge>;
-    },
-  },
-];
-
-
-import { LeakageListRequest } from "../../../models/getLeakageList";
-
-export const parseQueryParameters = (
-  params?: Partial<LeakageListRequest>
-): LeakageListRequest => {
-  const now = new Date();
-  const oneYearAgo = new Date(now.setFullYear(now.getFullYear() - 1));
-
-  return {
-    group_id: params?.group_id ?? 0,
-
-    start_datetime: params?.start_datetime ?? oneYearAgo.toISOString(),
-
-    end_datetime: params?.end_datetime ?? new Date().toISOString(),
-
-    min_consumption: params?.min_consumption ?? 0,
-    max_consumption: params?.max_consumption ?? 10_000_000_000,
-
-    q: params?.q?.trim() ?? "",
-
-    page: params?.page ?? 0,
-    perPage: params?.perPage ?? 10,
-
-    sortBy: params?.sortBy ?? "meter_id",
-    sortDir: params?.sortDir ?? "asc",
-
-    threshold: params?.threshold ?? 0.5,
-  };
-};
-
-
-import * as z from "zod/v4";
-
-export const leakageListRequestSchema = z.object({
-  group_id: z.coerce.number(),
-  start_datetime: z.string(),
-  end_datetime: z.string(),
-  min_consumption: z.number(),
-  max_consumption: z.number(),
-  q: z.string(),
-  page: z.number(),
-  perPage: z.coerce.number(),
-  sortBy: z.enum([
-    "meter_id",
-    "hourly_avg_consumption",
-    "daily_avg_consumption",
-    "total_consumption",
-  ]),
-  sortDir: z.enum(["asc", "desc"]),
-  threshold: z.number(),
-});
-export type LeakageListRequest = z.infer<typeof leakageListRequestSchema>;
-
-export const leakageReadingSchema = z.object({
-  reading: z.number(),
-  expected: z.number(),
-  status: z.string(),
 });
 
-export const leakageListEntrySchema = z.object({
-  meter_id: z.number(),
-  usage: z.string(),
-  hourly_avg_consumption: z.number(),
-  total_consumption: z.number(),
-  daily_avg_consumption: z.number(),
-  leaks: z.boolean(),
-  meter_reading: z.array(leakageReadingSchema),
-});
-export type LeakageListEntry = z.infer<typeof leakageListEntrySchema>;
+GroupFilter.displayName = "GroupFilter";
 
-export const leakageListResponseSchema = z.object({
-  data: z.array(leakageListEntrySchema),
-  count: z.number(),
-  page: z.number(),
-  perPage: z.number(),
-  totalItems: z.number(),
-  totalPages: z.number(),
-});
-
-export type LeakageListResponse = z.infer<typeof leakageListResponseSchema>;
-
-import { SearchParams } from "@/utils/pageTypes";
-import {
-  LeakageListRequest,
-  LeakageListRequest as LeakageListQueryParams,
-} from "../../../models/getLeakageList";
-
-const getStringParam = (val: string | string[] | undefined) => {
-  return Array.isArray(val) ? val[0] : val;
+export const groupFilterOverride = {
+  group_id: {
+    label: "Group",
+    valueTransform: String,
+  },
 };
-
-export const parseSearchParams = (
-  params: SearchParams
-): LeakageListQueryParams => {
-  return {
-    group_id: Number(getStringParam(params.group_id) ?? 0),
-
-    start_datetime:
-      getStringParam(params.start_datetime) ??
-      new Date(
-        new Date().setFullYear(new Date().getFullYear() - 1)
-      ).toISOString(),
-
-    end_datetime:
-      getStringParam(params.end_datetime) ?? new Date().toISOString(),
-
-    min_consumption: Number(getStringParam(params.min_consumption) ?? 0),
-    max_consumption: Number(
-      getStringParam(params.max_consumption) ?? 10_000_000_000
-    ),
-
-    q: getStringParam(params.q) ?? "",
-
-    page: Number.parseInt(getStringParam(params.page) ?? "0", 10),
-    perPage: Number.parseInt(getStringParam(params.perPage) ?? "10", 10),
-
-    sortBy:
-      (getStringParam(params.sortBy) as LeakageListRequest["sortBy"]) ??
-      "meter_id",
-
-    sortDir:
-      (getStringParam(params.sortDir) as LeakageListRequest["sortDir"]) ??
-      "asc",
-
-    threshold: Number(getStringParam(params.threshold) ?? 0.5),
-  };
-};
-
-
-queryParamMapper
-
-function todayStartISO() {
-  const d = new Date();
-  d.setHours(0, 0, 0, 0);
-  return d.toISOString();
-}
-
-function todayEndISO() {
-  const d = new Date();
-  d.setHours(23, 59, 59, 999);
-  return d.toISOString();
-}
-
-interface BaseKpiParams {
-  group_id: number;
-  start_datetime: string;
-  end_datetime: string;
-}
-
-interface ConsumptionListParams extends BaseKpiParams {
-  min_consumption: number;
-  max_consumption: number;
-  threshold: number;
-}
-
-interface StandardMinMaxParams extends BaseKpiParams {
-  min_consumption: number;
-  max_consumption: number;
-}
-
-interface MinMaxWithSortParams extends StandardMinMaxParams {
-  sortKey?: string;
-  sortOrder?: string;
-}
-
-interface Top10MetersParams extends StandardMinMaxParams {
-  threshold: number;
-}
-
-interface LeakageListParams extends StandardMinMaxParams {
-  q?: string;
-  page?: number;
-  perPage?: number;
-  threshold?: number;
-  sortKey?: string;
-  sortOrder?: string;
-}
-
-function parseCommonParams(queryParams: Record<string, unknown>) {
-  const qp = queryParams as Record<string, unknown>;
-
-  const group_id = Number(qp.group_id ?? qp.group ?? 0);
-
-  const dateRange = typeof qp.dateRange === "string" ? qp.dateRange : "";
-  const [startStr, endStr] = dateRange.split("_to_");
-
-  const start_datetime =
-    startStr && !Number.isNaN(Date.parse(startStr))
-      ? startStr
-      : todayStartISO();
-  const end_datetime =
-    endStr && !Number.isNaN(Date.parse(endStr)) ? endStr : todayEndISO();
-
-  const range =
-    typeof qp.consumption_range === "string"
-      ? qp.consumption_range
-      : "0-10000000000";
-
-  const [lo, hi] = (range as string).split("-").map(Number);
-
-  return {
-    group_id,
-    start_datetime,
-    end_datetime,
-    minConsumption: Number.isFinite(lo) ? lo : 0,
-    maxConsumption: Number.isFinite(hi) ? hi : 10_000_000_000,
-  };
-}
-
-export function mapKpiQueryParams(
-  queryParams: Record<string, unknown>,
-  variant: "cons"
-): ConsumptionListParams;
-
-export function mapKpiQueryParams(
-  queryParams: Record<string, unknown>,
-  variant: "minmax"
-): MinMaxWithSortParams;
-
-export function mapKpiQueryParams(
-  queryParams: Record<string, unknown>,
-  variant: "top10"
-): Top10MetersParams;
-
-export function mapKpiQueryParams(
-  queryParams: Record<string, unknown>,
-  variant: "leakage"
-): LeakageListParams;
-
-export function mapKpiQueryParams(
-  queryParams: Record<string, unknown>,
-  variant?: "cons" | "minmax" | "top10" | "leakage"
-):
-  | ConsumptionListParams
-  | MinMaxWithSortParams
-  | Top10MetersParams
-  | LeakageListParams {
-  const qp = queryParams as Record<string, unknown>;
-  const {
-    group_id,
-    start_datetime,
-    end_datetime,
-    minConsumption,
-    maxConsumption,
-  } = parseCommonParams(qp);
-
-  if (variant === "cons") {
-    return {
-      group_id,
-      start_datetime,
-      end_datetime,
-      min_consumption: minConsumption,
-      max_consumption: maxConsumption,
-      threshold: 0.5,
-    } satisfies ConsumptionListParams;
-  }
-
-  if (variant === "top10") {
-    return {
-      group_id,
-      start_datetime,
-      end_datetime,
-      min_consumption: minConsumption,
-      max_consumption: maxConsumption,
-      threshold: 0.5,
-    } satisfies Top10MetersParams;
-  }
-
-  if (variant === "leakage") {
-    return {
-      group_id,
-      start_datetime,
-      end_datetime,
-      min_consumption: minConsumption,
-      max_consumption: maxConsumption,
-      q: typeof qp.q === "string" ? qp.q : "",
-      page: typeof qp.page === "number" ? qp.page : 0,
-      perPage: typeof qp.perPage === "number" ? qp.perPage : 10,
-      threshold: typeof qp.threshold === "number" ? qp.threshold : 0.5,
-      sortKey:
-        typeof qp.sortBy === "string"
-          ? qp.sortBy
-          : typeof qp.sortKey === "string"
-            ? qp.sortKey
-            : "meter_id",
-      sortOrder:
-        typeof qp.sortDir === "string"
-          ? qp.sortDir
-          : typeof qp.sortOrder === "string"
-            ? qp.sortOrder
-            : "asc",
-    } satisfies LeakageListParams;
-  }
-
-  return {
-    group_id,
-    start_datetime,
-    end_datetime,
-    min_consumption: minConsumption,
-    max_consumption: maxConsumption,
-    sortKey: (qp.sortKey as string) ?? "meter_id",
-    sortOrder: (qp.sortOrder as string) ?? "ascend",
-  } satisfies MinMaxWithSortParams;
-}
-
-type SortKey =
-  | "meter_id"
-  | "hourly_avg_consumption"
-  | "daily_avg_consumption"
-  | "total_consumption";
-
-export const buildLeakageApiRequest = (mappedParams: LeakageListParams) => {
-  return {
-    group_id: mappedParams.group_id,
-    start_datetime: mappedParams.start_datetime,
-    end_datetime: mappedParams.end_datetime,
-    min_consumption: mappedParams.min_consumption,
-    max_consumption: mappedParams.max_consumption,
-    q: mappedParams.q ?? "",
-    page: mappedParams.page ?? 0,
-    perPage: mappedParams.perPage ?? 10,
-    threshold: mappedParams.threshold ?? 0.5,
-    sortBy: (mappedParams.sortKey ?? "meter_id") as SortKey,
-    sortDir: (mappedParams.sortOrder ?? "asc") as "asc" | "desc",
-  };
-};
-
-
