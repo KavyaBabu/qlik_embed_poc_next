@@ -1,13 +1,38 @@
- GET /favicon.ico?favicon.0b3bf435.ico 200 in 464ms
- ⨯ [TypeError: Cannot read properties of null (reading 'registered')] {
-  digest: '623655995'
-}
+"use client";
 
-Switched to client rendering because the server rendering errored:
+import { Page } from "@arqiva/react-component-lib";
+import QueryParamsUrlProvider from "@/app/_components/QueryParamsUrlProvider";
+import DashboardInner, { DashboardFilters } from "./Inner";
+import LeakageListPage from "./widgets/leakageList/page";
+import { useState } from "react";
+import styles from "./index.module.css";
 
+const DashboardPage = () => {
+  const [dashboardFilters, setDashboardFilters] = useState<DashboardFilters>({});
 
-.page__head {
-  position: sticky;
+  return (
+    <Page.Root>
+      <QueryParamsUrlProvider initialParams={{}}>
+        <Page.Head>
+          <Page.Title>Dashboard</Page.Title>
+          <DashboardInner.FiltersBar onFiltersChange={setDashboardFilters} />
+        </Page.Head>
+
+        <DashboardInner.Content />
+        
+        <div className={styles["dashboard--full-width"]} style={{ marginTop: "2rem" }}>
+          <h2 className={styles["dashboard__section-heading"]}>Leakage List</h2>
+          <LeakageListPage dashboardFilters={dashboardFilters} />
+        </div>
+      </QueryParamsUrlProvider>
+    </Page.Root>
+  );
+};
+
+export default DashboardPage;
+
+:global(.page__head) {
+  position: fixed;
   top: 0;
   z-index: 1000;
   background: #fff;
@@ -66,142 +91,3 @@ Switched to client rendering because the server rendering errored:
   }
 }
 
-
-"use client";
-
-import { useEffect } from "react";
-import { QueryParams, useQueryParams } from "@arqiva/react-component-lib";
-import {
-  GroupFilter,
-  groupFilterOverride,
-} from "@/lib/services/api/dashboard/Kpis/filters/GroupFilter";
-import {
-  DateRangeFilter,
-  dateRangeFilterOverride,
-} from "@/lib/services/api/dashboard/Kpis/filters/DateRangeFilter";
-import {
-  TimeFilter,
-  timeFilterOverride,
-} from "@/lib/services/api/dashboard/Kpis/filters/TimeFilter";
-import {
-  ConsumptionFilter,
-  consumptionFilterOverride,
-} from "@/lib/services/api/dashboard/Kpis/filters/ConsumptionFilter";
-import MeterConsumptionPage from "./widgets/meterConsumption/page";
-import LeakagePage from "./widgets/leakgaeInfo/page";
-import Top10MeterPage from "./widgets/top10Meters/page";
-import FlowValuesInner from "./widgets/flowValues/Inner";
-import styles from "./index.module.css";
-
-export interface DashboardFilters {
-  group_id?: string;
-  dateRange?: string;
-  timeRange?: string;
-  consumption_range?: string;
-}
-
-interface FiltersBarProps {
-  onFiltersChange: (filters: DashboardFilters) => void;
-}
-
-const FiltersBar = ({ onFiltersChange }: FiltersBarProps) => {
-  const { queryParams } = useQueryParams();
-
-  useEffect(() => {
-    onFiltersChange({
-      group_id: queryParams.group_id ? String(queryParams.group_id) : undefined,
-      dateRange: queryParams.dateRange ? String(queryParams.dateRange) : undefined,
-      timeRange: queryParams.timeRange ? String(queryParams.timeRange) : undefined,
-      consumption_range: queryParams.consumption_range ? String(queryParams.consumption_range) : undefined,
-    });
-  }, [
-    queryParams.group_id,
-    queryParams.dateRange,
-    queryParams.timeRange,
-    queryParams.consumption_range,
-    onFiltersChange,
-  ]);
-
-  return (
-    <div className={styles.dashboard__filters}>
-      <QueryParams.Params.Filters>
-        <GroupFilter />
-        <DateRangeFilter />
-        <TimeFilter />
-        <ConsumptionFilter />
-      </QueryParams.Params.Filters>
-      <QueryParams.Params.SelectedValues
-        resultsLoading={false}
-        resultsCount={0}
-        filterOverrides={{
-          ...groupFilterOverride,
-          ...dateRangeFilterOverride,
-          ...timeFilterOverride,
-          ...consumptionFilterOverride,
-        }}
-        filterIgnoreList={["q"]}
-      />
-    </div>
-  );
-};
-
-const Content = () => (
-  <section className={styles.dashboard}>
-    <div className={styles["dashboard--full-width"]}>
-      <h2 className={styles["dashboard__section-heading"]}>Meter Consumption</h2>
-      <MeterConsumptionPage />
-    </div>
-    <div className={styles["dashboard--full-width"]}>
-      <h2 className={styles["dashboard__section-heading"]}>Leakage</h2>
-      <LeakagePage />
-    </div>
-    <div className={styles["dashboard__split-row"]}>
-      <div className={styles["dashboard__main-column"]}>
-        <h2 className={styles["dashboard__section-heading"]}>Top 10 Meters</h2>
-        <Top10MeterPage />
-      </div>
-      <div className={styles["dashboard__side-column"]}>
-        <h2 className={styles["dashboard__section-heading"]}>Flow Values</h2>
-        <FlowValuesInner />
-      </div>
-    </div>
-  </section>
-);
-
-const DashboardInner = { FiltersBar, Content };
-export default DashboardInner;
-
-"use client";
-
-import { Page } from "@arqiva/react-component-lib";
-import QueryParamsUrlProvider from "@/app/_components/QueryParamsUrlProvider";
-import DashboardInner, { DashboardFilters } from "./Inner";
-import LeakageListPage from "./widgets/leakageList/page";
-import { useState } from "react";
-import styles from "./index.module.css";
-
-const DashboardPage = () => {
-  const [dashboardFilters, setDashboardFilters] = useState<DashboardFilters>({});
-
-  return (
-    <Page.Root>
-      <QueryParamsUrlProvider initialParams={{}}>
-        <Page.Head>
-          <Page.Title>Dashboard</Page.Title>
-          {/* Filters and selected values are now here */}
-          <DashboardInner.FiltersBar onFiltersChange={setDashboardFilters} />
-        </Page.Head>
-
-        {/* Main dashboard content (without filters) */}
-        <DashboardInner.Content />
-        
-        <div className={styles["dashboard--full-width"]} style={{ marginTop: "2rem" }}>
-          <h2 className={styles["dashboard__section-heading"]}>Leakage List</h2>
-          <LeakageListPage dashboardFilters={dashboardFilters} />
-        </div>
-      </QueryParamsUrlProvider>
-    </Page.Root>
-  );
-};
-
-export default DashboardPage;
