@@ -1,3 +1,17 @@
+<div style={{
+  position: "sticky",
+  top: 0,
+  zIndex: 2000,
+  background: "#fff",
+  boxShadow: "0 2px 12px rgba(0,0,0,0.12)",
+  padding: "2rem"
+}}>
+  <h1>Dashboard</h1>
+  <div>Filters go here</div>
+</div>
+<div style={{height: "3000px", background: "#f6f6f6"}}>Scroll me!</div>
+
+
 "use client";
 
 import { Page } from "@arqiva/react-component-lib";
