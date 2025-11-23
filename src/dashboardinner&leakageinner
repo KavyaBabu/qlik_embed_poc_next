@@ -1,0 +1,171 @@
+import { Page } from "@arqiva/react-component-lib";
+import logger from "@/lib/services/logger";
+import QueryParamsUrlProvider from "@/app/_components/QueryParamsUrlProvider";
+import { DashboardInner } from "./Inner";
+
+const DashboardPage = () => {
+  try {
+    // TODO: fetch dashboard data
+  } catch (error) {
+    logger.error(error as Error);
+    throw new Error("Failed to fetch dashboard data");
+  }
+
+  return (
+    <Page.Root>
+      <Page.Head>
+        <Page.Title>Dashboard</Page.Title>
+      </Page.Head>
+
+      <QueryParamsUrlProvider initialParams={{}}>
+        <DashboardInner />
+      </QueryParamsUrlProvider>
+    </Page.Root>
+  );
+};
+
+export default DashboardPage;
+
+
+"use client";
+
+import { QueryParams } from "@arqiva/react-component-lib";
+
+import {
+  GroupFilter,
+  groupFilterOverride,
+} from "@/lib/services/api/dashboard/Kpis/filters/GroupFilter";
+import {
+  DateRangeFilter,
+  dateRangeFilterOverride,
+} from "@/lib/services/api/dashboard/Kpis/filters/DateRangeFilter";
+import {
+  TimeFilter,
+  timeFilterOverride,
+} from "@/lib/services/api/dashboard/Kpis/filters/TimeFilter";
+import {
+  ConsumptionFilter,
+  consumptionFilterOverride,
+} from "@/lib/services/api/dashboard/Kpis/filters/ConsumptionFilter";
+
+import MeterConsumptionPage from "./widgets/meterConsumption/page";
+import LeakagePage from "./widgets/leakgaeInfo/page";
+import Top10MeterPage from "./widgets/top10Meters/page";
+import FlowValuesInner from "./widgets/flowValues/Inner";
+import styles from "./index.module.css";
+import LeakageListPage from "./widgets/leakageList/page";
+
+interface DashboardInnerProps {
+  initialData?: unknown;
+}
+
+export const DashboardInner = (_props: DashboardInnerProps) => {
+  return (
+    <QueryParams.Params.Root>
+      <QueryParams.Params.Filters>
+        <GroupFilter />
+        <DateRangeFilter />
+        <TimeFilter />
+        <ConsumptionFilter />
+      </QueryParams.Params.Filters>
+      {Object.keys(QueryParams ?? {}).length > 0 && (
+        <QueryParams.Params.SelectedValues
+          resultsLoading={false}
+          resultsCount={0}
+          filterOverrides={{
+            ...groupFilterOverride,
+            ...dateRangeFilterOverride,
+            ...timeFilterOverride,
+            ...consumptionFilterOverride,
+          }}
+          filterIgnoreList={['q']}
+        />
+      )}
+      <section className={styles.dashboard}>
+        <div className={styles["dashboard--full-width"]}>
+          <h2 className={styles["dashboard__section-heading"]}>
+            Meter Consumption
+          </h2>
+          <MeterConsumptionPage />
+        </div>
+
+        <div className={styles["dashboard--full-width"]}>
+          <h2 className={styles["dashboard__section-heading"]}>Leakage</h2>
+          <LeakagePage />
+        </div>
+
+        <div className={styles["dashboard__split-row"]}>
+          <div className={styles["dashboard__main-column"]}>
+            <h2 className={styles["dashboard__section-heading"]}>
+              Top 10 Meters
+            </h2>
+            <Top10MeterPage />
+          </div>
+
+          <div className={styles["dashboard__side-column"]}>
+            <h2 className={styles["dashboard__section-heading"]}>
+              Flow Values
+            </h2>
+            <FlowValuesInner />
+          </div>
+        </div>
+
+        <div className={styles["dashboard--full-width"]}>
+          <h2 className={styles["dashboard__section-heading"]}>Leakage List</h2>
+          <LeakageListPage />
+        </div>
+      </section>
+    </QueryParams.Params.Root>
+  );
+};
+
+export default DashboardInner;
+
+
+"use client";
+
+import LeakageListInner from "./Inner";
+
+export default function LeakageListPage() {
+  return <LeakageListInner />;
+}
+
+
+"use client";
+
+import { useMemo } from "react";
+import { QueryParams, useQueryParams } from "@arqiva/react-component-lib";
+import SearchQueryFilter, {
+  searchQueryFilterOverride,
+} from "@/lib/services/common/SearchQueryFilter";
+import { LeakageList } from "@/lib/services/api/dashboard/Kpis/components/Leakage/List";
+import {
+  mapKpiQueryParams,
+  buildLeakageApiRequest,
+} from "@/lib/services/api/dashboard/Kpis/utils/queryParamMapper";
+import { LeakageListRequest } from "@/lib/services/api/dashboard/Kpis/models/getLeakageList";
+
+export default function LeakageListInner() {
+  const { queryParams } = useQueryParams<LeakageListRequest>();
+  
+  const queryParameters = useMemo(() => {
+    const mapped = mapKpiQueryParams(queryParams, "leakage");
+    return buildLeakageApiRequest(mapped);
+  }, [queryParams]);
+
+  return (
+    <LeakageList queryParameters={queryParameters}>
+      {({ resultsLoading, resultsCount }) => (
+        <QueryParams.Params.Root>
+          <SearchQueryFilter placeholder="Search" />
+          <QueryParams.Params.SelectedValues
+            resultsLoading={resultsLoading}
+            resultsCount={resultsCount}
+            filterOverrides={searchQueryFilterOverride}
+            filterIgnoreList={['group_id', 'dateRange', 'timeRange', 'consumption_range']}
+          />
+        </QueryParams.Params.Root>
+      )}
+    </LeakageList>
+  );
+}
