@@ -207,3 +207,178 @@ export const ListTop10Meters = ({
     </div>
   );
 };
+
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
+import ChartTooltip from '../ChartToolTip';
+import styles from './index.module.css';
+
+export interface HorizontalBarProps {
+  data: Array<{ id: string; value: number }>;
+  valueFormatter: (value: number) => string;
+  dataKey?: string;
+  showYAxis?: boolean;
+  height?: number;
+  maxValue?: number;
+  className?: string;
+}
+
+interface RoundedBackgroundProps {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
+const RoundedBackground = (props: unknown) => {
+  const { x, y, width, height } = props as RoundedBackgroundProps;
+  const radius = 4;
+
+  return (
+    <rect
+      x={x}
+      y={y}
+      width={width}
+      height={height}
+      rx={radius}
+      ry={radius}
+      fill="var(--grey-200)"
+    />
+  );
+};
+
+const HorizontalBar = ({
+  data,
+  valueFormatter,
+  dataKey = 'value',
+  height = 400,
+  showYAxis = false,
+  maxValue,
+  className = '',
+}: HorizontalBarProps) => {
+  const maxVal = maxValue || Math.max(...data.map((item) => item.value));
+
+  const marginTop = 8;
+  const marginBottom = 8;
+  const barSize = 10;
+  const innerHeight = height - marginTop - marginBottom;
+  const bandHeight = data.length > 0 ? innerHeight / data.length : 0;
+
+  return (
+    <div className={`${styles['bar-container']} ${className}`}>
+      <ResponsiveContainer width="100%" height={height}>
+        <BarChart
+          data={data}
+          layout="vertical"
+          margin={{
+            top: marginTop,
+            right: 8,
+            left: showYAxis ? 100 : 8,
+            bottom: marginBottom,
+          }}
+        >
+          <XAxis type="number" hide domain={[0, maxVal]} />
+          <YAxis
+            type="category"
+            dataKey="id"
+            tick={{ fill: 'var(--primary-600)' }}
+            style={{ fontSize: 'var(--text-sm)' }}
+            axisLine={false}
+            tickLine={false}
+            hide={!showYAxis}
+            width={100}
+          />
+          <Tooltip
+            cursor={false}
+            content={(props) => (
+              <ChartTooltip
+                {...props}
+                variant="default"
+                valueFormatter={valueFormatter}
+                valuePrefix="Value: "
+                label={props.label ? String(props.label) : undefined}
+              />
+            )}
+          />
+          <Bar
+            dataKey={dataKey}
+            className={styles.bar}
+            radius={[4, 4, 4, 4]}
+            barSize={barSize}
+            background={RoundedBackground}
+            label={false}
+          />
+        </BarChart>
+      </ResponsiveContainer>
+
+      <div className={styles['labels-container']}>
+        {data.map((item, index) => {
+          if (data.length === 0) return null;
+
+          const centerY = marginTop + index * bandHeight + bandHeight / 2;
+          const topPosition = centerY - barSize / 2;
+
+          return (
+            <div
+              key={item.id}
+              className={styles['label-item']}
+              style={{
+                position: 'absolute',
+                top: `${topPosition}px`,
+              }}
+            >
+              <span className={styles['label-value']}>{valueFormatter(item.value)}</span>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+};
+
+export default HorizontalBar;
+
+
+
+:root {
+  --chart-bar-primary: var(--primary-600);
+}
+
+.bar-container {
+  box-sizing: border-box;
+  padding-right: var(--spacing-10xl);
+  position: relative;
+  width: 100%;
+}
+
+.bar {
+  fill: var(--chart-bar-primary);
+}
+
+.labels-container {
+  display: block;
+  height: 100%;
+  pointer-events: none;
+  position: absolute;
+  right: 0;
+  top: 0;
+  width: var(--spacing-10xl);
+}
+
+.label-item {
+  align-items: center;
+  display: flex;
+  height: var(--spacing-2xl);
+  padding-left: var(--spacing-md);
+  transform: translateY(-35%);
+  width: auto;
+}
+
+.label-value {
+  color: var(--grey-700);
+  font: var(--text-sm-md);
+  padding-left: var(--spacing-none);
+  text-align: left;
+  white-space: nowrap;
+  width: auto;
+}
+
