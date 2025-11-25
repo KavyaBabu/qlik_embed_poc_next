@@ -1,425 +1,49 @@
-
-"use client";
-
-import { Page, Card } from "@arqiva/react-component-lib";
-import QueryParamsUrlProvider from "@/app/_components/QueryParamsUrlProvider";
-import DashboardInner, { DashboardFilters } from "./Inner";
-import LeakageListPage from "./widgets/leakageList/page";
-import { useEffect, useState } from "react";
-import styles from "./index.module.css";
-
-const DashboardPage = () => {
-  const [dashboardFilters, setDashboardFilters] = useState<DashboardFilters>({});
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  if (!mounted) {
-    return null;
-  }
-  
-  return (
-    <Page.Root>
-      <QueryParamsUrlProvider initialParams={{}}>
-        <div className={styles["dashboard__filters-bar-wrapper"]}>
-          <Card>
-              <Page.Title>Dashboard</Page.Title>
-            {mounted && <DashboardInner.FiltersBar onFiltersChange={setDashboardFilters} />}
-          </Card>
-        </div>
-
-        <div className={styles["dashboard__content-wrapper"]}>
-          <DashboardInner.Content />
-          
-          <div className={styles["dashboard--full-width"]}>
-            <h2 className={styles["dashboard__section-heading"]}>Leakage List</h2>
-            <LeakageListPage dashboardFilters={dashboardFilters} />
-          </div>
-        </div>
-      </QueryParamsUrlProvider>
-    </Page.Root>
-  );
-};
-
-export default DashboardPage;
-
-
-"use client";
-
-import { useEffect } from "react";
-import { QueryParams, useQueryParams } from "@arqiva/react-component-lib";
-import {
-  GroupFilter,
-  groupFilterOverride,
-} from "@/lib/services/api/dashboard/Kpis/filters/GroupFilter";
-import {
-  DateRangeFilter,
-  dateRangeFilterOverride,
-} from "@/lib/services/api/dashboard/Kpis/filters/DateRangeFilter";
-import {
-  TimeFilter,
-  timeFilterOverride,
-} from "@/lib/services/api/dashboard/Kpis/filters/TimeFilter";
-import {
-  ConsumptionFilter,
-  consumptionFilterOverride,
-} from "@/lib/services/api/dashboard/Kpis/filters/ConsumptionFilter";
-import MeterConsumptionPage from "./widgets/meterConsumption/page";
-import LeakagePage from "./widgets/leakgaeInfo/page";
-import Top10MeterPage from "./widgets/top10Meters/page";
-import FlowValuesInner from "./widgets/flowValues/Inner";
-import styles from "./index.module.css";
-
-export interface DashboardFilters {
-  group_id?: string;
-  dateRange?: string;
-  timeRange?: string;
-  consumption_range?: string;
-}
-
-interface FiltersBarProps {
-  onFiltersChange: (filters: DashboardFilters) => void;
-}
-
-const FiltersBar = ({ onFiltersChange }: FiltersBarProps) => {
-  const { queryParams } = useQueryParams();
-
-  useEffect(() => {
-    onFiltersChange({
-      group_id: queryParams.group_id ? String(queryParams.group_id) : undefined,
-      dateRange: queryParams.dateRange
-        ? String(queryParams.dateRange)
-        : undefined,
-      timeRange: queryParams.timeRange
-        ? String(queryParams.timeRange)
-        : undefined,
-      consumption_range: queryParams.consumption_range
-        ? String(queryParams.consumption_range)
-        : undefined,
-    });
-  }, [
-    queryParams.group_id,
-    queryParams.dateRange,
-    queryParams.timeRange,
-    queryParams.consumption_range,
-    onFiltersChange,
-  ]);
-
-  return (
-    <div className={styles.dashboard__filters}>
-      <QueryParams.Params.Filters>
-        <GroupFilter />
-        <DateRangeFilter />
-        <TimeFilter />
-        <ConsumptionFilter />
-      </QueryParams.Params.Filters>
-      <QueryParams.Params.SelectedValues
-        resultsLoading={false}
-        resultsCount={0}
-        filterOverrides={{
-          ...groupFilterOverride,
-          ...dateRangeFilterOverride,
-          ...timeFilterOverride,
-          ...consumptionFilterOverride,
-        }}
-        filterIgnoreList={["q"]}
-      />
-    </div>
-  );
-};
-
-const Content = () => (
-  <section className={styles.dashboard}>
-    <div className={styles["dashboard--full-width"]}>
-      <h2 className={styles["dashboard__section-heading"]}>
-        Meter Consumption
-      </h2>
-      <MeterConsumptionPage />
-    </div>
-    <div className={styles["dashboard--full-width"]}>
-      <h2 className={styles["dashboard__section-heading"]}>Leakage</h2>
-      <LeakagePage />
-    </div>
-    <div className={styles["dashboard__split-row"]}>
-      <div className={styles["dashboard__main-column"]}>
-        <h2 className={styles["dashboard__section-heading"]}>Top 10 Meters</h2>
-        <Top10MeterPage />
-      </div>
-      <div className={styles["dashboard__side-column"]}>
-        <h2 className={styles["dashboard__section-heading"]}>Flow Values</h2>
-        <FlowValuesInner />
-      </div>
-    </div>
-  </section>
-);
-
-const DashboardInner = { FiltersBar, Content };
-export default DashboardInner;
-
-
-
-
-.dashboard__filters-bar-wrapper {
+.dashboardFiltersFixedBar {
   position: fixed;
-  
-  z-index: 40;
-  box-sizing: border-box;
-  transition: margin-left var(--transition-time-fast);
-  overflow: visible !important;
+  top: 0;
+  left: var(--sidebar-width, 16rem); /* matches your sidebar width */
+  width: calc(100vw - var(--sidebar-width, 16rem));
+  z-index: 1001;
+  background: #fff;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.10);
+  border-bottom: 1px solid #f1f1f1;
+  /* Remove border-radius and Card shadow if present */
 }
 
-
-.dashboard__filters-bar-wrapper > * {
-  overflow: visible !important;
+.dashboardFiltersInner {
+  padding: 2.25rem 2.5rem 1.25rem 2.5rem; /* ample for heading+filters */
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
 }
 
-.dashboard__filters-bar-wrapper div {
-  overflow: visible !important;
+.dashboardTitle {
+  font-size: 2rem;
+  font-weight: 700;
+  margin-bottom: 0.5rem;
 }
 
-.sidebar__desktop[data-collapsible="icon"] ~ .sidebar__inset .dashboard__filters-bar-wrapper {
-  margin-left: calc(var(--sidebar-width-icon) + var(--spacing-xs));
-}
-
-@media (width < 768px) {
-  .dashboard__filters-bar-wrapper {
-    left: var(--spacing-xs);
-    right: var(--spacing-xs);
-    width: calc(100% - var(--spacing-xs) * 2);
-    top: var(--spacing-xs);
-  }
-}
-
-.dashboard__filters-header {
-  margin-bottom: var(--spacing-md);
-}
-
-.dashboard__filters-header h1 {
-  margin: 0;
-  font-size: var(--text-lg, 1.125rem);
-  font-weight: var(--font-semibold, 600);
-}
-
+/* Push page content below the fixed bar */
 .dashboard__content-wrapper {
-  padding-top: 100px;
+  padding-top: 140px; /* matches the height of .dashboardFiltersFixedBar + some gap */
   width: 100%;
 }
 
-.dashboard__section-heading {
-  color: var(--grey-900, #111827);
-  font-size: var(--text-xl, 1.25rem);
-  font-weight: var(--font-semibold, 600);
-  line-height: 1.5;
-  margin-bottom: var(--spacing-lg, 1rem);
-}
 
-.dashboard--full-width {
-  width: 100%;
-}
-
-.dashboard__split-row {
-  display: grid;
-  gap: var(--spacing-xl, 1.5rem);
-  grid-template-columns: 60% 40%;
-  width: 100%;
-}
-
-.dashboard__main-column {
-  min-width: 0;
-}
-
-.dashboard__side-column {
-  min-width: 0;
-}
-
-@media (width <= 1024px) {
-  .dashboard__split-row {
-    gap: var(--spacing-lg, 1rem);
-    grid-template-columns: 65% 35%;
-  }
-}
-
-@media (width < 768px) {
-  .dashboard__filters-bar-wrapper {
-    margin-left: var(--spacing-xs);
-    margin-right: var(--spacing-xs);
-  }
-}
-
-@media (width <= 480px) {
-  .dashboard__content-wrapper {
-    padding-top: 140px;
-  }
-}
-
-import { LogOut } from "lucide-react";
-import type { Metadata } from "next";
-import GAConfig from "@/lib/services/GA/components/GAConfig";
-import Logout from "../_components/Logout";
-import Navigation from "./_components/Navigation";
-import SessionExpiredAlertDialog from "./_components/SessionExpiredAlertDialog";
-
-export const metadata: Metadata = {
-  title: "Dashboard",
-  description: "Dashboard for Authenticated users",
-};
-
-export default function Layout({
-  children,
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
-  return (
-    <>
-      <GAConfig />
-      <Navigation
-        logout={
-          <Logout variant="text">
-            <LogOut />
-            Log out
-          </Logout>
-        }
-      >
-        {children}
-      </Navigation>
-      <SessionExpiredAlertDialog />
-    </>
-  );
-}
-
-
-import { cookies } from "next/headers";
-import NavigationInner from "./Inner";
-
-const NAVIGATION_COOKIE_STATE = "main_nav:state";
-
-const Navigation = async ({
-  children,
-  logout,
-}: Pick<
-  React.ComponentProps<typeof NavigationInner>,
-  "children" | "logout"
->) => {
-  const cookieStore = await cookies();
-  const sidebarState =
-    cookieStore.get(NAVIGATION_COOKIE_STATE)?.value === "true";
-
-  return (
-    <NavigationInner
-      logout={logout}
-      defaultOpen={sidebarState}
-      stateCookieName={NAVIGATION_COOKIE_STATE}
-    >
-      {children}
-    </NavigationInner>
-  );
-};
-
-export default Navigation;
-
-"use client";
-
-import { Sidebar, SidebarTemplates } from "@arqiva/react-component-lib";
-import { House, CircleQuestionMark, Gauge } from "lucide-react";
-import Link from "next/link";
-import { usePathname } from "next/navigation";
-import routes from "@/lib/routes";
-import Logo from "./Logo";
-
-interface NavigationInnerProps
-  extends React.ComponentProps<typeof Sidebar.Provider> {
-  logout?: React.ReactNode;
-  children?: React.ReactNode;
-  defaultOpen?: boolean;
-  stateCookieName?: string;
-}
-
-const NavigationInner = ({
-  children,
-  defaultOpen,
-  stateCookieName,
-  logout,
-}: NavigationInnerProps) => {
-  const pathname = usePathname();
-
-  const getDashboardCurrentPath = () => {
-    if (
-      pathname === routes.dashboard.root ||
-      pathname.startsWith(routes.dashboard.groups.root)
-    ) {
-      return routes.dashboard.root;
-    }
-    return;
-  };
-
-  return (
-    <Sidebar.Provider
-      stateCookieName={stateCookieName}
-      defaultOpen={defaultOpen}
-      style={{
-        "--sidebar-width": "16rem",
-        "--sidebar-width-icon": "4rem",
-      } as React.CSSProperties}
-    >
-      <Sidebar.Root collapsible="icon">
-        <Sidebar.Header>
-          <Logo />
-        </Sidebar.Header>
-        <Sidebar.Content>
-          <Sidebar.Group.Root>
-            <Sidebar.Group.Content>
-              <Sidebar.Menu.Root>
-                <SidebarTemplates.CollapsibleMenuItem.Root
-                  linkComponent={Link}
-                  currentPath={getDashboardCurrentPath()}
-                  title="Dashboard"
-                  url={routes.dashboard.root}
-                  icon={<House />}
-                >
-                  <SidebarTemplates.CollapsibleMenuItem.SubItem
-                    linkComponent={Link}
-                    currentPath={
-                      pathname.startsWith(routes.dashboard.groups.root)
-                        ? routes.dashboard.groups.root
-                        : ""
-                    }
-                    url={routes.dashboard.groups.root}
-                  >
-                    Groups
-                  </SidebarTemplates.CollapsibleMenuItem.SubItem>
-                </SidebarTemplates.CollapsibleMenuItem.Root>
-
-                <SidebarTemplates.SimpleMenuItem
-                  linkComponent={Link}
-                  currentPath={pathname}
-                  title="Meters"
-                  url={routes.dashboard.meters}
-                  icon={<Gauge />}
-                />
-              </Sidebar.Menu.Root>
-            </Sidebar.Group.Content>
-          </Sidebar.Group.Root>
-        </Sidebar.Content>
-        <Sidebar.Footer>
-          <Sidebar.Menu.Root>
-            <SidebarTemplates.SimpleMenuItem
-              linkComponent={Link}
-              currentPath={pathname}
-              title="Support"
-              url={routes.dashboard.support}
-              icon={<CircleQuestionMark />}
-            />
-          </Sidebar.Menu.Root>
-        </Sidebar.Footer>
-      </Sidebar.Root>
-      <Sidebar.Inset>
-        <Sidebar.Trigger />
-        {children}
-      </Sidebar.Inset>
-    </Sidebar.Provider>
-  );
-};
-
-export default NavigationInner;
+<Page.Root>
+  <QueryParamsUrlProvider initialParams={{}}>
+    <div className={styles.dashboardFiltersFixedBar}>
+      <div className={styles.dashboardFiltersInner}>
+        <h1 className={styles.dashboardTitle}>Dashboard</h1>
+        <DashboardInner.FiltersBar onFiltersChange={setDashboardFilters} />
+      </div>
+    </div>
+    <div className={styles["dashboard__content-wrapper"]}>
+      <DashboardInner.Content />
+      <div className={styles["dashboard--full-width"]}>
+        <h2 className={styles["dashboard__section-heading"]}>Leakage List</h2>
+        <LeakageListPage dashboardFilters={dashboardFilters} />
+      </div>
+    </div>
+  </QueryParamsUrlProvider>
+</Page.Root>
