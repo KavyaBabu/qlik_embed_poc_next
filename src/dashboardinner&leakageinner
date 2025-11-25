@@ -1,17 +1,75 @@
+"use client";
+
+import { Page } from "@arqiva/react-component-lib";
+import QueryParamsUrlProvider from "@/app/_components/QueryParamsUrlProvider";
+import DashboardInner, { DashboardFilters } from "./Inner";
+import LeakageListPage from "./widgets/leakageList/page";
+import { useEffect, useState } from "react";
+import styles from "./index.module.css";
+
+const DASHBOARD_BAR_HEIGHT = 136; // px, adjust as needed
+
+const DashboardPage = () => {
+  const [dashboardFilters, setDashboardFilters] = useState<DashboardFilters>({});
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  if (!mounted) return null;
+
+  return (
+    <Page.Root>
+      <QueryParamsUrlProvider initialParams={{}}>
+        {/* Fixed Filters Bar */}
+        <div className={styles.dashboardFiltersFixedBar}>
+          <div className={styles.dashboardFiltersInner}>
+            <h1 className={styles.dashboardTitle}>Dashboard</h1>
+            <DashboardInner.FiltersBar onFiltersChange={setDashboardFilters} />
+          </div>
+        </div>
+
+        {/* Main Content: offset for fixed bar */}
+        <div
+          className={styles.dashboard__content_wrapper}
+          style={{ paddingTop: `${DASHBOARD_BAR_HEIGHT}px` }}
+        >
+          <DashboardInner.Content />
+          <div className={styles["dashboard--full-width"]}>
+            <h2 className={styles["dashboard__section-heading"]}>Leakage List</h2>
+            <LeakageListPage dashboardFilters={dashboardFilters} />
+          </div>
+        </div>
+      </QueryParamsUrlProvider>
+    </Page.Root>
+  );
+};
+
+export default DashboardPage;
+
+
+:root {
+  --sidebar-width: 16rem;
+  --dashboard-bar-height: 136px; /* Adjust to match your real bar height */
+}
+
 .dashboardFiltersFixedBar {
   position: fixed;
   top: 0;
-  left: var(--sidebar-width, 16rem); /* matches your sidebar width */
+  left: var(--sidebar-width, 16rem);
   width: calc(100vw - var(--sidebar-width, 16rem));
-  z-index: 1001;
+  z-index: 3000;
   background: #fff;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.10);
-  border-bottom: 1px solid #f1f1f1;
-  /* Remove border-radius and Card shadow if present */
+  border-radius: 2rem 0 2rem 2rem; /* top-left matches card, right side is square if desired */
+  box-shadow: 0 4px 24px -8px rgba(0,0,0,0.10);
+  display: flex;
+  flex-direction: column;
+  transition: margin 0.2s;
 }
 
 .dashboardFiltersInner {
-  padding: 2.25rem 2.5rem 1.25rem 2.5rem; /* ample for heading+filters */
+  padding: 2.25rem 2.5rem 1.25rem 2.5rem;
   display: flex;
   flex-direction: column;
   gap: 1.25rem;
@@ -23,27 +81,47 @@
   margin-bottom: 0.5rem;
 }
 
-/* Push page content below the fixed bar */
-.dashboard__content-wrapper {
-  padding-top: 140px; /* matches the height of .dashboardFiltersFixedBar + some gap */
+.dashboard__content_wrapper {
+  padding-top: var(--dashboard-bar-height, 136px);
   width: 100%;
 }
 
+.dashboard__section-heading {
+  color: var(--grey-900, #111827);
+  font-size: var(--text-xl, 1.25rem);
+  font-weight: var(--font-semibold, 600);
+  line-height: 1.5;
+  margin-bottom: var(--spacing-lg, 1rem);
+}
 
-<Page.Root>
-  <QueryParamsUrlProvider initialParams={{}}>
-    <div className={styles.dashboardFiltersFixedBar}>
-      <div className={styles.dashboardFiltersInner}>
-        <h1 className={styles.dashboardTitle}>Dashboard</h1>
-        <DashboardInner.FiltersBar onFiltersChange={setDashboardFilters} />
-      </div>
-    </div>
-    <div className={styles["dashboard__content-wrapper"]}>
-      <DashboardInner.Content />
-      <div className={styles["dashboard--full-width"]}>
-        <h2 className={styles["dashboard__section-heading"]}>Leakage List</h2>
-        <LeakageListPage dashboardFilters={dashboardFilters} />
-      </div>
-    </div>
-  </QueryParamsUrlProvider>
-</Page.Root>
+.dashboard--full-width {
+  width: 100%;
+}
+
+/* Responsive: sidebar collapsed */
+@media (max-width: 1024px) {
+  .dashboardFiltersFixedBar {
+    left: 4rem;
+    width: calc(100vw - 4rem);
+  }
+}
+
+/* Optional: Mobile - bar is full width */
+@media (max-width: 768px) {
+  .dashboardFiltersFixedBar {
+    left: 0;
+    width: 100vw;
+    border-radius: 0 0 2rem 2rem;
+    margin-left: 0;
+  }
+  .dashboardFiltersInner {
+    padding: 1rem 0.5rem 1rem 0.5rem;
+  }
+}
+
+/* Make sure popovers are always above the bar (if using a portal, z-index higher than 3000) */
+.datepicker-popup,
+.timepicker-popup,
+[role="dialog"] {
+  z-index: 4000 !important;
+}
