@@ -1,58 +1,142 @@
-<div className={styles.dashboardFiltersFixedBar}>
-  <h1 className={styles.dashboardTitle}>Dashboard</h1>
-  <DashboardInner.FiltersBar onFiltersChange={setDashboardFilters} />
-</div>
-<div className={styles["dashboard__content-wrapper"]}>
-  <DashboardInner.Content />
-  <div className={styles["dashboard--full-width"]}>
-    <h2 className={styles["dashboard__section-heading"]}>Leakage List</h2>
-    <LeakageListPage dashboardFilters={dashboardFilters} />
-  </div>
-</div>
 
-:root {
-  --sidebar-width: 16rem;
-  --sidebar-width-collapsed: 4rem;
-  --dashboard-bar-height: 136px;
-}
+"use client";
 
-.dashboardFiltersFixedBar {
+import { Page, Card } from "@arqiva/react-component-lib";
+import QueryParamsUrlProvider from "@/app/_components/QueryParamsUrlProvider";
+import DashboardInner, { DashboardFilters } from "./Inner";
+import LeakageListPage from "./widgets/leakageList/page";
+import { useEffect, useState } from "react";
+import styles from "./index.module.css";
+
+const DashboardPage = () => {
+  const [dashboardFilters, setDashboardFilters] = useState<DashboardFilters>({});
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  if (!mounted) {
+    return null;
+  }
+  
+  return (
+    <Page.Root>
+      <QueryParamsUrlProvider initialParams={{}}>
+        <div className={styles["dashboard__filters-bar-wrapper"]}>
+          <Card>
+              <Page.Title>Dashboard</Page.Title>
+            {mounted && <DashboardInner.FiltersBar onFiltersChange={setDashboardFilters} />}
+          </Card>
+        </div>
+
+        <div className={styles["dashboard__content-wrapper"]}>
+          <DashboardInner.Content />
+          
+          <div className={styles["dashboard--full-width"]}>
+            <h2 className={styles["dashboard__section-heading"]}>Leakage List</h2>
+            <LeakageListPage dashboardFilters={dashboardFilters} />
+          </div>
+        </div>
+      </QueryParamsUrlProvider>
+    </Page.Root>
+  );
+};
+
+export default DashboardPage;
+
+
+
+
+.dashboard__filters-bar-wrapper {
   position: fixed;
-  top: 0;
-  left: var(--sidebar-width);
-  width: calc(100vw - var(--sidebar-width));
-  z-index: 1200;
-  background: #fff;
-  border-radius: 2rem 0 2rem 2rem;
-  box-shadow: 0 4px 24px -8px rgba(0,0,0,0.10);
-  display: flex;
-  flex-direction: column;
-  padding: 2.25rem 2.5rem 1.25rem 2.5rem;
-  transition: left 0.2s, width 0.2s;
-  /* prevent overlays being hidden */
-  overflow: visible;
+  
+  z-index: 40;
+  box-sizing: border-box;
+  transition: margin-left var(--transition-time-fast);
+  overflow: visible !important;
 }
 
-/* When sidebar is collapsed/icon mode (detect via html/body class, or data attribute, or a parent selector) */
-body[data-sidebar-collapsed="true"] .dashboardFiltersFixedBar {
-  left: var(--sidebar-width-collapsed);
-  width: calc(100vw - var(--sidebar-width-collapsed));
-  border-radius: 2rem 0 2rem 2rem;
+
+.dashboard__filters-bar-wrapper > * {
+  overflow: visible !important;
 }
 
-/* Mobile view (full width) */
-@media (max-width: 767px) {
-  .dashboardFiltersFixedBar {
-    left: 0;
-    width: 100vw;
-    border-radius: 0 0 2rem 2rem;
-    padding-left: 0.5rem;
-    padding-right: 0.5rem;
+.dashboard__filters-bar-wrapper div {
+  overflow: visible !important;
+}
+
+.sidebar__desktop[data-collapsible="icon"] ~ .sidebar__inset .dashboard__filters-bar-wrapper {
+  margin-left: calc(var(--sidebar-width-icon) + var(--spacing-xs));
+}
+
+@media (width < 768px) {
+  .dashboard__filters-bar-wrapper {
+    left: var(--spacing-xs);
+    right: var(--spacing-xs);
+    width: calc(100% - var(--spacing-xs) * 2);
+    top: var(--spacing-xs);
   }
 }
 
-/* Main content should be padded below the fixed bar */
+.dashboard__filters-header {
+  margin-bottom: var(--spacing-md);
+}
+
+.dashboard__filters-header h1 {
+  margin: 0;
+  font-size: var(--text-lg, 1.125rem);
+  font-weight: var(--font-semibold, 600);
+}
+
 .dashboard__content-wrapper {
-  padding-top: var(--dashboard-bar-height);
+  padding-top: 100px;
   width: 100%;
+}
+
+.dashboard__section-heading {
+  color: var(--grey-900, #111827);
+  font-size: var(--text-xl, 1.25rem);
+  font-weight: var(--font-semibold, 600);
+  line-height: 1.5;
+  margin-bottom: var(--spacing-lg, 1rem);
+}
+
+.dashboard--full-width {
+  width: 100%;
+}
+
+.dashboard__split-row {
+  display: grid;
+  gap: var(--spacing-xl, 1.5rem);
+  grid-template-columns: 60% 40%;
+  width: 100%;
+}
+
+.dashboard__main-column {
+  min-width: 0;
+}
+
+.dashboard__side-column {
+  min-width: 0;
+}
+
+@media (width <= 1024px) {
+  .dashboard__split-row {
+    gap: var(--spacing-lg, 1rem);
+    grid-template-columns: 65% 35%;
+  }
+}
+
+@media (width < 768px) {
+  .dashboard__filters-bar-wrapper {
+    margin-left: var(--spacing-xs);
+    margin-right: var(--spacing-xs);
+  }
+}
+
+@media (width <= 480px) {
+  .dashboard__content-wrapper {
+    padding-top: 140px;
+  }
 }
