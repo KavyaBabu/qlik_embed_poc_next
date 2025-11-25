@@ -1,103 +1,3 @@
-const queryParameters = useMemo(() => {
-  const mappedBase = mapKpiQueryParams(
-    dashboardFilters as Record<string, unknown>,
-    "leakage"
-  ) as LeakageListRequest;
-
-  const validSortKeys = [
-    "meter_id",
-    "hourly_avg_consumption",
-    "daily_avg_consumption",
-    "total_consumption",
-  ] as const;
-  type SortKey = (typeof validSortKeys)[number];
-
-  // New logic to flatten array to string
-  const getSortBy = (val: unknown) => {
-    if (Array.isArray(val)) return val[0];
-    return typeof val === "string" ? val : undefined;
-  };
-
-  const sortBy: SortKey =
-    getSortBy(localParams.sortBy) as SortKey ||
-    (mappedBase.sortBy as SortKey) ||
-    "meter_id";
-
-  const sortDir: "asc" | "desc" =
-    typeof localParams.sortDir === "string"
-      ? (localParams.sortDir as "asc" | "desc")
-      : (mappedBase.sortDir === "desc" ? "desc" : "asc");
-
-  const page =
-    typeof localParams.page === "number" && localParams.page > 0
-      ? localParams.page
-      : mappedBase.page || 0;
-
-  const perPage =
-    typeof localParams.perPage === "number" && localParams.perPage > 0
-      ? localParams.perPage
-      : mappedBase.perPage || 10;
-
-  return buildLeakageApiRequest({
-    ...mappedBase,
-    q: localParams.q ?? mappedBase.q ?? "",
-    sortKey: sortBy,
-    sortOrder: sortDir,
-    page,
-    perPage,
-  } as unknown as LeakageListRequest);
-}, [dashboardFilters, localParams]);
-
-import * as z from "zod/v4";
-
-export const leakageListRequestSchema = z.object({
-  group_id: z.coerce.number(),
-  start_datetime: z.string(),
-  end_datetime: z.string(),
-  min_consumption: z.number(),
-  max_consumption: z.number(),
-  q: z.string(),
-  page: z.number(),
-  perPage: z.coerce.number(),
-  sortBy: z.enum([
-    "meter_id",
-    "hourly_avg_consumption",
-    "daily_avg_consumption",
-    "total_consumption",
-  ]),
-  sortDir: z.enum(["asc", "desc"]),
-  threshold: z.number(),
-});
-export type LeakageListRequest = z.infer<typeof leakageListRequestSchema>;
-
-export const leakageReadingSchema = z.object({
-  reading: z.number(),
-  expected: z.number(),
-  status: z.string(),
-});
-
-export const leakageListEntrySchema = z.object({
-  meter_id: z.number(),
-  usage: z.string(),
-  hourly_avg_consumption: z.number(),
-  total_consumption: z.number(),
-  daily_avg_consumption: z.number(),
-  leaks: z.boolean(),
-  meter_reading: z.array(leakageReadingSchema),
-});
-export type LeakageListEntry = z.infer<typeof leakageListEntrySchema>;
-
-export const leakageListResponseSchema = z.object({
-  data: z.array(leakageListEntrySchema),
-  count: z.number(),
-  page: z.number(),
-  perPage: z.number(),
-  totalItems: z.number(),
-  totalPages: z.number(),
-});
-
-export type LeakageListResponse = z.infer<typeof leakageListResponseSchema>;
-
 
 "use client";
 
@@ -258,549 +158,268 @@ const Content = () => (
 const DashboardInner = { FiltersBar, Content };
 export default DashboardInner;
 
-"use client";
 
-import LeakageListInner from "./Inner";
-import { DashboardFilters } from "@/app/dashboard/Inner";
 
-interface Props {
-  dashboardFilters: DashboardFilters;
+
+.dashboard__filters-bar-wrapper {
+  position: fixed;
+  
+  z-index: 40;
+  box-sizing: border-box;
+  transition: margin-left var(--transition-time-fast);
+  overflow: visible !important;
 }
 
-export default function LeakageListPage({ dashboardFilters }: Props) {
-  return <LeakageListInner dashboardFilters={dashboardFilters} />;
+
+.dashboard__filters-bar-wrapper > * {
+  overflow: visible !important;
 }
 
-
-"use client";
-
-import { useMemo } from "react";
-import { QueryParams, useQueryParams } from "@arqiva/react-component-lib";
-import SearchQueryFilter, {
-  searchQueryFilterOverride,
-} from "@/lib/services/common/SearchQueryFilter";
-import { LeakageList } from "@/lib/services/api/dashboard/Kpis/components/Leakage/List";
-import {
-  mapKpiQueryParams,
-  buildLeakageApiRequest,
-} from "@/lib/services/api/dashboard/Kpis/utils/queryParamMapper";
-import { LeakageListRequest } from "@/lib/services/api/dashboard/Kpis/models/getLeakageList";
-import { DashboardFilters } from "@/app/dashboard/Inner";
-
-interface LeakageProps {
-  dashboardFilters: DashboardFilters;
+.dashboard__filters-bar-wrapper div {
+  overflow: visible !important;
 }
 
-type LeakageLocalParams = {
-  q?: string;
-  sortBy?: string;
-  sortDir?: string;
-  page?: number;
-  perPage?: number;
+.sidebar__desktop[data-collapsible="icon"] ~ .sidebar__inset .dashboard__filters-bar-wrapper {
+  margin-left: calc(var(--sidebar-width-icon) + var(--spacing-xs));
+}
+
+@media (width < 768px) {
+  .dashboard__filters-bar-wrapper {
+    left: var(--spacing-xs);
+    right: var(--spacing-xs);
+    width: calc(100% - var(--spacing-xs) * 2);
+    top: var(--spacing-xs);
+  }
+}
+
+.dashboard__filters-header {
+  margin-bottom: var(--spacing-md);
+}
+
+.dashboard__filters-header h1 {
+  margin: 0;
+  font-size: var(--text-lg, 1.125rem);
+  font-weight: var(--font-semibold, 600);
+}
+
+.dashboard__content-wrapper {
+  padding-top: 100px;
+  width: 100%;
+}
+
+.dashboard__section-heading {
+  color: var(--grey-900, #111827);
+  font-size: var(--text-xl, 1.25rem);
+  font-weight: var(--font-semibold, 600);
+  line-height: 1.5;
+  margin-bottom: var(--spacing-lg, 1rem);
+}
+
+.dashboard--full-width {
+  width: 100%;
+}
+
+.dashboard__split-row {
+  display: grid;
+  gap: var(--spacing-xl, 1.5rem);
+  grid-template-columns: 60% 40%;
+  width: 100%;
+}
+
+.dashboard__main-column {
+  min-width: 0;
+}
+
+.dashboard__side-column {
+  min-width: 0;
+}
+
+@media (width <= 1024px) {
+  .dashboard__split-row {
+    gap: var(--spacing-lg, 1rem);
+    grid-template-columns: 65% 35%;
+  }
+}
+
+@media (width < 768px) {
+  .dashboard__filters-bar-wrapper {
+    margin-left: var(--spacing-xs);
+    margin-right: var(--spacing-xs);
+  }
+}
+
+@media (width <= 480px) {
+  .dashboard__content-wrapper {
+    padding-top: 140px;
+  }
+}
+
+import { LogOut } from "lucide-react";
+import type { Metadata } from "next";
+import GAConfig from "@/lib/services/GA/components/GAConfig";
+import Logout from "../_components/Logout";
+import Navigation from "./_components/Navigation";
+import SessionExpiredAlertDialog from "./_components/SessionExpiredAlertDialog";
+
+export const metadata: Metadata = {
+  title: "Dashboard",
+  description: "Dashboard for Authenticated users",
 };
 
-export default function LeakageListInner({ dashboardFilters }: LeakageProps) {
-  return (
-    <QueryParams.Root>
-      <LeakageListScoped dashboardFilters={dashboardFilters} />
-    </QueryParams.Root>
-  );
-}
-
-function LeakageListScoped({
-  dashboardFilters,
-}: {
-  dashboardFilters: DashboardFilters;
-}) {
-  const { queryParams: localParams } = useQueryParams<LeakageLocalParams>();
-
-  const queryParameters = useMemo(() => {
-    const mappedBase = mapKpiQueryParams(
-      dashboardFilters as Record<string, unknown>,
-      "leakage"
-    ) as LeakageListRequest;
-
-    const validSortKeys = [
-      "meter_id",
-      "hourly_avg_consumption",
-      "daily_avg_consumption",
-      "total_consumption",
-    ] as const;
-    type SortKey = (typeof validSortKeys)[number];
-
-    const sortBy: SortKey = validSortKeys.includes(
-      localParams.sortBy as SortKey
-    )
-      ? (localParams.sortBy as SortKey)
-      : (mappedBase.sortBy as SortKey) || "meter_id";
-
-    const sortDir: "asc" | "desc" =
-      localParams.sortDir === "desc"
-        ? "desc"
-        : mappedBase.sortDir === "desc"
-          ? "desc"
-          : "asc";
-
-    const page =
-      typeof localParams.page === "number" && localParams.page > 0
-        ? localParams.page
-        : mappedBase.page || 0;
-
-    const perPage =
-      typeof localParams.perPage === "number" && localParams.perPage > 0
-        ? localParams.perPage
-        : mappedBase.perPage || 10;
-
-    return buildLeakageApiRequest({
-      ...mappedBase,
-      q: localParams.q ?? mappedBase.q ?? "",
-      sortKey: sortBy,
-      sortOrder: sortDir,
-      page,
-      perPage,
-    } as unknown as LeakageListRequest);
-  }, [dashboardFilters, localParams]);
-
-  return (
-    <LeakageList queryParameters={queryParameters}>
-      {({ resultsLoading, resultsCount }) => (
-        <>
-          <div style={{ marginBottom: "1rem" }}>
-            <SearchQueryFilter placeholder="Search" />
-          </div>
-          <QueryParams.Params.SelectedValues
-            resultsLoading={resultsLoading}
-            resultsCount={resultsCount}
-            filterOverrides={searchQueryFilterOverride}
-          />
-        </>
-      )}
-    </LeakageList>
-  );
-}
-
-
-export * from "./List";
-export * from "./columns";
-export * from "./searchParams";
-export * from "./queryParameters";
-
-"use client";
-
-import { ColumnDef } from "@tanstack/react-table";
-import type { LeakageListEntry } from "../../../models/getLeakageList";
-import {
-  Table,
-  TruncatedText,
-  Button,
-  Badge,
-} from "@arqiva/react-component-lib";
-import Link from "next/link";
-
-export const leakageColumns: ColumnDef<LeakageListEntry>[] = [
-  {
-    id: "meter_id",
-    header: "Meter",
-    accessorKey: "meter_id",
-    enableSorting: true,
-    cell: ({ row }) => {
-      return (
-        <Table.Block.Lead>
-          <Button variant="text" asChild>
-            <Link href={`/dashboard/leakage/${row.original.meter_id}`}>
-              <TruncatedText text={String(row.original.meter_id)} />
-            </Link>
-          </Button>
-        </Table.Block.Lead>
-      );
-    },
-  },
-  {
-    id: "usage",
-    header: "Usage",
-    accessorKey: "usage",
-    enableSorting: true,
-    cell: ({ row }) => {
-      const val = String(row.original.usage).toLowerCase();
-
-      const variant =
-        val === "high" ? "error" : val === "medium" ? "warning" : "success";
-
-      return <Badge variant={variant}>{row.original.usage}</Badge>;
-    },
-  },
-  {
-    id: "daily_avg_consumption",
-    header: "Daily Avg Consumption",
-    accessorKey: "daily_avg_consumption",
-    enableSorting: true,
-  },
-  {
-    id: "hourly_avg_consumption",
-    header: "Hourly Avg Consumption",
-    accessorKey: "hourly_avg_consumption",
-    enableSorting: true,
-  },
-  {
-    id: "total_consumption",
-    header: "Reading Amount",
-    accessorKey: "total_consumption",
-    enableSorting: true,
-    cell: ({ row }) => {
-      return <Badge variant="warning">{row.original.total_consumption}</Badge>;
-    },
-  },
-];
-
-"use client";
-
-import {
-  Table,
-  DataTable,
-  QueryParams,
-  getPaginationPropsFromQuery,
-} from "@arqiva/react-component-lib";
-import { leakageColumns } from "./columns";
-import type {
-  LeakageListResponse,
-  LeakageListRequest,
-} from "../../../models/getLeakageList";
-import { useLeakageList } from "../../../hooks/useLeakageList";
-import { isQueryLoading } from "@/utils/query/isQueryLoading";
-import Error from "@/lib/services/api/_components/Error";
-
-interface ListProps {
-  queryParameters: LeakageListRequest;
-  initialData?: LeakageListResponse;
-  children?: ({
-    resultsLoading,
-    resultsCount,
-  }: {
-    resultsLoading: boolean;
-    resultsCount: number;
-  }) => React.ReactNode;
-}
-
-export const LeakageList = ({
-  queryParameters,
-  initialData,
+export default function Layout({
   children,
-}: ListProps) => {
-  const query = useLeakageList({
-    queryParameters,
-    initialData,
-  });
+}: Readonly<{
+  children: React.ReactNode;
+}>) {
+  return (
+    <>
+      <GAConfig />
+      <Navigation
+        logout={
+          <Logout variant="text">
+            <LogOut />
+            Log out
+          </Logout>
+        }
+      >
+        {children}
+      </Navigation>
+      <SessionExpiredAlertDialog />
+    </>
+  );
+}
 
-  if (query.error) {
-    return (
-      <Error error={query.error as Error} refetchOptions={query.refetch} />
-    );
-  }
 
-  const isLoading = isQueryLoading(query);
+import { cookies } from "next/headers";
+import NavigationInner from "./Inner";
+
+const NAVIGATION_COOKIE_STATE = "main_nav:state";
+
+const Navigation = async ({
+  children,
+  logout,
+}: Pick<
+  React.ComponentProps<typeof NavigationInner>,
+  "children" | "logout"
+>) => {
+  const cookieStore = await cookies();
+  const sidebarState =
+    cookieStore.get(NAVIGATION_COOKIE_STATE)?.value === "true";
 
   return (
-    <Table.Wrapper>
-      {children?.({
-        resultsLoading: isLoading,
-        resultsCount: query.data?.totalItems ?? 0,
-      })}
-
-      <DataTable
-        columns={leakageColumns}
-        data={query.data?.data ?? []}
-        isLoading={isLoading}
-        loader={{
-          pageLength: queryParameters.perPage,
-          widths: ["md", "lg"],
-        }}
-        sortByComponent={(column) => <QueryParams.Table.Sort column={column} />}
-        paginationComponent={
-          <QueryParams.Table.Pagination
-            {...getPaginationPropsFromQuery(
-              query,
-              queryParameters?.perPage ?? 10
-            )}
-          />
-        }
-      />
-    </Table.Wrapper>
+    <NavigationInner
+      logout={logout}
+      defaultOpen={sidebarState}
+      stateCookieName={NAVIGATION_COOKIE_STATE}
+    >
+      {children}
+    </NavigationInner>
   );
 };
 
-export default LeakageList;
+export default Navigation;
 
-import { SearchParams } from "@/utils/pageTypes";
-import {
-  LeakageListRequest,
-  LeakageListRequest as LeakageListQueryParams,
-} from "../../../models/getLeakageList";
+"use client";
 
-const getStringParam = (val: string | string[] | undefined) => {
-  return Array.isArray(val) ? val[0] : val;
+import { Sidebar, SidebarTemplates } from "@arqiva/react-component-lib";
+import { House, CircleQuestionMark, Gauge } from "lucide-react";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import routes from "@/lib/routes";
+import Logo from "./Logo";
+
+interface NavigationInnerProps
+  extends React.ComponentProps<typeof Sidebar.Provider> {
+  logout?: React.ReactNode;
+  children?: React.ReactNode;
+  defaultOpen?: boolean;
+  stateCookieName?: string;
+}
+
+const NavigationInner = ({
+  children,
+  defaultOpen,
+  stateCookieName,
+  logout,
+}: NavigationInnerProps) => {
+  const pathname = usePathname();
+
+  const getDashboardCurrentPath = () => {
+    if (
+      pathname === routes.dashboard.root ||
+      pathname.startsWith(routes.dashboard.groups.root)
+    ) {
+      return routes.dashboard.root;
+    }
+    return;
+  };
+
+  return (
+    <Sidebar.Provider
+      stateCookieName={stateCookieName}
+      defaultOpen={defaultOpen}
+      style={{
+        "--sidebar-width": "16rem",
+        "--sidebar-width-icon": "4rem",
+      } as React.CSSProperties}
+    >
+      <Sidebar.Root collapsible="icon">
+        <Sidebar.Header>
+          <Logo />
+        </Sidebar.Header>
+        <Sidebar.Content>
+          <Sidebar.Group.Root>
+            <Sidebar.Group.Content>
+              <Sidebar.Menu.Root>
+                <SidebarTemplates.CollapsibleMenuItem.Root
+                  linkComponent={Link}
+                  currentPath={getDashboardCurrentPath()}
+                  title="Dashboard"
+                  url={routes.dashboard.root}
+                  icon={<House />}
+                >
+                  <SidebarTemplates.CollapsibleMenuItem.SubItem
+                    linkComponent={Link}
+                    currentPath={
+                      pathname.startsWith(routes.dashboard.groups.root)
+                        ? routes.dashboard.groups.root
+                        : ""
+                    }
+                    url={routes.dashboard.groups.root}
+                  >
+                    Groups
+                  </SidebarTemplates.CollapsibleMenuItem.SubItem>
+                </SidebarTemplates.CollapsibleMenuItem.Root>
+
+                <SidebarTemplates.SimpleMenuItem
+                  linkComponent={Link}
+                  currentPath={pathname}
+                  title="Meters"
+                  url={routes.dashboard.meters}
+                  icon={<Gauge />}
+                />
+              </Sidebar.Menu.Root>
+            </Sidebar.Group.Content>
+          </Sidebar.Group.Root>
+        </Sidebar.Content>
+        <Sidebar.Footer>
+          <Sidebar.Menu.Root>
+            <SidebarTemplates.SimpleMenuItem
+              linkComponent={Link}
+              currentPath={pathname}
+              title="Support"
+              url={routes.dashboard.support}
+              icon={<CircleQuestionMark />}
+            />
+          </Sidebar.Menu.Root>
+        </Sidebar.Footer>
+      </Sidebar.Root>
+      <Sidebar.Inset>
+        <Sidebar.Trigger />
+        {children}
+      </Sidebar.Inset>
+    </Sidebar.Provider>
+  );
 };
 
-export const parseSearchParams = (
-  params: SearchParams
-): LeakageListQueryParams => {
-  return {
-    group_id: Number(getStringParam(params.group_id) ?? 0),
-
-    start_datetime:
-      getStringParam(params.start_datetime) ??
-      new Date(
-        new Date().setFullYear(new Date().getFullYear() - 1)
-      ).toISOString(),
-
-    end_datetime:
-      getStringParam(params.end_datetime) ?? new Date().toISOString(),
-
-    min_consumption: Number(getStringParam(params.min_consumption) ?? 0),
-    max_consumption: Number(
-      getStringParam(params.max_consumption) ?? 10_000_000_000
-    ),
-
-    q: getStringParam(params.q) ?? "",
-
-    page: Number.parseInt(getStringParam(params.page) ?? "0", 10),
-    perPage: Number.parseInt(getStringParam(params.perPage) ?? "10", 10),
-
-    sortBy:
-      (getStringParam(params.sortBy) as LeakageListRequest["sortBy"]) ??
-      "meter_id",
-
-    sortDir:
-      (getStringParam(params.sortDir) as LeakageListRequest["sortDir"]) ??
-      "asc",
-
-    threshold: Number(getStringParam(params.threshold) ?? 0.5),
-  };
-};
-
-
-import { LeakageListRequest } from "../../../models/getLeakageList";
-
-export const parseQueryParameters = (
-  params?: Partial<LeakageListRequest>
-): LeakageListRequest => {
-  const now = new Date();
-  const oneYearAgo = new Date(now.setFullYear(now.getFullYear() - 1));
-
-  return {
-    group_id: params?.group_id ?? 0,
-
-    start_datetime: params?.start_datetime ?? oneYearAgo.toISOString(),
-
-    end_datetime: params?.end_datetime ?? new Date().toISOString(),
-
-    min_consumption: params?.min_consumption ?? 0,
-    max_consumption: params?.max_consumption ?? 10_000_000_000,
-
-    q: params?.q?.trim() ?? "",
-
-    page: params?.page ?? 0,
-    perPage: params?.perPage ?? 10,
-
-    sortBy: params?.sortBy ?? "meter_id",
-    sortDir: params?.sortDir ?? "asc",
-
-    threshold: params?.threshold ?? 0.5,
-  };
-};
-
-
-function todayStartISO() {
-  const d = new Date();
-  d.setHours(0, 0, 0, 0);
-  return d.toISOString();
-}
-
-function todayEndISO() {
-  const d = new Date();
-  d.setHours(23, 59, 59, 999);
-  return d.toISOString();
-}
-
-interface BaseKpiParams {
-  group_id: number;
-  start_datetime: string;
-  end_datetime: string;
-}
-
-interface ConsumptionListParams extends BaseKpiParams {
-  min_consumption: number;
-  max_consumption: number;
-  threshold: number;
-}
-
-interface StandardMinMaxParams extends BaseKpiParams {
-  min_consumption: number;
-  max_consumption: number;
-}
-
-interface MinMaxWithSortParams extends StandardMinMaxParams {
-  sortKey?: string;
-  sortOrder?: string;
-}
-
-interface Top10MetersParams extends StandardMinMaxParams {
-  threshold: number;
-}
-
-interface LeakageListParams extends StandardMinMaxParams {
-  q?: string;
-  page?: number;
-  perPage?: number;
-  threshold?: number;
-  sortKey?: string;
-  sortOrder?: string;
-}
-
-function parseCommonParams(queryParams: Record<string, unknown>) {
-  const qp = queryParams as Record<string, unknown>;
-
-  const group_id = Number(qp.group_id ?? qp.group ?? 0);
-
-  const dateRange = typeof qp.dateRange === "string" ? qp.dateRange : "";
-  const [startStr, endStr] = dateRange.split("_to_");
-
-  const start_datetime =
-    startStr && !Number.isNaN(Date.parse(startStr))
-      ? startStr
-      : todayStartISO();
-  const end_datetime =
-    endStr && !Number.isNaN(Date.parse(endStr)) ? endStr : todayEndISO();
-
-  const range =
-    typeof qp.consumption_range === "string"
-      ? qp.consumption_range
-      : "0-10000000000";
-
-  const [lo, hi] = (range as string).split("-").map(Number);
-
-  return {
-    group_id,
-    start_datetime,
-    end_datetime,
-    minConsumption: Number.isFinite(lo) ? lo : 0,
-    maxConsumption: Number.isFinite(hi) ? hi : 10_000_000_000,
-  };
-}
-
-export function mapKpiQueryParams(
-  queryParams: Record<string, unknown>,
-  variant: "cons"
-): ConsumptionListParams;
-
-export function mapKpiQueryParams(
-  queryParams: Record<string, unknown>,
-  variant: "minmax"
-): MinMaxWithSortParams;
-
-export function mapKpiQueryParams(
-  queryParams: Record<string, unknown>,
-  variant: "top10"
-): Top10MetersParams;
-
-export function mapKpiQueryParams(
-  queryParams: Record<string, unknown>,
-  variant: "leakage"
-): LeakageListParams;
-
-export function mapKpiQueryParams(
-  queryParams: Record<string, unknown>,
-  variant?: "cons" | "minmax" | "top10" | "leakage"
-):
-  | ConsumptionListParams
-  | MinMaxWithSortParams
-  | Top10MetersParams
-  | LeakageListParams {
-  const qp = queryParams as Record<string, unknown>;
-  const {
-    group_id,
-    start_datetime,
-    end_datetime,
-    minConsumption,
-    maxConsumption,
-  } = parseCommonParams(qp);
-
-  if (variant === "cons") {
-    return {
-      group_id,
-      start_datetime,
-      end_datetime,
-      min_consumption: minConsumption,
-      max_consumption: maxConsumption,
-      threshold: 0.5,
-    } satisfies ConsumptionListParams;
-  }
-
-  if (variant === "top10") {
-    return {
-      group_id,
-      start_datetime,
-      end_datetime,
-      min_consumption: minConsumption,
-      max_consumption: maxConsumption,
-      threshold: 0.5,
-    } satisfies Top10MetersParams;
-  }
-
-  if (variant === "leakage") {
-    return {
-      group_id,
-      start_datetime,
-      end_datetime,
-      min_consumption: minConsumption,
-      max_consumption: maxConsumption,
-      q: typeof qp.q === "string" ? qp.q : "",
-      page: typeof qp.page === "number" ? qp.page : 0,
-      perPage: typeof qp.perPage === "number" ? qp.perPage : 10,
-      threshold: typeof qp.threshold === "number" ? qp.threshold : 0.5,
-      sortKey:
-        typeof qp.sortBy === "string"
-          ? qp.sortBy
-          : typeof qp.sortKey === "string"
-            ? qp.sortKey
-            : "meter_id",
-      sortOrder:
-        typeof qp.sortDir === "string"
-          ? qp.sortDir
-          : typeof qp.sortOrder === "string"
-            ? qp.sortOrder
-            : "asc",
-    } satisfies LeakageListParams;
-  }
-
-  return {
-    group_id,
-    start_datetime,
-    end_datetime,
-    min_consumption: minConsumption,
-    max_consumption: maxConsumption,
-    sortKey: (qp.sortKey as string) ?? "meter_id",
-    sortOrder: (qp.sortOrder as string) ?? "ascend",
-  } satisfies MinMaxWithSortParams;
-}
-
-type SortKey =
-  | "meter_id"
-  | "hourly_avg_consumption"
-  | "daily_avg_consumption"
-  | "total_consumption";
-
-export const buildLeakageApiRequest = (mappedParams: LeakageListParams) => {
-  return {
-    group_id: mappedParams.group_id,
-    start_datetime: mappedParams.start_datetime,
-    end_datetime: mappedParams.end_datetime,
-    min_consumption: mappedParams.min_consumption,
-    max_consumption: mappedParams.max_consumption,
-    q: mappedParams.q ?? "",
-    page: mappedParams.page ?? 0,
-    perPage: mappedParams.perPage ?? 10,
-    threshold: mappedParams.threshold ?? 0.5,
-    sortBy: (mappedParams.sortKey ?? "meter_id") as SortKey,
-    sortDir: (mappedParams.sortOrder ?? "asc") as "asc" | "desc",
-  };
-};
+export default NavigationInner;
