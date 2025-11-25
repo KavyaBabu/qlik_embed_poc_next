@@ -1,3 +1,81 @@
+local params
+
+Leakage Query Parameters: {sortBy: Array(1), sortDir: 'asc'}
+sortBy
+: 
+Array(1)
+0
+: 
+"daily_avg_consumption"
+length
+: 
+1
+[[Prototype]]
+: 
+Array(0)
+sortDir
+: 
+"asc"
+[[Prototype]]
+: 
+Object
+
+but in api call
+
+payload passing
+
+{"group_id":0,"start_datetime":"2024-03-03T00:00:00.000Z","end_datetime":"2024-04-17T23:00:00.000Z","min_consumption":0,"max_consumption":10000000000,"q":"","page":0,"perPage":10,"threshold":0.5,"sortBy":"meter_id","sortDir":"asc"}
+
+import * as z from "zod/v4";
+
+export const leakageListRequestSchema = z.object({
+  group_id: z.coerce.number(),
+  start_datetime: z.string(),
+  end_datetime: z.string(),
+  min_consumption: z.number(),
+  max_consumption: z.number(),
+  q: z.string(),
+  page: z.number(),
+  perPage: z.coerce.number(),
+  sortBy: z.enum([
+    "meter_id",
+    "hourly_avg_consumption",
+    "daily_avg_consumption",
+    "total_consumption",
+  ]),
+  sortDir: z.enum(["asc", "desc"]),
+  threshold: z.number(),
+});
+export type LeakageListRequest = z.infer<typeof leakageListRequestSchema>;
+
+export const leakageReadingSchema = z.object({
+  reading: z.number(),
+  expected: z.number(),
+  status: z.string(),
+});
+
+export const leakageListEntrySchema = z.object({
+  meter_id: z.number(),
+  usage: z.string(),
+  hourly_avg_consumption: z.number(),
+  total_consumption: z.number(),
+  daily_avg_consumption: z.number(),
+  leaks: z.boolean(),
+  meter_reading: z.array(leakageReadingSchema),
+});
+export type LeakageListEntry = z.infer<typeof leakageListEntrySchema>;
+
+export const leakageListResponseSchema = z.object({
+  data: z.array(leakageListEntrySchema),
+  count: z.number(),
+  page: z.number(),
+  perPage: z.number(),
+  totalItems: z.number(),
+  totalPages: z.number(),
+});
+
+export type LeakageListResponse = z.infer<typeof leakageListResponseSchema>;
+
 
 "use client";
 
