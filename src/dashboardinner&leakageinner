@@ -1,137 +1,28 @@
-
-
 .dashboard__filters-bar-wrapper {
   position: fixed;
-  top: 10 ;
+  top: 0;
+  left: 0;
   width: 100%;
   z-index: 1001;
-  display: flex;
-  justify-content: center;
-  overflow: visible !important;
+  background: transparent;
+  display: block;
+  pointer-events: none;
 }
-
 
 .dashboard__filters-bar-wrapper > .Card {
-  pointer-events: auto;
   margin-top: 1.5rem;
-}
-
-
-@media (width < 768px) {
-  .dashboard__filters-bar-wrapper {
-    left: var(--spacing-xs);
-    right: var(--spacing-xs);
-    width: calc(100% - var(--spacing-xs) * 2);
-    top: var(--spacing-xs);
-  }
-}
-
-.dashboard__filters-header {
-  margin-bottom: var(--spacing-md);
-}
-
-.dashboard__filters-header h1 {
-  margin: 0;
-  font-size: var(--text-lg, 1.125rem);
-  font-weight: var(--font-semibold, 600);
+  margin-left: var(--sidebar-width, 16rem);
+  margin-right: 2.5rem;
+  max-width: calc(100vw - var(--sidebar-width, 16rem) - 2.5rem);
+  border-radius: 2rem;
+  pointer-events: auto;
 }
 
 .dashboard__content-wrapper {
-  padding-top: 200px;
+  padding-top: 160px;
   width: 100%;
 }
 
-.dashboard__section-heading {
-  color: var(--grey-900, #111827);
-  font-size: var(--text-xl, 1.25rem);
-  font-weight: var(--font-semibold, 600);
-  line-height: 1.5;
-  margin-bottom: var(--spacing-lg, 1rem);
+[data-radix-popover-content], .react-datepicker-popper, .datepicker-popup, [role="dialog"] {
+  z-index: 4000 !important;
 }
-
-.dashboard--full-width {
-  width: 100%;
-}
-
-.dashboard__split-row {
-  display: grid;
-  gap: var(--spacing-xl, 1.5rem);
-  grid-template-columns: 60% 40%;
-  width: 100%;
-}
-
-.dashboard__main-column {
-  min-width: 0;
-}
-
-.dashboard__side-column {
-  min-width: 0;
-}
-
-@media (width <= 1024px) {
-  .dashboard__split-row {
-    gap: var(--spacing-lg, 1rem);
-    grid-template-columns: 65% 35%;
-  }
-}
-
-@media (width < 768px) {
-  .dashboard__filters-bar-wrapper {
-    margin-left: var(--spacing-xs);
-    margin-right: var(--spacing-xs);
-  }
-}
-
-@media (width <= 480px) {
-  .dashboard__content-wrapper {
-    padding-top: 140px;
-  }
-}
-
-
-
-"use client";
-
-import { Page, Card } from "@arqiva/react-component-lib";
-import QueryParamsUrlProvider from "@/app/_components/QueryParamsUrlProvider";
-import DashboardInner, { DashboardFilters } from "./Inner";
-import LeakageListPage from "./widgets/leakageList/page";
-import { useEffect, useState } from "react";
-import styles from "./index.module.css";
-
-const DashboardPage = () => {
-  const [dashboardFilters, setDashboardFilters] = useState<DashboardFilters>({});
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  if (!mounted) {
-    return null;
-  }
-  
-  return (
-    <Page.Root>
-      <QueryParamsUrlProvider initialParams={{}}>
-        <div className={styles["dashboard__filters-bar-wrapper"]}>
-          <Card>
-              <Page.Title>Dashboard</Page.Title>
-            {mounted && <DashboardInner.FiltersBar onFiltersChange={setDashboardFilters} />}
-          </Card>
-        </div>
-
-        <div className={styles["dashboard__content-wrapper"]}>
-          <DashboardInner.Content />
-          
-          <div className={styles["dashboard--full-width"]}>
-            <h2 className={styles["dashboard__section-heading"]}>Leakage List</h2>
-            <LeakageListPage dashboardFilters={dashboardFilters} />
-          </div>
-        </div>
-      </QueryParamsUrlProvider>
-    </Page.Root>
-  );
-};
-
-export default DashboardPage;
