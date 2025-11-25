@@ -1,30 +1,52 @@
-local params
+const queryParameters = useMemo(() => {
+  const mappedBase = mapKpiQueryParams(
+    dashboardFilters as Record<string, unknown>,
+    "leakage"
+  ) as LeakageListRequest;
 
-Leakage Query Parameters: {sortBy: Array(1), sortDir: 'asc'}
-sortBy
-: 
-Array(1)
-0
-: 
-"daily_avg_consumption"
-length
-: 
-1
-[[Prototype]]
-: 
-Array(0)
-sortDir
-: 
-"asc"
-[[Prototype]]
-: 
-Object
+  const validSortKeys = [
+    "meter_id",
+    "hourly_avg_consumption",
+    "daily_avg_consumption",
+    "total_consumption",
+  ] as const;
+  type SortKey = (typeof validSortKeys)[number];
 
-but in api call
+  // New logic to flatten array to string
+  const getSortBy = (val: unknown) => {
+    if (Array.isArray(val)) return val[0];
+    return typeof val === "string" ? val : undefined;
+  };
 
-payload passing
+  const sortBy: SortKey =
+    getSortBy(localParams.sortBy) as SortKey ||
+    (mappedBase.sortBy as SortKey) ||
+    "meter_id";
 
-{"group_id":0,"start_datetime":"2024-03-03T00:00:00.000Z","end_datetime":"2024-04-17T23:00:00.000Z","min_consumption":0,"max_consumption":10000000000,"q":"","page":0,"perPage":10,"threshold":0.5,"sortBy":"meter_id","sortDir":"asc"}
+  const sortDir: "asc" | "desc" =
+    typeof localParams.sortDir === "string"
+      ? (localParams.sortDir as "asc" | "desc")
+      : (mappedBase.sortDir === "desc" ? "desc" : "asc");
+
+  const page =
+    typeof localParams.page === "number" && localParams.page > 0
+      ? localParams.page
+      : mappedBase.page || 0;
+
+  const perPage =
+    typeof localParams.perPage === "number" && localParams.perPage > 0
+      ? localParams.perPage
+      : mappedBase.perPage || 10;
+
+  return buildLeakageApiRequest({
+    ...mappedBase,
+    q: localParams.q ?? mappedBase.q ?? "",
+    sortKey: sortBy,
+    sortOrder: sortDir,
+    page,
+    perPage,
+  } as unknown as LeakageListRequest);
+}, [dashboardFilters, localParams]);
 
 import * as z from "zod/v4";
 
