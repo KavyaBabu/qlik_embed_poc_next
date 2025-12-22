@@ -1,94 +1,106 @@
 "use client";
 
-import { QueryParams } from "@arqiva/react-component-lib";
-import {
-  DateRangeFilter,
-  dateRangeFilterOverride,
-} from "@/lib/services/api/dashboard/Kpis/filters/DateRangeFilter";
-import {
-  MetersFilter,
-  meterFilterOverride,
-} from "@/lib/services/api/dashboard/Kpis/filters/MetersFilter";
-import { useQueryFilterSync } from "@/hooks/useQueryFilterSync";
-import KpiSummary from "./widgets/KpiSummary/page";
-import MedianVsWeek from "./widgets/MedianVsWeek/page";
-import LeakageHistory from "./widgets/LeakageHistory/page";
-import DailyUsage from "./widgets/DailyUsage/page";
-import ConsumptionTrend from "./widgets/ConsumptionTrend/page";
-import styles from "./index.module.css";
+import { useEffect, useRef } from "react";
+import { useQueryParams } from "@arqiva/react-component-lib";
 
-export interface MetersFilters {
-  meter_id?: string;
-  dateRange?: string;
+interface UseQueryFilterSyncOptions<T extends Record<string, any>> {
+  storageKey: string;
+  inheritedFromStorageKey?: string;
+  inheritKeys?: (keyof T)[];
+  onChange: (filters: T) => void;
 }
 
-interface FiltersBarProps {
-  onFiltersChange: (filters: MetersFilters) => void;
+export function useQueryFilterSync<T extends Record<string, any>>({
+  storageKey,
+  inheritedFromStorageKey,
+  inheritKeys = [],
+  onChange,
+}: UseQueryFilterSyncOptions<T>) {
+  const { queryParams, setParam, clearAllParams } = useQueryParams();
+
+  const hasRestoredRef = useRef(false);
+
+  /* ---------- Restore (URL wins) ---------- */
+  useEffect(() => {
+    if (hasRestoredRef.current) return;
+
+    const hasUrlFilters = Object.values(queryParams).some(Boolean);
+    if (hasUrlFilters) {
+      hasRestoredRef.current = true;
+      return;
+    }
+
+    // Inherit from another page (Dashboard → Meters)
+    if (inheritedFromStorageKey) {
+      try {
+        const inherited = localStorage.getItem(inheritedFromStorageKey);
+        if (inherited) {
+          const parsed = JSON.parse(inherited);
+          inheritKeys.forEach((key) => {
+            if (parsed[key]) {
+              setParam(String(key), String(parsed[key]));
+            }
+          });
+        }
+      } catch {}
+    }
+
+    // Fallback to own storage
+    try {
+      const stored = localStorage.getItem(storageKey);
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        Object.entries(parsed).forEach(([key, value]) => {
+          if (value !== undefined && value !== null && value !== "") {
+            // If value is an object, stringify it; otherwise, use as is
+            const paramValue =
+              typeof value === "object" && !Array.isArray(value)
+                ? JSON.stringify(value)
+                : value;
+            setParam(key, String(paramValue));
+          }
+        });
+      }
+    } catch {}
+
+    hasRestoredRef.current = true;
+  }, [
+    queryParams,
+    setParam,
+    storageKey,
+    inheritedFromStorageKey,
+    inheritKeys,
+  ]);
+
+  /* ---------- Sync + persist ---------- */
+  useEffect(() => {
+    const filters = Object.fromEntries(
+      Object.entries(queryParams).filter(
+        ([, v]) => v !== undefined && v !== null && v !== ""
+      )
+    ) as T;
+
+    try {
+      localStorage.setItem(storageKey, JSON.stringify(filters));
+    } catch {}
+
+    onChange(filters);
+  }, [queryParams, onChange, storageKey]);
+
+  /* ---------- Clear All ---------- */
+  const clearAll = () => {
+    clearAllParams();
+
+    try {
+      localStorage.removeItem(storageKey);
+    } catch {}
+
+    hasRestoredRef.current = true;
+    onChange({} as T);
+  };
+
+  return { clearAll };
 }
-
-const FiltersBar = ({ onFiltersChange }: FiltersBarProps) => {
-  const { clearAll } = useQueryFilterSync<MetersFilters>({
-    storageKey: "meters-filters",
-    inheritedFromStorageKey: "dashboard-filters",
-    inheritKeys: ["dateRange"],
-    onChange: onFiltersChange,
-  });
-
-  return (
-    <div className={styles.meters__filters}>
-      <QueryParams.Params.Filters>
-        <MetersFilter />
-        <DateRangeFilter />
-      </QueryParams.Params.Filters>
-
-      <QueryParams.Params.SelectedValues
-        resultsLoading={false}
-        onClearAll={clearAll}
-        filterOverrides={{
-          ...meterFilterOverride,
-          ...dateRangeFilterOverride,
-        }}
-        filterIgnoreList={["q", "page", "perPage", "sortBy", "sortDir"]}
-      />
-    </div>
-  );
-};
-
-const Content = ({ metersFilters }: { metersFilters: MetersFilters }) => (
-  <section className={styles.meters}>
-    <div className={styles["meters--full-width"]}>
-      <KpiSummary meterId={metersFilters.meter_id} />
-    </div>
-
-    <div className={styles["meters__split-row"]}>
-      <div className={styles["meters__main-column"]}>
-        <h3 className={styles["meters__section-heading"]}>Consumption Trend</h3>
-        <ConsumptionTrend meterId={metersFilters.meter_id} />
-      </div>
-      <div className={styles["meters__side-column"]}>
-        <h3 className={styles["meters__section-heading"]}>
-          Median vs this weeks consumption
-        </h3>
-        <MedianVsWeek meterId={metersFilters.meter_id} />
-      </div>
-    </div>
-
-    <div className={styles["meters__split-row"]}>
-      <div className={styles["meters__main-column"]}>
-        <h3 className={styles["meters__section-heading"]}>Leakage History</h3>
-        <LeakageHistory meterId={metersFilters.meter_id} threshold={0.5} />
-      </div>
-      <div className={styles["meters__side-column"]}>
-        <h3 className={styles["meters__section-heading"]}>Daily Usage</h3>
-        <DailyUsage meterId={metersFilters.meter_id} />
-      </div>
-    </div>
-  </section>
-);
-
-const MetersInner = { FiltersBar, Content };
-export default MetersInner;
-
 
 "use client";
 
@@ -147,7 +159,6 @@ const FiltersBar = ({ onFiltersChange }: FiltersBarProps) => {
 
       <QueryParams.Params.SelectedValues
         resultsLoading={false}
-        onClearAll={clearAll}
         filterOverrides={{
           ...groupFilterOverride,
           ...dateRangeFilterOverride,
@@ -190,100 +201,250 @@ const Content = () => (
 const DashboardInner = { FiltersBar, Content };
 export default DashboardInner;
 
+"use client";
+
+import { QueryParams } from "@arqiva/react-component-lib";
+import {
+  DateRangeFilter,
+  dateRangeFilterOverride,
+} from "@/lib/services/api/dashboard/Kpis/filters/DateRangeFilter";
+import {
+  MetersFilter,
+  meterFilterOverride,
+} from "@/lib/services/api/dashboard/Kpis/filters/MetersFilter";
+import { useQueryFilterSync } from "../../../hooks/useQueryFilterSync";
+import KpiSummary from "./widgets/KpiSummary/page";
+import MedianVsWeek from "./widgets/MedianVsWeek/page";
+import LeakageHistory from "./widgets/LeakageHistory/page";
+import DailyUsage from "./widgets/DailyUsage/page";
+import ConsumptionTrend from "./widgets/ConsumptionTrend/page";
+import styles from "./index.module.css";
+
+export interface MetersFilters {
+  meter_id?: string;
+  dateRange?: string;
+}
+
+interface FiltersBarProps {
+  onFiltersChange: (filters: MetersFilters) => void;
+}
+
+const FiltersBar = ({ onFiltersChange }: FiltersBarProps) => {
+  const { clearAll } = useQueryFilterSync<MetersFilters>({
+    storageKey: "meters-filters",
+    inheritedFromStorageKey: "dashboard-filters",
+    inheritKeys: ["dateRange"],
+    onChange: onFiltersChange,
+  });
+
+  return (
+    <div className={styles.meters__filters}>
+      <QueryParams.Params.Filters>
+        <MetersFilter />
+        <DateRangeFilter />
+      </QueryParams.Params.Filters>
+
+      <QueryParams.Params.SelectedValues
+        resultsLoading={false}
+        filterOverrides={{
+          ...meterFilterOverride,
+          ...dateRangeFilterOverride,
+        }}
+        filterIgnoreList={["q", "page", "perPage", "sortBy", "sortDir"]}
+      />
+    </div>
+  );
+};
+
+const Content = ({ metersFilters }: { metersFilters: MetersFilters }) => (
+  <section className={styles.meters}>
+    <div className={styles["meters--full-width"]}>
+      <KpiSummary meterId={metersFilters.meter_id} />
+    </div>
+
+    <div className={styles["meters__split-row"]}>
+      <div className={styles["meters__main-column"]}>
+        <h3 className={styles["meters__section-heading"]}>Consumption Trend</h3>
+        <ConsumptionTrend meterId={metersFilters.meter_id} />
+      </div>
+      <div className={styles["meters__side-column"]}>
+        <h3 className={styles["meters__section-heading"]}>
+          Median vs this weeks consumption
+        </h3>
+        <MedianVsWeek meterId={metersFilters.meter_id} />
+      </div>
+    </div>
+
+    <div className={styles["meters__split-row"]}>
+      <div className={styles["meters__main-column"]}>
+        <h3 className={styles["meters__section-heading"]}>Leakage History</h3>
+        <LeakageHistory meterId={metersFilters.meter_id} threshold={0.5} />
+      </div>
+      <div className={styles["meters__side-column"]}>
+        <h3 className={styles["meters__section-heading"]}>Daily Usage</h3>
+        <DailyUsage meterId={metersFilters.meter_id} />
+      </div>
+    </div>
+  </section>
+);
+
+const MetersInner = { FiltersBar, Content };
+export default MetersInner;
 
 "use client";
 
-import { useEffect, useRef } from "react";
-import { useQueryParams } from "@arqiva/react-component-lib";
+import { ColumnDef } from "@tanstack/react-table";
+import type { Top10MeterEntry } from "../../../models/getTop10Meters";
+import {
+  Button,
+  HorizontalBar,
+  Table,
+  TruncatedText,
+} from "@arqiva/react-component-lib";
+import Link from "next/link";
+import routes from "@/lib/routes";
+import styles from "./index.module.css";
 
-interface UseQueryFilterSyncOptions<T extends Record<string, any>> {
-  storageKey: string;
-  inheritedFromStorageKey?: string;
-  inheritKeys?: (keyof T)[];
-  onChange: (filters: T) => void;
-}
+export const top10Columns: ColumnDef<Top10MeterEntry>[] = [
+  {
+    id: "label",
+    header: "Meter ID",
+    accessorKey: "label",
+    enableSorting: false,
+    size: 70,
+    cell: ({ row }) => {
+      return (
+        <div className={styles["top-ten-table__cell"]}>
+          <Table.Block.Lead className={styles["top-ten-table__meter"]}>
+            <Button
+              variant="text"
+              asChild
+              className={styles["top-ten-table__button"]}
+            >
+              <Link
+                href={{
+                  pathname: routes.dashboard.meters,
+                  query: { meter_id: String(row.original.label) },
+                }}
+              >
+                <TruncatedText text={String(row.original.label)} />
+              </Link>
+            </Button>
+          </Table.Block.Lead>
+        </div>
+      );
+    },
+  },
+  {
+    id: "amount",
+    header: "Amount",
+    accessorKey: "x",
+    enableSorting: false,
+    cell: ({ row, table }) => {
+      const data = [
+        {
+          id: String(row.original.label),
+          value: row.original.x,
+        },
+      ];
 
-export function useQueryFilterSync<T extends Record<string, any>>({
-  storageKey,
-  inheritedFromStorageKey,
-  inheritKeys = [],
-  onChange,
-}: UseQueryFilterSyncOptions<T>) {
-  const { queryParams, setParam, clearAllParams } = useQueryParams();
+      const allRows = table.getRowModel().rows;
+      const maxValue = Math.max(...allRows.map((r) => r.original.x));
 
-  const hasRestoredRef = useRef(false);
+      return (
+        <div className={styles["top-ten-table__cell"]}>
+          <div className={styles["top-ten-table__amount"]}>
+            <HorizontalBar
+              data={data}
+              valueFormatter={(value) => `${value.toFixed(2)} KL`}
+              height={28}
+              maxValue={maxValue}
+              className={styles["top-ten-table__bar"]}
+            />
+          </div>
+        </div>
+      );
+    },
+  },
+];
 
-  /* ---------- Restore (URL wins) ---------- */
+"use client";
+
+import {
+  handleSingleSearchableSelectChange,
+  SearchableSelect,
+  useQueryParams,
+} from "@arqiva/react-component-lib";
+import { memo, useMemo, useEffect } from "react";
+import { useParams } from "next/navigation";
+import { useListAllMeters } from "@/lib/services/api/dashboard/Meters/hooks/useListMeters";
+import { useCustomerContext } from "@/app/_components/CustomerProvider";
+
+export const MetersFilter = memo(() => {
+  const { queryParams, setParam } = useQueryParams();
+  const params = useParams();
+  const { effectiveCustomerId } = useCustomerContext();
+  const { data, isLoading } = useListAllMeters({
+    queryParameters: { customer_id: effectiveCustomerId },
+  });
+
+  const meterIdFromUrl = params?.id as string;
+
+  const options = useMemo(() => {
+    const items = data?.items ?? [];
+    return items.map((m) => ({
+      value: String(m.id),
+      label: String(m.id),
+    }));
+  }, [data]);
+
   useEffect(() => {
-    if (hasRestoredRef.current) return;
-
-    const hasUrlFilters = Object.values(queryParams).some(Boolean);
-    if (hasUrlFilters) {
-      hasRestoredRef.current = true;
-      return;
+    if (meterIdFromUrl && !queryParams.meter_id && setParam) {
+      setParam("meter_id", meterIdFromUrl);
     }
+  }, [meterIdFromUrl, queryParams.meter_id, setParam]);
 
-    // Inherit from another page (Dashboard → Meters)
-    if (inheritedFromStorageKey) {
-      try {
-        const inherited = localStorage.getItem(inheritedFromStorageKey);
-        if (inherited) {
-          const parsed = JSON.parse(inherited);
-          inheritKeys.forEach((key) => {
-            if (parsed[key]) {
-              setParam(String(key), parsed[key]);
-            }
-          });
-        }
-      } catch {}
-    }
+  if (!queryParams || !setParam) {
+    return null;
+  }
 
-    // Fallback to own storage
-    try {
-      const stored = localStorage.getItem(storageKey);
-      if (stored) {
-        const parsed = JSON.parse(stored);
-        Object.entries(parsed).forEach(([key, value]) => {
-          if (value) setParam(key, value);
-        });
-      }
-    } catch {}
+  const menuPortalTarget =
+    typeof window === "undefined" ? undefined : document.body;
 
-    hasRestoredRef.current = true;
-  }, [
-    queryParams,
-    setParam,
-    storageKey,
-    inheritedFromStorageKey,
-    inheritKeys,
-  ]);
+  const selectedMeterId = queryParams.meter_id || meterIdFromUrl;
 
-  /* ---------- Sync + persist ---------- */
-  useEffect(() => {
-    const filters = Object.fromEntries(
-      Object.entries(queryParams).filter(
-        ([, v]) => v !== undefined && v !== null && v !== ""
-      )
-    ) as T;
+  return (
+    <SearchableSelect
+      clearable
+      options={options}
+      isLoading={isLoading}
+      value={options.find((o) => o.value === selectedMeterId) || null}
+      onChange={handleSingleSearchableSelectChange((value) => {
+        setParam("meter_id", value || undefined);
+      })}
+      placeholder="Meter"
+      menuPortalTarget={menuPortalTarget}
+      menuPosition="fixed"
+      styles={{
+        menuPortal: (base) => ({
+          ...base,
+          zIndex: 2000,
+        }),
+        menu: (base) => ({
+          ...base,
+          zIndex: 2000,
+        }),
+      }}
+    />
+  );
+});
 
-    try {
-      localStorage.setItem(storageKey, JSON.stringify(filters));
-    } catch {}
+MetersFilter.displayName = "MetersFilter";
 
-    onChange(filters);
-  }, [queryParams, onChange, storageKey]);
+export const meterFilterOverride = {
+  meter_id: {
+    label: "Meter",
+    valueTransform: String,
+  },
+};
 
-  /* ---------- Clear All ---------- */
-  const clearAll = () => {
-    clearAllParams();
-
-    try {
-      localStorage.removeItem(storageKey);
-    } catch {}
-
-    hasRestoredRef.current = true;
-    onChange({} as T);
-  };
-
-  return { clearAll };
-}
