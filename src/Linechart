@@ -41,7 +41,7 @@ export interface LineChartProps {
   missingLabel?: string;
   solidLineColor?: string;
   dottedLineColor?: string;
-  missingColor?: string;
+  missingColor?: string; // legend color (and can be reused for fill if you want)
   showHoverLine?: boolean;
   hoverLineColor?: string;
   thirdLegendItem?: {
@@ -57,8 +57,9 @@ type FilledPoint = LineChartDataPoint & {
   lower: number | null;
   hasMissing: boolean;
 
-  // ✅ midpoint used to render missing markers between the two series
-  missingMid: number | null;
+  // ✅ used to fill only the missing segments between the two lines
+  missingUpper: number | null;
+  missingLower: number | null;
 };
 
 const toNumOrNull = (v: unknown): number | null => {
@@ -107,27 +108,22 @@ const LineChartComponent = ({
         (v): v is number => v !== null && Number.isFinite(v),
       );
 
-      const hasMissing = d[missingKey] !== null && d[missingKey] !== undefined;
+      const upper = values.length ? Math.max(...values) : null;
+      const lower = values.length ? Math.min(...values) : null;
 
-      // ✅ midpoint for missing markers
-      // - if both exist: midpoint
-      // - if one exists: place marker on that value
-      // - if none: null (no marker)
-      const missingMid =
-        hasMissing
-          ? solidValue !== null && dottedValue !== null
-            ? (solidValue + dottedValue) / 2
-            : solidValue ?? dottedValue
-          : null;
+      const hasMissing = d[missingKey] !== null && d[missingKey] !== undefined;
 
       return {
         ...d,
         solidValue,
         dottedValue,
-        upper: values.length ? Math.max(...values) : null,
-        lower: values.length ? Math.min(...values) : null,
+        upper,
+        lower,
         hasMissing,
-        missingMid,
+
+        // ✅ only populate these when missing exists
+        missingUpper: hasMissing ? upper : null,
+        missingLower: hasMissing ? lower : null,
       };
     });
 
@@ -227,11 +223,7 @@ const LineChartComponent = ({
               }
 
               const safeIdx = Number(idx);
-              if (
-                !Number.isFinite(safeIdx) ||
-                safeIdx < 0 ||
-                safeIdx >= filledData.length
-              ) {
+              if (!Number.isFinite(safeIdx) || safeIdx < 0 || safeIdx >= filledData.length) {
                 setHovered(null);
                 return;
               }
@@ -307,18 +299,26 @@ const LineChartComponent = ({
                   stopOpacity={0.03}
                 />
               </linearGradient>
+
+              {/* ✅ optional: light missing fill (adjust token if you have warning-200, warning-100 etc.) */}
+              <linearGradient id="missingBandFill" x1="0" y1="0" x2="0" y2="1">
+                <stop
+                  offset="0%"
+                  stopColor="rgb(var(--warning-200-base))"
+                  stopOpacity={0.45}
+                />
+                <stop
+                  offset="100%"
+                  stopColor="rgb(var(--warning-200-base))"
+                  stopOpacity={0.25}
+                />
+              </linearGradient>
             </defs>
 
             {/* Missing data background highlights (banded to data range, not full chart height) */}
             {missingRanges.map((range, idx) => {
-              const x1 = filledData[range.start]?.[xAxisKey] as
-                | string
-                | number
-                | undefined;
-              const x2 = filledData[range.end]?.[xAxisKey] as
-                | string
-                | number
-                | undefined;
+              const x1 = filledData[range.start]?.[xAxisKey] as string | number | undefined;
+              const x2 = filledData[range.end]?.[xAxisKey] as string | number | undefined;
 
               if (x1 === undefined || x2 === undefined) return null;
 
@@ -329,13 +329,12 @@ const LineChartComponent = ({
                 .flatMap((d) => [d.solidValue, d.dottedValue])
                 .filter((v): v is number => v !== null && Number.isFinite(v));
 
-              // If no values exist in this range, don't render (prevents full-height shading)
+              // If no values exist in this range, don't render
               if (allValues.length === 0) return null;
 
               const maxValue = Math.max(...allValues);
               const minValue = Math.min(...allValues);
 
-              // Add padding (20%), with a minimum span so small ranges still show a band
               const span = Math.max(maxValue - minValue, 1);
               const padding = span * 0.2;
 
@@ -356,15 +355,26 @@ const LineChartComponent = ({
               );
             })}
 
-            {/* Band between the two series */}
+            {/* Band between the two series (normal band) */}
             <Area
               dataKey="upper"
               stroke="none"
               fill="url(#bandFill)"
-              // baseline uses lower; if lower is null fallback to upper; if both null fallback to 0
               baseLine={filledData.map((d) => d.lower ?? d.upper ?? 0) as unknown as readonly any[]}
               isAnimationActive={false}
               connectNulls={false}
+            />
+
+            {/* ✅ Missing fill BETWEEN consumption & leakage ONLY for missing segments */}
+            <Area
+              dataKey="missingUpper"
+              stroke="none"
+              fill="url(#missingBandFill)"
+              isAnimationActive={false}
+              connectNulls={false}
+              baseLine={
+                filledData.map((d) => (d.hasMissing ? d.missingLower : null)) as unknown as readonly any[]
+              }
             />
 
             <Tooltip
@@ -372,12 +382,8 @@ const LineChartComponent = ({
               content={(props) => {
                 if (!props.payload || props.payload.length === 0) return null;
 
-                const solidData = props.payload.find(
-                  (item) => item.dataKey === solidLineKey,
-                );
-                const dottedData = props.payload.find(
-                  (item) => item.dataKey === dottedLineKey,
-                );
+                const solidData = props.payload.find((item) => item.dataKey === solidLineKey);
+                const dottedData = props.payload.find((item) => item.dataKey === dottedLineKey);
                 const currentData = props.payload[0]?.payload as FilledPoint | undefined;
 
                 const tooltipPayload: Array<{
@@ -446,30 +452,6 @@ const LineChartComponent = ({
               dot={false}
               isAnimationActive={false}
               connectNulls={false}
-            />
-
-            {/* ✅ Missing reading markers BETWEEN consumption & leakage */}
-            <Line
-              type="monotone"
-              dataKey="missingMid"
-              stroke="none" // no connecting line, just dots
-              isAnimationActive={false}
-              connectNulls={false}
-              dot={(props) => {
-                const p = props.payload as FilledPoint | undefined;
-                if (!p?.hasMissing || p.missingMid === null) return null;
-
-                return (
-                  <circle
-                    cx={props.cx}
-                    cy={props.cy}
-                    r={5}
-                    fill={`rgb(var(--${missingColor}-base))`}
-                    stroke="white"
-                    strokeWidth={2}
-                  />
-                );
-              }}
             />
 
             {showHoverLine && hovered && (
