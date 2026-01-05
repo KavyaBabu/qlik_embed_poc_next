@@ -41,7 +41,7 @@ export interface LineChartProps {
   missingLabel?: string;
   solidLineColor?: string;
   dottedLineColor?: string;
-  missingColor?: string; // legend color (and can be reused for fill if you want)
+  missingColor?: string;
   showHoverLine?: boolean;
   hoverLineColor?: string;
   thirdLegendItem?: {
@@ -56,10 +56,6 @@ type FilledPoint = LineChartDataPoint & {
   upper: number | null;
   lower: number | null;
   hasMissing: boolean;
-
-  // ✅ used to fill only the missing segments between the two lines
-  missingUpper: number | null;
-  missingLower: number | null;
 };
 
 const toNumOrNull = (v: unknown): number | null => {
@@ -108,22 +104,13 @@ const LineChartComponent = ({
         (v): v is number => v !== null && Number.isFinite(v),
       );
 
-      const upper = values.length ? Math.max(...values) : null;
-      const lower = values.length ? Math.min(...values) : null;
-
-      const hasMissing = d[missingKey] !== null && d[missingKey] !== undefined;
-
       return {
         ...d,
         solidValue,
         dottedValue,
-        upper,
-        lower,
-        hasMissing,
-
-        // ✅ only populate these when missing exists
-        missingUpper: hasMissing ? upper : null,
-        missingLower: hasMissing ? lower : null,
+        upper: values.length ? Math.max(...values) : null,
+        lower: values.length ? Math.min(...values) : null,
+        hasMissing: d[missingKey] !== null && d[missingKey] !== undefined,
       };
     });
 
@@ -299,20 +286,6 @@ const LineChartComponent = ({
                   stopOpacity={0.03}
                 />
               </linearGradient>
-
-              {/* ✅ optional: light missing fill (adjust token if you have warning-200, warning-100 etc.) */}
-              <linearGradient id="missingBandFill" x1="0" y1="0" x2="0" y2="1">
-                <stop
-                  offset="0%"
-                  stopColor="rgb(var(--warning-200-base))"
-                  stopOpacity={0.45}
-                />
-                <stop
-                  offset="100%"
-                  stopColor="rgb(var(--warning-200-base))"
-                  stopOpacity={0.25}
-                />
-              </linearGradient>
             </defs>
 
             {/* Missing data background highlights (banded to data range, not full chart height) */}
@@ -329,12 +302,13 @@ const LineChartComponent = ({
                 .flatMap((d) => [d.solidValue, d.dottedValue])
                 .filter((v): v is number => v !== null && Number.isFinite(v));
 
-              // If no values exist in this range, don't render
+              // If no values exist in this range, don't render (prevents full-height shading)
               if (allValues.length === 0) return null;
 
               const maxValue = Math.max(...allValues);
               const minValue = Math.min(...allValues);
 
+              // Add padding (20%), with a minimum span so small ranges still show a band
               const span = Math.max(maxValue - minValue, 1);
               const padding = span * 0.2;
 
@@ -355,26 +329,15 @@ const LineChartComponent = ({
               );
             })}
 
-            {/* Band between the two series (normal band) */}
+            {/* Band between the two series */}
             <Area
               dataKey="upper"
               stroke="none"
               fill="url(#bandFill)"
+              // baseline uses lower; if lower is null fallback to upper; if both null fallback to 0
               baseLine={filledData.map((d) => d.lower ?? d.upper ?? 0) as unknown as readonly any[]}
               isAnimationActive={false}
               connectNulls={false}
-            />
-
-            {/* ✅ Missing fill BETWEEN consumption & leakage ONLY for missing segments */}
-            <Area
-              dataKey="missingUpper"
-              stroke="none"
-              fill="url(#missingBandFill)"
-              isAnimationActive={false}
-              connectNulls={false}
-              baseLine={
-                filledData.map((d) => (d.hasMissing ? d.missingLower : null)) as unknown as readonly any[]
-              }
             />
 
             <Tooltip
