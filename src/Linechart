@@ -1,0 +1,592 @@
+import {
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  Tooltip,
+  ResponsiveContainer,
+  CartesianGrid,
+  ReferenceDot,
+  ReferenceLine,
+  Area,
+  ReferenceArea,
+} from 'recharts';
+import { useState, useMemo } from 'react';
+import ChartTooltip from '../ChartToolTip';
+import ChartLegend from '../ChartLegend';
+import { LegendItem } from '../ChartLegend/types';
+import styles from './index.module.css';
+
+export interface LineChartDataPoint {
+  [key: string]: string | number | null;
+}
+
+export interface LineChartProps {
+  data: LineChartDataPoint[];
+  solidLineKey: string;
+  dottedLineKey: string;
+  missingKey?: string;
+  valueFormatter?: (value: number | string | null | undefined) => string;
+  xAxisKey?: string;
+  xAxisLabel?: string;
+  yAxisLabel?: string;
+  height?: number;
+  showGrid?: boolean;
+  showLegend?: boolean;
+  className?: string;
+  title?: string;
+  subtitle?: string;
+  solidLineLabel?: string;
+  dottedLineLabel?: string;
+  missingLabel?: string;
+  solidLineColor?: string;
+  dottedLineColor?: string;
+  missingColor?: string;
+  showHoverLine?: boolean;
+  hoverLineColor?: string;
+  thirdLegendItem?: {
+    label: string;
+    color?: string;
+  };
+}
+
+const LineChartComponent = ({
+  data,
+  solidLineKey,
+  dottedLineKey,
+  missingKey = 'missing',
+  valueFormatter = (v) => `${Number(v || 0).toFixed(0)} KL`,
+  xAxisKey = 'name',
+  xAxisLabel = 'Period',
+  yAxisLabel = 'Value',
+  height = 320,
+  showGrid = true,
+  showLegend = true,
+  className,
+  title,
+  subtitle,
+  solidLineLabel,
+  dottedLineLabel,
+  missingLabel = 'Missing',
+  solidLineColor = 'primary-600',
+  dottedLineColor = 'error-600',
+  missingColor = 'warning-600',
+  showHoverLine = true,
+  hoverLineColor = 'error-700',
+  thirdLegendItem,
+}: LineChartProps) => {
+  const [hovered, setHovered] = useState<{
+    x: string | number;
+    y: number;
+    hasMissing: boolean;
+  } | null>(null);
+
+  const { filledData, missingRanges } = useMemo(() => {
+    const filled = data.map((d) => {
+      const solidValue = Number(d[solidLineKey]) || 0;
+      const dottedValue = Number(d[dottedLineKey]) || 0;
+      const missingValue = d[missingKey];
+
+      return {
+        ...d,
+        upper: Math.max(solidValue, dottedValue),
+        lower: Math.min(solidValue, dottedValue),
+        hasMissing: missingValue !== null && missingValue !== undefined,
+      };
+    });
+
+    // Find missing data ranges for background highlighting
+    const ranges: Array<{ start: number; end: number }> = [];
+    let rangeStart: number | null = null;
+
+    filled.forEach((point, idx) => {
+      if (point.hasMissing) {
+        if (rangeStart === null) {
+          rangeStart = idx;
+        }
+      } else {
+        if (rangeStart !== null) {
+          ranges.push({ start: rangeStart, end: idx - 1 });
+          rangeStart = null;
+        }
+      }
+    });
+
+    // Close final range if it extends to the end
+    if (rangeStart !== null) {
+      ranges.push({ start: rangeStart, end: filled.length - 1 });
+    }
+
+    return { filledData: filled, missingRanges: ranges };
+  }, [data, solidLineKey, dottedLineKey, missingKey]);
+
+  const legendItems: LegendItem[] = useMemo(() => {
+    const items: LegendItem[] = [
+      {
+        dataKey: solidLineKey,
+        label: solidLineLabel || solidLineKey,
+        color: `rgb(var(--${solidLineColor}-base))`,
+      },
+      {
+        dataKey: dottedLineKey,
+        label: dottedLineLabel || dottedLineKey,
+        color: `rgb(var(--${dottedLineColor}-base))`,
+      },
+    ];
+
+    if (thirdLegendItem) {
+      items.push({
+        dataKey: 'reference',
+        label: thirdLegendItem.label,
+        color: thirdLegendItem.color || `rgb(var(--${hoverLineColor}-base))`,
+      });
+    } else {
+      // Add missing legend item if there's missing data
+      const hasMissingData = filledData.some((d) => d.hasMissing);
+      if (hasMissingData) {
+        items.push({
+          dataKey: missingKey,
+          label: missingLabel,
+          color: `rgb(var(--${missingColor}-base))`,
+        });
+      }
+    }
+
+    return items;
+  }, [
+    solidLineKey,
+    dottedLineKey,
+    solidLineLabel,
+    dottedLineLabel,
+    solidLineColor,
+    dottedLineColor,
+    thirdLegendItem,
+    hoverLineColor,
+    missingKey,
+    missingLabel,
+    missingColor,
+    filledData,
+  ]);
+
+  return (
+    <div className={`${styles.container} ${className || ''}`}>
+      <div className={styles.header}>
+        <div className={styles.header__content}>
+          {title && <h3 className={styles.title}>{title}</h3>}
+          {subtitle && <p className={styles.subtitle}>{subtitle}</p>}
+        </div>
+        {showLegend && (
+          <div className={styles.header__legend}>
+            <ChartLegend items={legendItems} />
+          </div>
+        )}
+      </div>
+
+      <div className={styles.wrapper}>
+        <ResponsiveContainer width="100%" height={height}>
+          <LineChart
+            data={filledData}
+            margin={{ top: 20, right: 40, left: 40, bottom: 60 }}
+            onMouseMove={(e) => {
+              if (e?.activeTooltipIndex === undefined || e?.activeTooltipIndex === null) {
+                setHovered(null);
+                return;
+              }
+
+              const idx = Number(e.activeTooltipIndex);
+
+              if (!Number.isFinite(idx) || idx < 0 || idx >= data.length) {
+                setHovered(null);
+                return;
+              }
+
+              const point = data[idx];
+              const solidValue = Number(point[solidLineKey]) || 0;
+              const hasMissing = point[missingKey] !== null && point[missingKey] !== undefined;
+
+              setHovered({
+                x: point[xAxisKey as keyof LineChartDataPoint] as string | number,
+                y: solidValue,
+                hasMissing,
+              });
+            }}
+            onMouseLeave={() => setHovered(null)}
+          >
+            {showGrid && (
+              <CartesianGrid
+                strokeDasharray="0"
+                stroke="rgb(var(--grey-200-base))"
+                horizontal
+                vertical={false}
+              />
+            )}
+
+            <XAxis
+              dataKey={xAxisKey}
+              tick={{ fill: 'rgb(var(--grey-600-base))', fontSize: 12 }}
+              axisLine={false}
+              tickLine={false}
+              dy={8}
+              height={40}
+              label={{
+                value: xAxisLabel,
+                position: 'insideBottom',
+                dy: 40,
+                fill: 'rgb(var(--grey-600-base))',
+                fontSize: 16,
+              }}
+            />
+
+            <YAxis
+              tick={{ fill: 'rgb(var(--grey-600-base))', fontSize: 12 }}
+              axisLine={false}
+              tickLine={false}
+              dx={-8}
+              label={{
+                value: yAxisLabel,
+                angle: -90,
+                position: 'insideLeft',
+                dy: height / 3.3,
+                dx: -20,
+                fill: 'rgb(var(--grey-600-base))',
+                fontSize: 16,
+              }}
+            />
+
+            <defs>
+              <linearGradient id="bandFill" x1="0" y1="0" x2="0" y2="1">
+                <stop
+                  offset="0%"
+                  stopColor={`rgb(var(--${solidLineColor}-base))`}
+                  stopOpacity={0.08}
+                />
+                <stop
+                  offset="100%"
+                  stopColor={`rgb(var(--${solidLineColor}-base))`}
+                  stopOpacity={0.03}
+                />
+              </linearGradient>
+            </defs>
+
+            {/* Missing data background highlights */}
+            {missingRanges.map((range, idx) => {
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              const x1 = (filledData[range.start] as any)?.[xAxisKey];
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              const x2 = (filledData[range.end] as any)?.[xAxisKey];
+              
+              // Calculate Y bounds based on the data range in the missing period
+              const rangeData = filledData.slice(range.start, range.end + 1);
+              const allValues = rangeData.flatMap(d => [
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                Number((d as any)[solidLineKey]) || 0,
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                Number((d as any)[dottedLineKey]) || 0
+              ]).filter(v => v > 0);
+              
+              const maxValue = Math.max(...allValues, 0);
+              const minValue = Math.min(...allValues, 0);
+              
+              // Add some padding (20% above and below)
+              const padding = (maxValue - minValue) * 0.2;
+              const y1 = Math.max(minValue - padding, 0);
+              const y2 = maxValue + padding;
+              
+              return (
+                <ReferenceArea
+                  key={`missing-${idx}`}
+                  x1={x1}
+                  x2={x2}
+                  y1={y1}
+                  y2={y2}
+                  fill={`rgb(var(--${missingColor}-base))`}
+                  fillOpacity={0.12}
+                  ifOverflow="extendDomain"
+                />
+              );
+            })}
+
+            <Area
+              dataKey="upper"
+              stroke="none"
+              fill="url(#bandFill)"
+              //eslint-disable-next-line @typescript-eslint/no-explicit-any
+              baseLine={filledData.map((d) => d.lower) as unknown as readonly any[]}
+              isAnimationActive={false}
+            />
+
+            <Tooltip
+              cursor={false}
+              content={(props) => {
+                if (!props.payload || props.payload.length === 0) return null;
+
+                const solidData = props.payload.find((item) => item.dataKey === solidLineKey);
+                const dottedData = props.payload.find((item) => item.dataKey === dottedLineKey);
+                const currentData = props.payload[0]?.payload;
+
+                const tooltipPayload = [];
+                if (solidData) {
+                  tooltipPayload.push({
+                    dataKey: solidLineKey,
+                    name: solidLineLabel || solidLineKey,
+                    value: Number(solidData.value || 0),
+                    color: `rgb(var(--${solidLineColor}-base))`,
+                  });
+                }
+                if (dottedData) {
+                  tooltipPayload.push({
+                    dataKey: dottedLineKey,
+                    name: dottedLineLabel || dottedLineKey,
+                    value: Number(dottedData.value || 0),
+                    color: `rgb(var(--${dottedLineColor}-base))`,
+                  });
+                }
+
+                // Add missing data to tooltip if present
+                if (currentData?.hasMissing && currentData[missingKey] !== null) {
+                  tooltipPayload.push({
+                    dataKey: missingKey,
+                    name: missingLabel,
+                    value: Number(currentData[missingKey] || 0),
+                    color: `rgb(var(--${missingColor}-base))`,
+                  });
+                }
+
+                return (
+                  <ChartTooltip
+                    active={props.active}
+                    payload={tooltipPayload}
+                    label={String(props.label)}
+                    variant="multi"
+                    valueFormatter={valueFormatter}
+                  />
+                );
+              }}
+            />
+
+            <Line
+              type="monotone"
+              dataKey={solidLineKey}
+              stroke={`rgb(var(--${solidLineColor}-base))`}
+              strokeWidth={2}
+              dot={false}
+              isAnimationActive={false}
+            />
+
+            <Line
+              type="monotone"
+              dataKey={dottedLineKey}
+              stroke={`rgb(var(--${dottedLineColor}-base))`}
+              strokeWidth={2}
+              strokeDasharray="3 6"
+              dot={false}
+              isAnimationActive={false}
+            />
+
+            {showHoverLine && hovered && (
+              <>
+                <ReferenceLine
+                  segment={[
+                    { x: hovered.x, y: hovered.y },
+                    { x: hovered.x, y: 0 },
+                  ]}
+                  stroke={`rgb(var(--${hoverLineColor}-base))`}
+                  strokeDasharray="3 6"
+                  strokeWidth={1.5}
+                />
+                <ReferenceDot
+                  x={hovered.x}
+                  y={hovered.y}
+                  r={5}
+                  fill="white"
+                  stroke={`rgb(var(--${hoverLineColor}-base))`}
+                  strokeWidth={2}
+                />
+              </>
+            )}
+          </LineChart>
+        </ResponsiveContainer>
+      </div>
+    </div>
+  );
+};
+
+export default LineChartComponent;
+
+
+import type { Meta, StoryObj } from '@storybook/react-vite';
+import LineChart from '.';
+import Card from '../../Card';
+import Heading from '../../Heading';
+import React from 'react';
+
+const meta: Meta<typeof LineChart> = {
+  component: LineChart,
+};
+
+export default meta;
+type Story = StoryObj<typeof LineChart>;
+
+const consumptionLeakData = [
+  { name: 'Jan', consumption: 400, leak: 240 },
+  { name: 'Feb', consumption: 520, leak: 280 },
+  { name: 'Mar', consumption: 480, leak: 320 },
+  { name: 'Apr', consumption: 600, leak: 350 },
+  { name: 'May', consumption: 720, leak: 380 },
+  { name: 'Jun', consumption: 700, leak: 400 },
+  { name: 'Jul', consumption: 740, leak: 420 },
+  { name: 'Aug', consumption: 760, leak: 440 },
+  { name: 'Sep', consumption: 800, leak: 460 },
+  { name: 'Oct', consumption: 820, leak: 500 },
+  { name: 'Nov', consumption: 920, leak: 640 },
+  { name: 'Dec', consumption: 960, leak: 680 },
+];
+
+const customMetricsData = [
+  { name: 'Q1', revenue: 4000, cost: 2400 },
+  { name: 'Q2', revenue: 5200, cost: 2800 },
+  { name: 'Q3', revenue: 4800, cost: 3200 },
+  { name: 'Q4', revenue: 6000, cost: 3500 },
+];
+
+export const Default: Story = {
+  args: {
+    data: consumptionLeakData,
+    solidLineKey: 'consumption',
+    dottedLineKey: 'leak',
+    solidLineLabel: 'Consumption',
+    dottedLineLabel: 'Leak',
+    xAxisLabel: 'Month',
+    yAxisLabel: 'Volume (KL)',
+    height: 300,
+    showGrid: true,
+  },
+};
+
+export const WithMissingIndicator: Story = {
+  render: () => {
+    return (
+      <Card>
+        <Heading variant="text--md" level={3} style={{ marginBottom: '4px' }}>
+          Consumption & Leakage with Missing Data Indicator
+        </Heading>
+        <LineChart
+          data={consumptionLeakData}
+          solidLineKey="consumption"
+          dottedLineKey="leak"
+          solidLineLabel="Consumption"
+          dottedLineLabel="Leakage"
+          valueFormatter={(value) => `${Number(value || 0).toFixed(0)} KL`}
+          xAxisLabel="Month"
+          yAxisLabel="Volume (KL)"
+          height={400}
+          showGrid={true}
+          showHoverLine={true}
+          hoverLineColor="error-700"
+          thirdLegendItem={{
+            label: 'Missing',
+            color: 'rgb(var(--error-700-base))',
+          }}
+        />
+      </Card>
+    );
+  },
+};
+
+export const WithCustomHoverColor: Story = {
+  render: () => {
+    return (
+      <Card>
+        <Heading variant="text--md" level={3} style={{ marginBottom: '4px' }}>
+          Revenue & Cost with Custom Hover Line
+        </Heading>
+        <LineChart
+          data={customMetricsData}
+          solidLineKey="revenue"
+          dottedLineKey="cost"
+          solidLineLabel="Revenue"
+          dottedLineLabel="Cost"
+          valueFormatter={(value) => `$${Number(value || 0).toLocaleString()}`}
+          xAxisLabel="Quarter"
+          yAxisLabel="Amount ($)"
+          height={400}
+          showGrid={true}
+          showHoverLine={true}
+          hoverLineColor="primary-600"
+        />
+      </Card>
+    );
+  },
+};
+
+export const WithoutHoverLine: Story = {
+  args: {
+    data: consumptionLeakData,
+    solidLineKey: 'consumption',
+    dottedLineKey: 'leak',
+    solidLineLabel: 'Consumption',
+    dottedLineLabel: 'Leak',
+    xAxisLabel: 'Month',
+    yAxisLabel: 'Volume (KL)',
+    height: 300,
+    showGrid: true,
+    showHoverLine: false,
+  },
+};
+
+export const CustomFormatting: Story = {
+  args: {
+    data: customMetricsData,
+    solidLineKey: 'revenue',
+    dottedLineKey: 'cost',
+    solidLineLabel: 'Revenue',
+    dottedLineLabel: 'Cost',
+    xAxisLabel: 'Quarter',
+    yAxisLabel: 'Amount ($)',
+    valueFormatter: (value) => `$${Number(value || 0).toLocaleString()}`,
+    height: 300,
+    showGrid: true,
+  },
+};
+
+export const WithMissingDataValues: Story = {
+  render: () => {
+    const dataWithMissing = [
+      { name: 'Jan', consumption: 0.0, leak: null, missing: null },
+      { name: 'Feb', consumption: 520, leak: 280, missing: null },
+      { name: 'Mar', consumption: 480, leak: 320, missing: null },
+      { name: 'Apr', consumption: 600, leak: 350, missing: 0.0 },
+    ];
+
+    return (
+      <Card>
+        <Heading variant="text--md" level={3} style={{ marginBottom: '4px' }}>
+          Consumption & Leakage with Missing Data Values
+        </Heading>
+        <p style={{ fontSize: '0.875rem', color: 'rgb(var(--grey-600-base))', marginBottom: '1rem' }}>
+          Consumption in blue, Leakage in red. Missing data highlighted with targeted light yellow background 
+          around the data range area (not full chart height). Shows detected missing readings.
+        </p>
+        <LineChart
+          data={dataWithMissing}
+          solidLineKey="consumption"
+          dottedLineKey="leak"
+          missingKey="missing"
+          solidLineLabel="Consumption"
+          dottedLineLabel="Leakage"
+          missingLabel="Missing Readings"
+          solidLineColor="primary-600"
+          dottedLineColor="error-700"
+          missingColor="warning-600"
+          valueFormatter={(value) => `${Number(value || 0).toFixed(0)} KL`}
+          xAxisLabel="Month"
+          yAxisLabel="Volume (KL)"
+          height={350}
+          showGrid={true}
+          showHoverLine={true}
+        />
+      </Card>
+    );
+  },
+};
+
