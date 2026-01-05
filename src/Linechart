@@ -56,6 +56,9 @@ type FilledPoint = LineChartDataPoint & {
   upper: number | null;
   lower: number | null;
   hasMissing: boolean;
+
+  // ✅ midpoint used to render missing markers between the two series
+  missingMid: number | null;
 };
 
 const toNumOrNull = (v: unknown): number | null => {
@@ -104,13 +107,27 @@ const LineChartComponent = ({
         (v): v is number => v !== null && Number.isFinite(v),
       );
 
+      const hasMissing = d[missingKey] !== null && d[missingKey] !== undefined;
+
+      // ✅ midpoint for missing markers
+      // - if both exist: midpoint
+      // - if one exists: place marker on that value
+      // - if none: null (no marker)
+      const missingMid =
+        hasMissing
+          ? solidValue !== null && dottedValue !== null
+            ? (solidValue + dottedValue) / 2
+            : solidValue ?? dottedValue
+          : null;
+
       return {
         ...d,
         solidValue,
         dottedValue,
         upper: values.length ? Math.max(...values) : null,
         lower: values.length ? Math.min(...values) : null,
-        hasMissing: d[missingKey] !== null && d[missingKey] !== undefined,
+        hasMissing,
+        missingMid,
       };
     });
 
@@ -210,7 +227,11 @@ const LineChartComponent = ({
               }
 
               const safeIdx = Number(idx);
-              if (!Number.isFinite(safeIdx) || safeIdx < 0 || safeIdx >= filledData.length) {
+              if (
+                !Number.isFinite(safeIdx) ||
+                safeIdx < 0 ||
+                safeIdx >= filledData.length
+              ) {
                 setHovered(null);
                 return;
               }
@@ -290,8 +311,14 @@ const LineChartComponent = ({
 
             {/* Missing data background highlights (banded to data range, not full chart height) */}
             {missingRanges.map((range, idx) => {
-              const x1 = filledData[range.start]?.[xAxisKey] as string | number | undefined;
-              const x2 = filledData[range.end]?.[xAxisKey] as string | number | undefined;
+              const x1 = filledData[range.start]?.[xAxisKey] as
+                | string
+                | number
+                | undefined;
+              const x2 = filledData[range.end]?.[xAxisKey] as
+                | string
+                | number
+                | undefined;
 
               if (x1 === undefined || x2 === undefined) return null;
 
@@ -345,8 +372,12 @@ const LineChartComponent = ({
               content={(props) => {
                 if (!props.payload || props.payload.length === 0) return null;
 
-                const solidData = props.payload.find((item) => item.dataKey === solidLineKey);
-                const dottedData = props.payload.find((item) => item.dataKey === dottedLineKey);
+                const solidData = props.payload.find(
+                  (item) => item.dataKey === solidLineKey,
+                );
+                const dottedData = props.payload.find(
+                  (item) => item.dataKey === dottedLineKey,
+                );
                 const currentData = props.payload[0]?.payload as FilledPoint | undefined;
 
                 const tooltipPayload: Array<{
@@ -415,6 +446,30 @@ const LineChartComponent = ({
               dot={false}
               isAnimationActive={false}
               connectNulls={false}
+            />
+
+            {/* ✅ Missing reading markers BETWEEN consumption & leakage */}
+            <Line
+              type="monotone"
+              dataKey="missingMid"
+              stroke="none" // no connecting line, just dots
+              isAnimationActive={false}
+              connectNulls={false}
+              dot={(props) => {
+                const p = props.payload as FilledPoint | undefined;
+                if (!p?.hasMissing || p.missingMid === null) return null;
+
+                return (
+                  <circle
+                    cx={props.cx}
+                    cy={props.cy}
+                    r={5}
+                    fill={`rgb(var(--${missingColor}-base))`}
+                    stroke="white"
+                    strokeWidth={2}
+                  />
+                );
+              }}
             />
 
             {showHoverLine && hovered && (
